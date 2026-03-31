@@ -15,9 +15,10 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev": "bun run ./src/dev-entry.ts",
-    "start": "bun run ./src/dev-entry.ts",
-    "version": "bun run ./src/dev-entry.ts --version"
+    "dev": "bun run ./src/bootstrap-entry.ts",
+    "start": "bun run ./src/bootstrap-entry.ts",
+    "version": "bun run ./src/bootstrap-entry.ts --version",
+    "dev:restore-check": "bun run ./src/dev-entry.ts"
   },
   "dependencies": {
     "@alcalzone/ansi-tokenize": "*",
