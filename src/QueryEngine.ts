@@ -1122,12 +1122,24 @@ export class QueryEngine {
     let isApiError = false
 
     if (result.type === 'assistant') {
-      const lastContent = last(result.message.content)
-      if (
-        lastContent?.type === 'text' &&
-        !SYNTHETIC_MESSAGES.has(lastContent.text)
-      ) {
-        textResult = lastContent.text
+      // Each content_block_stop yields a separate assistant message. With 
+      // non-Anthropic providers (e.g. OpenRouter), redacted_thinking may come 
+      // AFTER the text block, making the last assistant message contain only 
+      // redacted_thinking. Search backwards through all assistant messages
+      // to find the last one containing a text content block.
+      let textFound = false
+      for (let i = messages.length - 1; i >= 0 && !textFound; i--) {
+        const msg = messages[i]
+        if (msg.type === 'assistant') {
+          for (let j = msg.message.content.length - 1; j >= 0; j--) {
+            const block = msg.message.content[j]
+            if (block.type === 'text' && !SYNTHETIC_MESSAGES.has((block as any).text)) {
+              textResult = (block as any).text
+              textFound = true
+              break
+            }
+          }
+        }
       }
       isApiError = Boolean(result.isApiErrorMessage)
     }
