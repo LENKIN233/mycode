@@ -185,7 +185,7 @@ export default class App extends PureComponent<Props, State> {
   }
   override componentDidMount() {
     // In accessibility mode, keep the native cursor visible for screen magnifiers and other tools
-    if (this.props.stdout.isTTY && !isEnvTruthy(process.env.CLAUDE_CODE_ACCESSIBILITY)) {
+    if (this.props.stdout.isTTY && !isEnvTruthy(process.env.MYCODE_ACCESSIBILITY)) {
       this.props.stdout.write(HIDE_CURSOR);
     }
     this.setStdinKeepAlive(true);
@@ -436,7 +436,7 @@ export default class App extends PureComponent<Props, State> {
       this.props.stdout.write(SHOW_CURSOR + DFE + DISABLE_MOUSE_TRACKING);
     }
 
-    // Emit suspend event for Claude Code to handle. Mostly just has a notification
+    // Emit suspend event for MyCode to handle. Mostly just has a notification
     this.internal_eventEmitter.emit('suspend');
 
     // Set up resume handler
@@ -450,14 +450,14 @@ export default class App extends PureComponent<Props, State> {
 
       // Hide cursor (unless in accessibility mode) and re-enable focus reporting after resuming
       if (this.props.stdout.isTTY) {
-        if (!isEnvTruthy(process.env.CLAUDE_CODE_ACCESSIBILITY)) {
+        if (!isEnvTruthy(process.env.MYCODE_ACCESSIBILITY)) {
           this.props.stdout.write(HIDE_CURSOR);
         }
         // Re-enable focus reporting to restore terminal state
         this.props.stdout.write(EFE);
       }
 
-      // Emit resume event for Claude Code to handle
+      // Emit resume event for MyCode to handle
       this.internal_eventEmitter.emit('resume');
       process.removeListener('SIGCONT', resumeHandler);
     };

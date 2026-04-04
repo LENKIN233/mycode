@@ -120,9 +120,9 @@ function cleanupTerminalModes(): void {
     // Clear tab status (OSC 21337) so a stale dot doesn't linger
     if (supportsTabStatus()) writeSync(1, wrapForMultiplexer(CLEAR_TAB_STATUS))
     // Clear terminal title so the tab doesn't show stale session info.
-    // Respect CLAUDE_CODE_DISABLE_TERMINAL_TITLE — if the user opted out of
+    // Respect MYCODE_DISABLE_TERMINAL_TITLE — if the user opted out of
     // title changes, don't clear their existing title on exit either.
-    if (!isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_TERMINAL_TITLE)) {
+    if (!isEnvTruthy(process.env.MYCODE_DISABLE_TERMINAL_TITLE)) {
       if (process.platform === 'win32') {
         process.title = ''
       } else {
@@ -154,7 +154,7 @@ function printResumeHint(): void {
   ) {
     try {
       const sessionId = getSessionId()
-      // Don't show resume hint if no session file exists (e.g., subcommands like `claude update`)
+      // Don't show resume hint if no session file exists (e.g., subcommands like `mycode update`)
       if (!sessionIdExists(sessionId)) {
         return
       }
@@ -173,7 +173,7 @@ function printResumeHint(): void {
       writeSync(
         1,
         chalk.dim(
-          `\nResume this session with:\nclaude --resume ${resumeArg}\n`,
+          `\nResume this session with:\nmycode --resume ${resumeArg}\n`,
         ),
       )
       resumeHintPrinted = true
@@ -356,6 +356,16 @@ export function gracefulShutdownSync(
     // Prevent unhandled rejection: forceExit re-throws in test mode,
     // which would escape the .catch() handler above as a new rejection.
     .catch(() => {})
+
+  // Hard-exit backup: the async gracefulShutdown's failsafe timer is .unref()'d
+  // so it doesn't keep the event loop alive. If other handles (e.g., HTTP keep-alive
+  // connections from fetch()) hold the loop open, we'd hang for ~120s. This .ref()'d
+  // timer guarantees exit within 8s regardless of open handles.
+  const hardExitTimer = setTimeout(() => {
+    forceExit(exitCode)
+  }, 8000)
+  // Intentionally NOT .unref()'d — must keep the loop alive to fire.
+  void hardExitTimer
 }
 
 let shutdownInProgress = false
@@ -467,7 +477,7 @@ export async function gracefulShutdown(
   }
 
   // Execute SessionEnd hooks. Bound both the per-hook default timeout and the
-  // overall execution via a single budget (CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS,
+  // overall execution via a single budget (MYCODE_SESSIONEND_HOOKS_TIMEOUT_MS,
   // default 1.5s). hook.timeout in settings is respected up to this cap.
   try {
     await executeSessionEndHooks(reason, {

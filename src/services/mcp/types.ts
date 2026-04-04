@@ -14,7 +14,7 @@ export const ConfigScopeSchema = lazySchema(() =>
     'project',
     'dynamic',
     'enterprise',
-    'claudeai',
+    'mycodeai',
     'managed',
   ]),
 )
@@ -112,10 +112,10 @@ export const McpSdkServerConfigSchema = lazySchema(() =>
   }),
 )
 
-// Config type for Claude.ai proxy servers
-export const McpClaudeAIProxyServerConfigSchema = lazySchema(() =>
+// Config type for MyCode.ai proxy servers
+export const McpMyCodeAIProxyServerConfigSchema = lazySchema(() =>
   z.object({
-    type: z.literal('claudeai-proxy'),
+    type: z.literal('mycodeai-proxy'),
     url: z.string(),
     id: z.string(),
   }),
@@ -130,7 +130,7 @@ export const McpServerConfigSchema = lazySchema(() =>
     McpHTTPServerConfigSchema(),
     McpWebSocketServerConfigSchema(),
     McpSdkServerConfigSchema(),
-    McpClaudeAIProxyServerConfigSchema(),
+    McpMyCodeAIProxyServerConfigSchema(),
   ]),
 )
 
@@ -155,8 +155,8 @@ export type McpWebSocketServerConfig = z.infer<
 export type McpSdkServerConfig = z.infer<
   ReturnType<typeof McpSdkServerConfigSchema>
 >
-export type McpClaudeAIProxyServerConfig = z.infer<
-  ReturnType<typeof McpClaudeAIProxyServerConfigSchema>
+export type McpMyCodeAIProxyServerConfig = z.infer<
+  ReturnType<typeof McpMyCodeAIProxyServerConfigSchema>
 >
 export type McpServerConfig = z.infer<ReturnType<typeof McpServerConfigSchema>>
 

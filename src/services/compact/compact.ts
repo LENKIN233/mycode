@@ -99,7 +99,7 @@ import {
 import {
   getMaxOutputTokensForModel,
   queryModelWithStreaming,
-} from '../api/claude.js'
+} from '../api/mycode.js'
 import {
   getPromptTooLongTokenGap,
   PROMPT_TOO_LONG_ERROR_MESSAGE,
@@ -108,6 +108,7 @@ import {
 import { notifyCompaction } from '../api/promptCacheBreakDetection.js'
 import { getRetryDelay } from '../api/withRetry.js'
 import { logPermissionContextForAnts } from '../internalLogging.js'
+import { getAPIProvider } from '../../utils/model/providers.js'
 import {
   roughTokenCountEstimation,
   roughTokenCountEstimationForMessages,
@@ -122,7 +123,7 @@ import {
 export const POST_COMPACT_MAX_FILES_TO_RESTORE = 5
 export const POST_COMPACT_TOKEN_BUDGET = 50_000
 export const POST_COMPACT_MAX_TOKENS_PER_FILE = 5_000
-// Skills can be large (verify=18.7KB, claude-api=20.1KB). Previously re-injected
+// Skills can be large (verify=18.7KB, mycode-api=20.1KB). Previously re-injected
 // unbounded on every compact → 5-10K tok/compact. Per-skill truncation beats
 // dropping — instructions at the top of a skill file are usually the critical
 // part. Budget sized to hold ~5 skills at the per-skill cap.
@@ -1148,6 +1149,15 @@ async function streamCompactSummary({
   preCompactTokenCount: number
   cacheSafeParams: CacheSafeParams
 }): Promise<AssistantMessage> {
+  // Copilot optimization: use a free/cheap model for compaction instead of
+  // the expensive main model. Copilot has no prompt caching so there's no
+  // cache-sharing benefit from using the same model as the main loop.
+  // gpt-4.1 is free (0x multiplier), Haiku is 0.33x — either beats Opus at 3x.
+  const copilotCompactModel =
+    getAPIProvider() === 'copilot'
+      ? (process.env.MYCODE_COMPACT_MODEL || 'gpt-4.1')
+      : null
+
   // When prompt cache sharing is enabled, use forked agent to reuse the
   // main conversation's cached prefix (system prompt, tools, context messages).
   // Falls back to regular streaming path on failure.
@@ -1181,13 +1191,24 @@ async function streamCompactSummary({
         // DO NOT set maxOutputTokens here. The fork piggybacks on the main thread's
         // prompt cache by sending identical cache-key params (system, tools, model,
         // messages prefix, thinking config). Setting maxOutputTokens would clamp
-        // budget_tokens via Math.min(budget, maxOutputTokens-1) in claude.ts,
+        // budget_tokens via Math.min(budget, maxOutputTokens-1) in mycode.ts,
         // creating a thinking config mismatch that invalidates the cache.
         // The streaming fallback path (below) can safely set maxOutputTokensOverride
         // since it doesn't share cache with the main thread.
         const result = await runForkedAgent({
           promptMessages: [summaryRequest],
-          cacheSafeParams,
+          cacheSafeParams: copilotCompactModel
+            ? {
+                ...cacheSafeParams,
+                toolUseContext: {
+                  ...cacheSafeParams.toolUseContext,
+                  options: {
+                    ...cacheSafeParams.toolUseContext.options,
+                    mainLoopModel: copilotCompactModel,
+                  },
+                },
+              }
+            : cacheSafeParams,
           canUseTool: createCompactCanUseTool(),
           querySource: 'compact',
           forkLabel: 'compact',
@@ -1310,13 +1331,13 @@ async function streamCompactSummary({
             const appState = context.getAppState()
             return appState.toolPermissionContext
           },
-          model: context.options.mainLoopModel,
+          model: copilotCompactModel || context.options.mainLoopModel,
           toolChoice: undefined,
           isNonInteractiveSession: context.options.isNonInteractiveSession,
           hasAppendSystemPrompt: !!context.options.appendSystemPrompt,
           maxOutputTokensOverride: Math.min(
             COMPACT_MAX_OUTPUT_TOKENS,
-            getMaxOutputTokensForModel(context.options.mainLoopModel),
+            getMaxOutputTokensForModel(copilotCompactModel || context.options.mainLoopModel),
           ),
           querySource: 'compact',
           agents: context.options.agentDefinitions.activeAgents,
@@ -1686,9 +1707,9 @@ function shouldExcludeFromPostCompactRestore(
     // If we can't get plan file path, continue with other checks
   }
 
-  // Exclude all types of claude.md files
-  // TODO: Refactor to use isMemoryFilePath() from claudemd.ts for consistency
-  // and to also match child directory memory files (.claude/rules/*.md, etc.)
+  // Exclude all types of mycode.md files
+  // TODO: Refactor to use isMemoryFilePath() from mycodeMd.ts for consistency
+  // and to also match child directory memory files (.mycode/rules/*.md, etc.)
   try {
     const normalizedMemoryPaths = new Set(
       MEMORY_TYPE_VALUES.map(type => expandPath(getMemoryPath(type))),

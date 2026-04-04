@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Text } from '../ink.js';
-import { isClaudeAISubscriber } from '../utils/auth.js';
-import { isChromeExtensionInstalled, shouldEnableClaudeInChrome } from '../utils/claudeInChrome/setup.js';
+import { isMyCodeAISubscriber } from '../utils/auth.js';
+import { isChromeExtensionInstalled, shouldEnableMyCodeInChrome } from '../utils/mycodeInChrome/setup.js';
 import { isRunningOnHomespace } from '../utils/envUtils.js';
 import { useStartupNotification } from './notifs/useStartupNotification.js';
 function getChromeFlag(): boolean | undefined {
@@ -18,13 +18,13 @@ export function useChromeExtensionNotification() {
 }
 async function _temp() {
   const chromeFlag = getChromeFlag();
-  if (!shouldEnableClaudeInChrome(chromeFlag)) {
+  if (!shouldEnableMyCodeInChrome(chromeFlag)) {
     return null;
   }
-  if (true && !isClaudeAISubscriber()) {
+  if (true && !isMyCodeAISubscriber()) {
     return {
       key: "chrome-requires-subscription",
-      jsx: <Text color="error">Claude in Chrome requires a claude.ai subscription</Text>,
+      jsx: <Text color="error">Browser Extension requires a mycode.ai subscription</Text>,
       priority: "immediate",
       timeoutMs: 5000
     };
@@ -33,15 +33,15 @@ async function _temp() {
   if (!installed && !isRunningOnHomespace()) {
     return {
       key: "chrome-extension-not-detected",
-      jsx: <Text color="warning">Chrome extension not detected · https://claude.ai/chrome to install</Text>,
+      jsx: <Text color="warning">Chrome extension not detected · https://mycode.ai/chrome to install</Text>,
       priority: "immediate",
       timeoutMs: 3000
     };
   }
   if (chromeFlag === undefined) {
     return {
-      key: "claude-in-chrome-default-enabled",
-      text: "Claude in Chrome enabled \xB7 /chrome",
+      key: "mycode-in-chrome-default-enabled",
+      text: "Browser Extension enabled \xB7 /chrome",
       priority: "low"
     };
   }

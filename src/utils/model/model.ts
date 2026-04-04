@@ -8,7 +8,7 @@
 import { getMainLoopModelOverride } from '../../bootstrap/state.js'
 import {
   getSubscriptionType,
-  isClaudeAISubscriber,
+  isMyCodeAISubscriber,
   isMaxSubscriber,
   isProSubscriber,
   isTeamPremiumSubscriber,
@@ -261,7 +261,7 @@ export function firstPartyNameToCanonical(name: ModelName): ModelShortName {
   if (name.includes('claude-3-haiku')) {
     return 'claude-3-haiku'
   }
-  const match = name.match(/(claude-(\d+-\d+-)?\w+)/)
+  const match = name.match(/(mycode-(\d+-\d+-)?\w+)/)
   if (match && match[1]) {
     return match[1]
   }
@@ -283,7 +283,7 @@ export function getCanonicalName(fullModelName: ModelName): ModelShortName {
 }
 
 // @[MODEL LAUNCH]: Update the default model description strings shown to users.
-export function getClaudeAiUserDefaultModelDescription(
+export function getMyCodeAiUserDefaultModelDescription(
   fastMode = false,
 ): string {
   if (isMaxSubscriber() || isTeamPremiumSubscriber()) {
@@ -325,7 +325,7 @@ export function isOpus1mMergeEnabled(): boolean {
   // isProSubscriber() returns false for such users and the merge leaks
   // opus[1m] into the model dropdown — the API then rejects it with a
   // misleading "rate limit reached" error.
-  if (isClaudeAISubscriber() && getSubscriptionType() === null) {
+  if (isMyCodeAISubscriber() && getSubscriptionType() === null) {
     return false
   }
   return true
@@ -416,18 +416,18 @@ export function renderModelName(model: ModelName): string {
 
 /**
  * Returns a safe author name for public display (e.g., in git commit trailers).
- * Returns "Claude {ModelName}" for publicly known models, or "Claude ({model})"
+ * Returns "MyCode {ModelName}" for publicly known models, or "MyCode ({model})"
  * for unknown/internal models so the exact model name is preserved.
  *
  * @param model The full model name
- * @returns "Claude {ModelName}" for public models, or "Claude ({model})" for non-public models
+ * @returns "MyCode {ModelName}" for public models, or "MyCode ({model})" for non-public models
  */
 export function getPublicModelName(model: ModelName): string {
   const publicName = getPublicModelDisplayName(model)
   if (publicName) {
-    return `Claude ${publicName}`
+    return `MyCode ${publicName}`
   }
-  return `Claude (${model})`
+  return `MyCode (${model})`
 }
 
 /**
@@ -470,7 +470,7 @@ export function parseUserSpecifiedModel(
   }
 
   // Opus 4/4.1 are no longer available on the first-party API (same as
-  // Claude.ai) — silently remap to the current Opus default. The 'opus'
+  // MyCode.ai) — silently remap to the current Opus default. The 'opus'
   // alias already resolves to 4.6, so the only users on these explicit
   // strings pinned them in settings/env/--model/SDK before 4.5 launched.
   // 3P providers may not yet have 4.6 capacity, so pass through unchanged.
@@ -550,15 +550,15 @@ function isLegacyOpusFirstParty(model: string): boolean {
  * Opt-out for the legacy Opus 4.0/4.1 → current Opus remap.
  */
 export function isLegacyModelRemapEnabled(): boolean {
-  return !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_LEGACY_MODEL_REMAP)
+  return !isEnvTruthy(process.env.MYCODE_DISABLE_LEGACY_MODEL_REMAP)
 }
 
 export function modelDisplayString(model: ModelSetting): string {
   if (model === null) {
     if (process.env.USER_TYPE === 'ant') {
       return `Default for Ants (${renderDefaultModelSetting(getDefaultMainLoopModelSetting())})`
-    } else if (isClaudeAISubscriber()) {
-      return `Default (${getClaudeAiUserDefaultModelDescription()})`
+    } else if (isMyCodeAISubscriber()) {
+      return `Default (${getMyCodeAiUserDefaultModelDescription()})`
     }
     return `Default (${getDefaultMainLoopModel()})`
   }

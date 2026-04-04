@@ -41,11 +41,11 @@ async function createWorkflowFile(
   }
 
   let content = workflowContent
-  if (secretName === 'CLAUDE_CODE_OAUTH_TOKEN') {
-    // For OAuth tokens, use the claude_code_oauth_token parameter
+  if (secretName === 'MYCODE_OAUTH_TOKEN') {
+    // For OAuth tokens, use the mycode_oauth_token parameter
     content = workflowContent.replace(
       /anthropic_api_key: \$\{\{ secrets\.ANTHROPIC_API_KEY \}\}/g,
-      `claude_code_oauth_token: \${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`,
+      `mycode_oauth_token: \${{ secrets.MYCODE_OAUTH_TOKEN }}`,
     )
   } else if (secretName !== 'ANTHROPIC_API_KEY') {
     // For other custom secret names, keep using anthropic_api_key parameter
@@ -86,7 +86,7 @@ async function createWorkflowFile(
         ...context,
       })
       throw new Error(
-        `Failed to create workflow file ${workflowPath}: A Claude workflow file already exists in this repository. Please remove it first or update it manually.`,
+        `Failed to create workflow file ${workflowPath}: A MyCode workflow file already exists in this repository. Please remove it first or update it manually.`,
       )
     }
 
@@ -101,7 +101,7 @@ async function createWorkflowFile(
       '\n\nNeed help? Common issues:\n' +
       '· Permission denied → Run: gh auth refresh -h github.com -s repo,workflow\n' +
       '· Not authorized → Ensure you have admin access to the repository\n' +
-      '· For manual setup → Visit: https://github.com/anthropics/claude-code-action'
+      '· For manual setup → Visit: https://github.com/anthropics/mycode-action'
 
     throw new Error(
       `Failed to create workflow file ${workflowPath}: ${createFileResult.stderr}${helpText}`,
@@ -128,9 +128,9 @@ export async function setupGitHubActions(
       skip_workflow: skipWorkflow,
       has_api_key: !!apiKeyOrOAuthToken,
       using_default_secret_name: secretName === 'ANTHROPIC_API_KEY',
-      selected_claude_workflow: selectedWorkflows.includes('claude'),
-      selected_claude_review_workflow:
-        selectedWorkflows.includes('claude-review'),
+      selected_mycode_workflow: selectedWorkflows.includes('mycode'),
+      selected_mycode_review_workflow:
+        selectedWorkflows.includes('mycode-review'),
       ...context,
     })
 
@@ -196,7 +196,7 @@ export async function setupGitHubActions(
     if (!skipWorkflow) {
       updateProgress()
       // Create new branch
-      branchName = `add-claude-github-actions-${Date.now()}`
+      branchName = `add-mycode-github-actions-${Date.now()}`
       const createBranchResult = await execFileNoThrow('gh', [
         'api',
         '--method',
@@ -221,19 +221,19 @@ export async function setupGitHubActions(
       // Create selected workflow files
       const workflows = []
 
-      if (selectedWorkflows.includes('claude')) {
+      if (selectedWorkflows.includes('mycode')) {
         workflows.push({
-          path: '.github/workflows/claude.yml',
+          path: '.github/workflows/mycode.yml',
           content: WORKFLOW_CONTENT,
-          message: 'Claude PR Assistant workflow',
+          message: 'MyCode PR Assistant workflow',
         })
       }
 
-      if (selectedWorkflows.includes('claude-review')) {
+      if (selectedWorkflows.includes('mycode-review')) {
         workflows.push({
-          path: '.github/workflows/claude-code-review.yml',
+          path: '.github/workflows/mycode-review.yml',
           content: CODE_REVIEW_PLUGIN_WORKFLOW_CONTENT,
-          message: 'Claude Code Review workflow',
+          message: 'MyCode Review workflow',
         })
       }
 
@@ -274,7 +274,7 @@ export async function setupGitHubActions(
           '\n\nNeed help? Common issues:\n' +
           '· Permission denied → Run: gh auth refresh -h github.com -s repo\n' +
           '· Not authorized → Ensure you have admin access to the repository\n' +
-          '· For manual setup → Visit: https://github.com/anthropics/claude-code-action'
+          '· For manual setup → Visit: https://github.com/anthropics/mycode-action'
 
         throw new Error(
           `Failed to set API key secret: ${setSecretResult.stderr || 'Unknown error'}${helpText}`,
@@ -296,9 +296,9 @@ export async function setupGitHubActions(
       auth_type:
         authType as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       using_default_secret_name: secretName === 'ANTHROPIC_API_KEY',
-      selected_claude_workflow: selectedWorkflows.includes('claude'),
-      selected_claude_review_workflow:
-        selectedWorkflows.includes('claude-review'),
+      selected_mycode_workflow: selectedWorkflows.includes('mycode'),
+      selected_mycode_review_workflow:
+        selectedWorkflows.includes('mycode-review'),
       ...context,
     })
     saveGlobalConfig(current => ({

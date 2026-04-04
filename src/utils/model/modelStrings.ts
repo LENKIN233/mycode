@@ -164,3 +164,11 @@ export async function ensureModelStringsInitialized(): Promise<void> {
   // For Bedrock, wait for the profile fetch
   await updateBedrockModelStrings()
 }
+
+/**
+ * Force re-initialization of model strings for the current provider.
+ * Called when the API provider changes at runtime (e.g. /provider copilot).
+ */
+export function reinitModelStrings(): void {
+  setModelStringsState(getBuiltinModelStrings(getAPIProvider()))
+}

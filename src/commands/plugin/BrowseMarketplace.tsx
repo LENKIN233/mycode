@@ -150,10 +150,10 @@ export function BrowseMarketplace({
           }
         }
 
-        // Sort so claude-plugin-directory is always first
+        // Sort so mycode-plugin-directory is always first
         marketplaceInfos.sort((a, b) => {
-          if (a.name === 'claude-plugin-directory') return -1;
-          if (b.name === 'claude-plugin-directory') return 1;
+          if (a.name === 'mycode-plugin-directory') return -1;
+          if (b.name === 'mycode-plugin-directory') return 1;
           return 0;
         });
         setMarketplaces(marketplaceInfos);

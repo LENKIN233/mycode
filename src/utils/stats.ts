@@ -50,7 +50,7 @@ export type SessionStats = {
   timestamp: string
 }
 
-export type ClaudeCodeStats = {
+export type MyCodeStats = {
   // Activity overview
   totalSessions: number
   totalMessages: number
@@ -435,12 +435,12 @@ async function getAllSessionFiles(): Promise<string[]> {
 }
 
 /**
- * Convert a PersistedStatsCache to ClaudeCodeStats by computing derived fields.
+ * Convert a PersistedStatsCache to MyCodeStats by computing derived fields.
  */
 function cacheToStats(
   cache: PersistedStatsCache,
   todayStats: ProcessedStats | null,
-): ClaudeCodeStats {
+): MyCodeStats {
   // Merge cache with today's stats
   const dailyActivityMap = new Map<string, DailyActivity>()
   for (const day of cache.dailyActivity) {
@@ -590,7 +590,7 @@ function cacheToStats(
     cache.totalSpeculationTimeSavedMs +
     (todayStats?.totalSpeculationTimeSavedMs || 0)
 
-  const result: ClaudeCodeStats = {
+  const result: MyCodeStats = {
     totalSessions,
     totalMessages,
     totalDays,
@@ -634,10 +634,10 @@ function cacheToStats(
 }
 
 /**
- * Aggregates stats from all Claude Code sessions across all projects.
+ * Aggregates stats from all MyCode sessions across all projects.
  * Uses a disk cache to avoid reprocessing historical data.
  */
-export async function aggregateClaudeCodeStats(): Promise<ClaudeCodeStats> {
+export async function aggregateMyCodeStats(): Promise<MyCodeStats> {
   const allSessionFiles = await getAllSessionFiles()
 
   if (allSessionFiles.length === 0) {
@@ -715,11 +715,11 @@ export type StatsDateRange = '7d' | '30d' | 'all'
  * Aggregates stats for a specific date range.
  * For 'all', uses the cached aggregation. For other ranges, processes files directly.
  */
-export async function aggregateClaudeCodeStatsForRange(
+export async function aggregateMyCodeStatsForRange(
   range: StatsDateRange,
-): Promise<ClaudeCodeStats> {
+): Promise<MyCodeStats> {
   if (range === 'all') {
-    return aggregateClaudeCodeStats()
+    return aggregateMyCodeStats()
   }
 
   const allSessionFiles = await getAllSessionFiles()
@@ -739,16 +739,16 @@ export async function aggregateClaudeCodeStatsForRange(
     fromDate: fromDateStr,
   })
 
-  return processedStatsToClaudeCodeStats(stats)
+  return processedStatsToMyCodeStats(stats)
 }
 
 /**
- * Convert ProcessedStats to ClaudeCodeStats.
+ * Convert ProcessedStats to MyCodeStats.
  * Used for filtered date ranges that bypass the cache.
  */
-function processedStatsToClaudeCodeStats(
+function processedStatsToMyCodeStats(
   stats: ProcessedStats,
-): ClaudeCodeStats {
+): MyCodeStats {
   const dailyActivitySorted = stats.dailyActivity
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -809,7 +809,7 @@ function processedStatsToClaudeCodeStats(
         ) + 1
       : 0
 
-  const result: ClaudeCodeStats = {
+  const result: MyCodeStats = {
     totalSessions: stats.sessionStats.length,
     totalMessages: stats.totalMessages,
     totalDays,
@@ -1035,7 +1035,7 @@ export async function readSessionStartDate(
   }
 }
 
-function getEmptyStats(): ClaudeCodeStats {
+function getEmptyStats(): MyCodeStats {
   return {
     totalSessions: 0,
     totalMessages: 0,
