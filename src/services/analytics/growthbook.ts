@@ -1,4 +1,26 @@
-// GrowthBook/Statsig removed — all exports return safe defaults
+// GrowthBook/Statsig removed — safe flags force-enabled, rest return defaults
+
+// Flags that are safe to enable locally (no external service dependency)
+const ENABLED_FLAGS: Record<string, unknown> = {
+  // Context & compression optimization
+  tengu_cobalt_raccoon: true,        // compact mode optimization
+  // Session memory
+  tengu_session_memory: true,        // session-level memory extraction
+  // File editing enhancements
+  tengu_quartz_lantern: true,        // file edit capabilities
+  // Tool discovery
+  tengu_glacier_2xr: true,           // tool discovery enhancement
+  // Background agents
+  tengu_auto_background_agents: true, // background agent execution
+  // Memory time tracking
+  tengu_herring_clock: true,         // memory time tracking
+  // Evidence capture
+  tengu_hive_evidence: true,         // capture context for tools
+  // Destructive command warnings
+  tengu_destructive_command_warning: true, // safer bash permission requests
+  // Streaming tool execution
+  streamingToolExecution: true,      // stream tool results
+}
 
 export type GrowthBookUserAttributes = {
   id: string
@@ -46,31 +68,31 @@ export function getApiBaseUrlHost(): string | undefined {
 export const initializeGrowthBook = async (): Promise<void> => {}
 
 export async function getFeatureValue_DEPRECATED<T>(
-  _key: string,
+  key: string,
   defaultValue: T,
 ): Promise<T> {
-  return defaultValue
+  return (key in ENABLED_FLAGS ? ENABLED_FLAGS[key] : defaultValue) as T
 }
 
 export function getFeatureValue_CACHED_MAY_BE_STALE<T>(
-  _key: string,
+  key: string,
   defaultValue: T,
 ): T {
-  return defaultValue
+  return (key in ENABLED_FLAGS ? ENABLED_FLAGS[key] : defaultValue) as T
 }
 
 export function getFeatureValue_CACHED_WITH_REFRESH<T>(
-  _key: string,
+  key: string,
   defaultValue: T,
 ): T {
-  return defaultValue
+  return (key in ENABLED_FLAGS ? ENABLED_FLAGS[key] : defaultValue) as T
 }
 
 export function checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
-  _gate: string,
+  gate: string,
   defaultValue?: boolean,
 ): boolean {
-  return defaultValue ?? false
+  return (gate in ENABLED_FLAGS ? !!ENABLED_FLAGS[gate] : defaultValue) ?? false
 }
 
 export async function checkSecurityRestrictionGate(
@@ -80,10 +102,10 @@ export async function checkSecurityRestrictionGate(
 }
 
 export async function checkGate_CACHED_OR_BLOCKING(
-  _gate: string,
+  gate: string,
   defaultValue?: boolean,
 ): Promise<boolean> {
-  return defaultValue ?? false
+  return (gate in ENABLED_FLAGS ? !!ENABLED_FLAGS[gate] : defaultValue) ?? false
 }
 
 export function refreshGrowthBookAfterAuthChange(): void {}
@@ -97,10 +119,10 @@ export function setupPeriodicGrowthBookRefresh(): void {}
 export function stopPeriodicGrowthBookRefresh(): void {}
 
 export async function getDynamicConfig_BLOCKS_ON_INIT<T>(
-  _key: string,
+  key: string,
   defaultValue: T,
 ): Promise<T> {
-  return defaultValue
+  return (key in ENABLED_FLAGS ? ENABLED_FLAGS[key] : defaultValue) as T
 }
 
 export function getDynamicConfig_CACHED_MAY_BE_STALE<T>(
