@@ -6,8 +6,6 @@ const ENABLED_FLAGS: Record<string, unknown> = {
   tengu_cobalt_raccoon: true,        // compact mode optimization
   // Session memory
   tengu_session_memory: true,        // session-level memory extraction
-  // File editing enhancements
-  tengu_quartz_lantern: true,        // file edit capabilities
   // Tool discovery
   tengu_glacier_2xr: true,           // tool discovery enhancement
   // Background agents
