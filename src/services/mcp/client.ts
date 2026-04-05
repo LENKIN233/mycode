@@ -987,7 +987,7 @@ export const connectToServer = memoize(
           name: 'mycode',
           title: 'MyCode',
           version: MACRO.VERSION ?? 'unknown',
-          description: "Anthropic's agentic coding tool",
+          description: "AI-powered agentic coding tool",
           websiteUrl: PRODUCT_URL,
         },
         {
@@ -3282,7 +3282,7 @@ export async function setupSdkMcpClients(
           name: 'mycode',
           title: 'MyCode',
           version: MACRO.VERSION ?? 'unknown',
-          description: "Anthropic's agentic coding tool",
+          description: "AI-powered agentic coding tool",
           websiteUrl: PRODUCT_URL,
         },
         {
