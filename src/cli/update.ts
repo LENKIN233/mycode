@@ -283,7 +283,7 @@ export async function update() {
     process.stderr.write('  • Network connectivity issues\n')
     process.stderr.write('  • npm registry is unreachable\n')
     process.stderr.write('  • Corporate proxy/firewall blocking npm\n')
-    if (MACRO.PACKAGE_URL && !MACRO.PACKAGE_URL.startsWith('@mycode')) {
+    if (MACRO.PACKAGE_URL && !MACRO.PACKAGE_URL.startsWith('@anthropic')) {
       process.stderr.write(
         '  • Internal/development build not published to npm\n',
       )
@@ -295,7 +295,7 @@ export async function update() {
     const packageName =
       MACRO.PACKAGE_URL ||
       (process.env.USER_TYPE === 'ant'
-        ? 'mycode'
+        ? '@anthropic-ai/mycode-cli'
         : 'mycode')
     process.stderr.write(
       `  • Manually check: npm view ${packageName} version\n`,

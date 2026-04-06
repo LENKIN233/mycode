@@ -96,9 +96,10 @@ function isManagedOAuthContext(): boolean {
 }
 
 /** Whether we are supporting direct 1P auth. */
-// Anthropic OAuth disabled — MyCode uses API key auth only
+// this code is closely related to getAuthTokenSource
 export function isAnthropicAuthEnabled(): boolean {
-  return false
+  // --bare: API-key-only, never OAuth.
+  if (isBareMode()) return false
 
   // `mycode ssh` remote: ANTHROPIC_UNIX_SOCKET tunnels API calls through a
   // local auth-injecting proxy. The launcher sets MYCODE_OAUTH_TOKEN as a
@@ -1661,8 +1662,20 @@ export function hasOpusAccess(): boolean {
 }
 
 export function getSubscriptionType(): SubscriptionType | null {
-  // Anthropic subscriptions disabled
-  return null
+  // Check for mock subscription type first (ANT-only testing)
+  if (shouldUseMockSubscription()) {
+    return getMockSubscriptionType()
+  }
+
+  if (!isAnthropicAuthEnabled()) {
+    return null
+  }
+  const oauthTokens = getMyCodeAIOAuthTokens()
+  if (!oauthTokens) {
+    return null
+  }
+
+  return oauthTokens.subscriptionType ?? null
 }
 
 export function isMaxSubscriber(): boolean {

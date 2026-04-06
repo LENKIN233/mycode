@@ -1,4 +1,5 @@
 import { feature } from 'bun:bundle'
+import { searchMemories } from '../services/memoryIndex/index.js'
 import { logForDebugging } from '../utils/debug.js'
 import { errorMessage } from '../utils/errors.js'
 import { getDefaultSonnetModel } from '../utils/model/model.js'
@@ -50,9 +51,34 @@ export async function findRelevantMemories(
     return []
   }
 
+  // [MyCode] Pre-filter with FTS5 when many candidates exist.
+  // If the index returns hits, prioritize those candidates for the LLM selector.
+  // Falls back to the full list if FTS5 search fails or returns nothing.
+  let candidateMemories = memories
+  if (memories.length > 10) {
+    try {
+      const ftsResults = searchMemories(query, undefined, 30)
+      if (ftsResults.length > 0) {
+        const ftsPathSet = new Set(ftsResults.map(r => r.filePath))
+        const ftsMatched = memories.filter(m => ftsPathSet.has(m.filePath))
+        if (ftsMatched.length > 0) {
+          // Merge: FTS matches first, then remaining up to a cap
+          const ftsFilenames = new Set(ftsMatched.map(m => m.filename))
+          const rest = memories.filter(m => !ftsFilenames.has(m.filename))
+          candidateMemories = [...ftsMatched, ...rest.slice(0, 20)]
+          logForDebugging(
+            `[memdir] FTS5 pre-filter: ${ftsMatched.length} hits from ${memories.length} total`,
+          )
+        }
+      }
+    } catch {
+      // FTS5 unavailable — use full list
+    }
+  }
+
   const selectedFilenames = await selectRelevantMemories(
     query,
-    memories,
+    candidateMemories,
     signal,
     recentTools,
   )

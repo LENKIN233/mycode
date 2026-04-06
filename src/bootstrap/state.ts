@@ -1,11 +1,9 @@
 import type { BetaMessageStreamParams } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-// OTel types replaced with stubs after telemetry removal
-type Attributes = Record<string, unknown>
-type Meter = { createCounter: (name: string, options?: unknown) => unknown }
-type MetricOptions = { description?: string; unit?: string }
-type LoggerProvider = unknown
-type MeterProvider = unknown
-type BasicTracerProvider = unknown
+import type { Attributes, Meter, MetricOptions } from '@opentelemetry/api'
+import type { logs } from '@opentelemetry/api-logs'
+import type { LoggerProvider } from '@opentelemetry/sdk-logs'
+import type { MeterProvider } from '@opentelemetry/sdk-metrics'
+import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base'
 import { realpathSync } from 'fs'
 import sumBy from 'lodash-es/sumBy.js'
 import { cwd } from 'process'
@@ -104,7 +102,7 @@ type State = {
   parentSessionId: SessionId | undefined
   // Logger state
   loggerProvider: LoggerProvider | null
-  eventLogger: unknown | null
+  eventLogger: ReturnType<typeof logs.getLogger> | null
   // Meter provider state
   meterProvider: MeterProvider | null
   // Tracer provider state
@@ -1032,12 +1030,12 @@ export function setLoggerProvider(provider: LoggerProvider | null): void {
   STATE.loggerProvider = provider
 }
 
-export function getEventLogger(): unknown | null {
+export function getEventLogger(): ReturnType<typeof logs.getLogger> | null {
   return STATE.eventLogger
 }
 
 export function setEventLogger(
-  logger: unknown | null,
+  logger: ReturnType<typeof logs.getLogger> | null,
 ): void {
   STATE.eventLogger = logger
 }

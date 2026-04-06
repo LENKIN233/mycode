@@ -956,19 +956,19 @@ async function run(): Promise<CommanderCommand> {
     runMigrations();
     profileCheckpoint('preAction_after_migrations');
 
-    // Load remote managed settings for enterprise customers (non-blocking)
-    // Fails open - if fetch fails, continues without remote settings
-    // Settings are applied via hot-reload when they arrive
-    // Must happen after init() to ensure config reading is allowed
-    void loadRemoteManagedSettings();
-    void loadPolicyLimits();
+    // [MyCode] Remote managed settings, policy limits, and settings sync are
+    // disabled for personal use. These services poll Anthropic's enterprise
+    // APIs which are unnecessary without an org subscription.
+    // void loadRemoteManagedSettings();
+    // void loadPolicyLimits();
     profileCheckpoint('preAction_after_remote_settings');
 
     // Load settings sync (non-blocking, fail-open)
     // CLI: uploads local settings to remote (CCR download is handled by print.ts)
-    if (feature('UPLOAD_USER_SETTINGS')) {
-      void import('./services/settingsSync/index.js').then(m => m.uploadUserSettingsInBackground());
-    }
+    // [MyCode] Disabled — requires MyCode.ai OAuth subscription
+    // if (feature('UPLOAD_USER_SETTINGS')) {
+    //   void import('./services/settingsSync/index.js').then(m => m.uploadUserSettingsInBackground());
+    // }
     profileCheckpoint('preAction_after_settings_sync');
   });
   program.name('mycode').description(`MyCode - starts an interactive session by default, use -p/--print for non-interactive output`).argument('[prompt]', 'Your prompt', String)

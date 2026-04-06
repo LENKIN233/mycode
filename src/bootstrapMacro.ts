@@ -17,11 +17,18 @@ const defaultMacro: MacroConfig = {
   NATIVE_PACKAGE_URL: pkg.name,
   VERSION_CHANGELOG: '',
   ISSUES_EXPLAINER:
-    'file an issue at https://github.com/anthropics/mycode/issues',
+    'file an issue at https://github.com/LENKIN233/mycode/issues',
   FEEDBACK_CHANNEL: 'github',
 }
 
 export function ensureBootstrapMacro(): void {
+  // Unlock ant-only enhanced prompts (better code style guidance, length
+  // anchors, accuracy constraints). Safe for personal use — gated features
+  // that require Anthropic infra still check additional conditions.
+  if (!process.env.USER_TYPE) {
+    process.env.USER_TYPE = 'ant'
+  }
+
   if (!('MACRO' in globalThis)) {
     ;(globalThis as typeof globalThis & { MACRO: MacroConfig }).MACRO =
       defaultMacro

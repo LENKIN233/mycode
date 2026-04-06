@@ -1,7 +1,7 @@
 export const PR_TITLE = 'Add MyCode GitHub Workflow'
 
 export const GITHUB_ACTION_SETUP_DOCS_URL =
-  'https://github.com/LENKIN233/mycode-action/blob/main/docs/setup.md'
+  'https://github.com/LENKIN233/mycode/blob/main/docs/setup.md'
 
 export const WORKFLOW_CONTENT = `name: MyCode
 
@@ -49,7 +49,7 @@ jobs:
           # prompt: 'Update the pull request description to include a summary of changes.'
 
           # Optional: Add mycode_args to customize behavior and configuration
-          # See https://github.com/LENKIN233/mycode-action/blob/main/docs/usage.md
+          # See https://github.com/LENKIN233/mycode/blob/main/docs/usage.md
           # or https://code.mycode.com/docs/en/cli-reference for available options
           # mycode_args: '--allowed-tools Bash(gh pr:*)'
 
@@ -93,7 +93,7 @@ Once the workflow is triggered, MyCode will analyze the comment and surrounding 
 allowed_tools: Bash(npm install),Bash(npm run build),Bash(npm run lint),Bash(npm run test)
 \`\`\`
 
-There's more information in the [MyCode action repo](https://github.com/LENKIN233/mycode-action).
+There's more information in the [MyCode action repo](https://github.com/LENKIN233/mycode).
 
 After merging this PR, let's try mentioning @mycode in a comment on any PR to get started!`
 
@@ -138,7 +138,7 @@ jobs:
           plugin_marketplaces: 'https://github.com/LENKIN233/mycode.git'
           plugins: 'code-review@mycode-code-plugins'
           prompt: '/code-review:code-review \${{ github.repository }}/pull/\${{ github.event.pull_request.number }}'
-          # See https://github.com/LENKIN233/mycode-action/blob/main/docs/usage.md
+          # See https://github.com/LENKIN233/mycode/blob/main/docs/usage.md
           # or https://code.mycode.com/docs/en/cli-reference for available options
 
 `

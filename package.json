@@ -15,10 +15,11 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev": "bun run ./src/bootstrap-entry.ts",
-    "start": "bun run ./src/bootstrap-entry.ts",
-    "version": "bun run ./src/bootstrap-entry.ts --version",
-    "dev:restore-check": "bun run ./src/dev-entry.ts"
+    "dev": "bun --feature TRANSCRIPT_CLASSIFIER --feature BASH_CLASSIFIER --feature COORDINATOR_MODE --feature TOKEN_BUDGET --feature CACHED_MICROCOMPACT --feature CONTEXT_COLLAPSE --feature PROMPT_CACHE_BREAK_DETECTION --feature VERIFICATION_AGENT --feature UNATTENDED_RETRY --feature CONNECTOR_TEXT --feature EXTRACT_MEMORIES --feature FORK_SUBAGENT --feature BUILTIN_EXPLORE_PLAN_AGENTS --feature ULTRAPLAN --feature MCP_SKILLS --feature EXPERIMENTAL_SKILL_SEARCH --feature PROACTIVE --feature KAIROS --feature KAIROS_BRIEF --feature HISTORY_SNIP --feature REACTIVE_COMPACT --feature HOOK_PROMPTS --feature COMPACTION_REMINDERS --feature WEB_BROWSER_TOOL --feature MCP_RICH_OUTPUT --feature TREE_SITTER_BASH --feature DUMP_SYSTEM_PROMPT ./src/bootstrap-entry.ts",
+    "start": "bun --feature TRANSCRIPT_CLASSIFIER --feature BASH_CLASSIFIER --feature COORDINATOR_MODE --feature TOKEN_BUDGET --feature CACHED_MICROCOMPACT --feature CONTEXT_COLLAPSE --feature PROMPT_CACHE_BREAK_DETECTION --feature VERIFICATION_AGENT --feature UNATTENDED_RETRY --feature CONNECTOR_TEXT --feature EXTRACT_MEMORIES --feature FORK_SUBAGENT --feature BUILTIN_EXPLORE_PLAN_AGENTS --feature ULTRAPLAN --feature MCP_SKILLS --feature EXPERIMENTAL_SKILL_SEARCH --feature PROACTIVE --feature KAIROS --feature KAIROS_BRIEF --feature HISTORY_SNIP --feature REACTIVE_COMPACT --feature HOOK_PROMPTS --feature COMPACTION_REMINDERS --feature WEB_BROWSER_TOOL --feature MCP_RICH_OUTPUT --feature TREE_SITTER_BASH --feature DUMP_SYSTEM_PROMPT ./src/bootstrap-entry.ts",
+    "version": "bun --feature DUMP_SYSTEM_PROMPT ./src/bootstrap-entry.ts --version",
+    "dev:restore-check": "bun run ./src/dev-entry.ts",
+    "dev:vanilla": "bun run ./src/bootstrap-entry.ts"
   },
   "dependencies": {
     "@alcalzone/ansi-tokenize": "*",

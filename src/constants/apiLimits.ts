@@ -1,7 +1,7 @@
 /**
- * API Limits
+ * Anthropic API Limits
  *
- * These constants define server-side limits enforced by the API.
+ * These constants define server-side limits enforced by the Anthropic API.
  * Keep this file dependency-free to prevent circular imports.
  *
  * Last verified: 2025-12-22

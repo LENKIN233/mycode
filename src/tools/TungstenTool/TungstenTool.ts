@@ -7,7 +7,7 @@ export const TungstenTool = buildTool({
   },
   async description() {
     return (
-      'Internal terminal-session bridge used by Anthropic builds. ' +
+      'Internal terminal-session bridge used by MyCode builds. ' +
       'This restored workspace keeps the tool registered so configs and ' +
       'older transcripts remain readable, but the original backend is absent.'
     )

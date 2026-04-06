@@ -7,9 +7,9 @@ import { isEnvDefinedFalsy } from '../utils/envUtils.js'
 import { getAPIProvider } from '../utils/model/providers.js'
 import { getWorkload } from '../utils/workloadContext.js'
 
-const DEFAULT_PREFIX = `You are MyCode, a helpful AI coding assistant.`
-const AGENT_SDK_MYCODE_PRESET_PREFIX = `You are MyCode, a helpful AI coding assistant, running within the Agent SDK.`
-const AGENT_SDK_PREFIX = `You are an AI agent built for coding tasks.`
+const DEFAULT_PREFIX = `You are MyCode, an AI-powered coding assistant.`
+const AGENT_SDK_MYCODE_PRESET_PREFIX = `You are MyCode, an AI-powered coding assistant, running within the Agent SDK.`
+const AGENT_SDK_PREFIX = `You are a AI agent, built on MyCode's Agent SDK.`
 
 const CLI_SYSPROMPT_PREFIX_VALUES = [
   DEFAULT_PREFIX,

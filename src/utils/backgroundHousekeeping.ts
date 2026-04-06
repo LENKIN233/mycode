@@ -1,6 +1,8 @@
 import { feature } from 'bun:bundle'
 import { initAutoDream } from '../services/autoDream/autoDream.js'
 import { initMagicDocs } from '../services/MagicDocs/magicDocs.js'
+import { indexMemoryDir } from '../services/memoryIndex/index.js'
+import { logForDebugging } from './debug.js'
 import { initSkillImprovement } from './hooks/skillImprovement.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
@@ -39,6 +41,23 @@ export function startBackgroundHousekeeping(): void {
   if (feature('LODESTONE') && getIsInteractive()) {
     void registerProtocolModule!.ensureDeepLinkProtocolRegistered()
   }
+
+  // [MyCode] Index memory files for FTS5 search in background
+  void (async () => {
+    try {
+      const { getAutoMemPath, isAutoMemoryEnabled } = await import('../memdir/paths.js')
+      const { sanitizePath } = await import('./path.js')
+      const { getProjectRoot } = await import('../bootstrap/state.js')
+      if (isAutoMemoryEnabled()) {
+        const memPath = getAutoMemPath()
+        const projectKey = sanitizePath(getProjectRoot())
+        const result = await indexMemoryDir(memPath, projectKey)
+        logForDebugging(`[memoryIndex] Indexed ${result.indexed} files, skipped ${result.skipped}, removed ${result.removed}`)
+      }
+    } catch (err) {
+      logForDebugging(`[memoryIndex] Background indexing failed: ${err}`)
+    }
+  })()
 
   let needsCleanup = true
   async function runVerySlowOps(): Promise<void> {

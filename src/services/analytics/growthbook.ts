@@ -1,24 +1,29 @@
-// GrowthBook/Statsig removed — safe flags force-enabled, rest return defaults
-
-// Flags that are safe to enable locally (no external service dependency)
-const ENABLED_FLAGS: Record<string, unknown> = {
-  // Context & compression optimization
-  tengu_cobalt_raccoon: true,        // compact mode optimization
-  // Session memory
-  tengu_session_memory: true,        // session-level memory extraction
-  // Tool discovery
-  tengu_glacier_2xr: true,           // tool discovery enhancement
-  // Background agents
-  tengu_auto_background_agents: true, // background agent execution
-  // Memory time tracking
-  tengu_herring_clock: true,         // memory time tracking
-  // Evidence capture
-  tengu_hive_evidence: true,         // capture context for tools
-  // Destructive command warnings
-  tengu_destructive_command_warning: true, // safer bash permission requests
-  // Streaming tool execution
-  streamingToolExecution: true,      // stream tool results
-}
+// GrowthBook/Statsig removed — all exports return safe defaults
+// [MyCode] Added ENABLED_GATES: GrowthBook gates that should return true
+// for personal use. Without these overrides, double-gated features
+// (feature() + growthbook gate) remain disabled even with --feature flags.
+const ENABLED_GATES = new Set([
+  // Memory extraction — required for EXTRACT_MEMORIES to run
+  'tengu_passport_quail',
+  // Non-interactive mode memory extraction
+  'tengu_slate_thimble',
+  // Memory feature enhancements
+  'tengu_coral_fern',
+  // Coordinator mode — required for COORDINATOR_MODE
+  'tengu_scratch',
+  // Evidence-based tool verification
+  'tengu_hive_evidence',
+  // Skill search improvements — required for EXPERIMENTAL_SKILL_SEARCH
+  'tengu_glacier_2xr',
+  // File write/edit improvements
+  'tengu_quartz_lantern',
+  // Auto background agents
+  'tengu_auto_background_agents',
+  // Agent list attach
+  'tengu_agent_list_attach',
+  // Plan mode v2
+  'tengu_plan_mode_v2',
+])
 
 export type GrowthBookUserAttributes = {
   id: string
@@ -66,31 +71,34 @@ export function getApiBaseUrlHost(): string | undefined {
 export const initializeGrowthBook = async (): Promise<void> => {}
 
 export async function getFeatureValue_DEPRECATED<T>(
-  key: string,
+  _key: string,
   defaultValue: T,
 ): Promise<T> {
-  return (key in ENABLED_FLAGS ? ENABLED_FLAGS[key] : defaultValue) as T
+  return defaultValue
 }
 
 export function getFeatureValue_CACHED_MAY_BE_STALE<T>(
-  key: string,
+  _key: string,
   defaultValue: T,
 ): T {
-  return (key in ENABLED_FLAGS ? ENABLED_FLAGS[key] : defaultValue) as T
+  if (ENABLED_GATES.has(_key)) return true as T
+  return defaultValue
 }
 
 export function getFeatureValue_CACHED_WITH_REFRESH<T>(
-  key: string,
+  _key: string,
   defaultValue: T,
 ): T {
-  return (key in ENABLED_FLAGS ? ENABLED_FLAGS[key] : defaultValue) as T
+  if (ENABLED_GATES.has(_key)) return true as T
+  return defaultValue
 }
 
 export function checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
-  gate: string,
+  _gate: string,
   defaultValue?: boolean,
 ): boolean {
-  return (gate in ENABLED_FLAGS ? !!ENABLED_FLAGS[gate] : defaultValue) ?? false
+  if (ENABLED_GATES.has(_gate)) return true
+  return defaultValue ?? false
 }
 
 export async function checkSecurityRestrictionGate(
@@ -100,10 +108,11 @@ export async function checkSecurityRestrictionGate(
 }
 
 export async function checkGate_CACHED_OR_BLOCKING(
-  gate: string,
+  _gate: string,
   defaultValue?: boolean,
 ): Promise<boolean> {
-  return (gate in ENABLED_FLAGS ? !!ENABLED_FLAGS[gate] : defaultValue) ?? false
+  if (ENABLED_GATES.has(_gate)) return true
+  return defaultValue ?? false
 }
 
 export function refreshGrowthBookAfterAuthChange(): void {}
@@ -117,10 +126,10 @@ export function setupPeriodicGrowthBookRefresh(): void {}
 export function stopPeriodicGrowthBookRefresh(): void {}
 
 export async function getDynamicConfig_BLOCKS_ON_INIT<T>(
-  key: string,
+  _key: string,
   defaultValue: T,
 ): Promise<T> {
-  return (key in ENABLED_FLAGS ? ENABLED_FLAGS[key] : defaultValue) as T
+  return defaultValue
 }
 
 export function getDynamicConfig_CACHED_MAY_BE_STALE<T>(
