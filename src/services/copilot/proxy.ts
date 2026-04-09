@@ -71,8 +71,8 @@ function mapModel(model: string): string {
   if (MODEL_MAP[stripped]) return MODEL_MAP[stripped]
   // Non-Claude models not in the map: pass through as-is to Copilot API
   // (allows using any model Copilot supports without updating the map)
-  if (!model.startsWith('mycode-')) return model
-  // Unknown MyCode model variant → pass through
+  if (!model.startsWith('claude-')) return model
+  // Unknown Claude model variant → pass through
   return model
 }
 
@@ -428,7 +428,7 @@ function translateRequest(anthropicBody: Record<string, unknown>): {
   // Auto-enable: when MyCode requests thinking, map to reasoning_effort.
   // Override: set COPILOT_REASONING_EFFORT=low|medium|high to force a specific level.
   const thinking = anthropicBody.thinking as { type?: string; budget_tokens?: number } | undefined
-  if (thinking && thinking.type !== 'disabled' && model.startsWith('mycode')) {
+  if (thinking && thinking.type !== 'disabled' && model.startsWith('claude')) {
     if (process.env.COPILOT_REASONING_EFFORT) {
       // Explicit user override
       openaiBody.reasoning_effort = process.env.COPILOT_REASONING_EFFORT
