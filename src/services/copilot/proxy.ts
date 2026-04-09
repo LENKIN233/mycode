@@ -1031,6 +1031,33 @@ function translateNonStreamingResponse(
 }
 
 /**
+ * Global reauth gate shared across all createCopilotFetch() instances,
+ * even if the module is loaded via different import paths.
+ * Uses globalThis to guarantee a single device code flow per process.
+ */
+type ReauthGateResult = {
+  pollPromise: Promise<void>
+  verification_uri: string
+  user_code: string
+}
+const REAUTH_GATE_KEY = '__copilot_reauth_gate__'
+function getReauthGate(): Promise<ReauthGateResult> | null {
+  return (globalThis as Record<string, unknown>)[REAUTH_GATE_KEY] as Promise<ReauthGateResult> | null ?? null
+}
+function setReauthGate(gate: Promise<ReauthGateResult> | null): void {
+  ;(globalThis as Record<string, unknown>)[REAUTH_GATE_KEY] = gate
+}
+const BROWSER_OPENED_KEY = '__copilot_browser_opened__'
+function markBrowserOpened(): boolean {
+  if ((globalThis as Record<string, unknown>)[BROWSER_OPENED_KEY]) return false
+  ;(globalThis as Record<string, unknown>)[BROWSER_OPENED_KEY] = true
+  return true
+}
+function resetBrowserOpened(): void {
+  ;(globalThis as Record<string, unknown>)[BROWSER_OPENED_KEY] = false
+}
+
+/**
  * Create a custom fetch function that proxies Anthropic SDK requests
  * through the GitHub Copilot API.
  *
@@ -1038,15 +1065,6 @@ function translateNonStreamingResponse(
  * OpenAI chat completions format for the Copilot API.
  */
 export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
-  // Track a pending reauth flow so multiple concurrent requests don't
-  // each start their own device code flow.
-  // reauthGate is set SYNCHRONOUSLY before awaiting requestCopilotReauth,
-  // so concurrent requests see it immediately and share the same promise.
-  let reauthGate: Promise<{
-    pollPromise: Promise<void>
-    verification_uri: string
-    user_code: string
-  }> | null = null
 
   return async (
     input: RequestInfo | URL,
@@ -1082,14 +1100,16 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
     try {
       // If a previous message already kicked off re-auth and it completed,
       // clear the gate and try the fresh token
-      if (reauthGate) {
+      const gate = getReauthGate()
+      if (gate) {
         try {
-          const info = await reauthGate
+          const info = await gate
           await info.pollPromise
         } catch {
           // reauth failed — will be handled below when getCopilotToken throws
         }
-        reauthGate = null
+        setReauthGate(null)
+        resetBrowserOpened()
       }
       // autoLogin=false so we don't block on console.error prompts
       // that are invisible in the TUI's Ink alternate buffer
@@ -1098,28 +1118,28 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
       // Token expired or missing — start TUI-friendly device code flow.
       // Use reauthGate to ensure only ONE device code request is made,
       // even when multiple fetch calls race into this catch block.
-      if (!reauthGate) {
+      if (!getReauthGate()) {
         // First request to fail: create the gate SYNCHRONOUSLY (no await yet)
-        reauthGate = requestCopilotReauth()
+        setReauthGate(requestCopilotReauth())
+      }
 
-        // Open browser only once — after the device code is obtained
-        reauthGate.then(({ verification_uri }) => {
+      // All requests (including the first) await the same gate
+      try {
+        const currentGate = getReauthGate()!
+        const { verification_uri, user_code, pollPromise } = await currentGate
+
+        // Open browser exactly once per reauth cycle
+        if (markBrowserOpened()) {
           try {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
             const { exec } = require('child_process')
             exec(`open "${verification_uri}"`)
           } catch {
             // Ignore — the URL is shown in the error message
           }
-        }).catch(() => {})
-      }
-
-      // All requests (including the first) await the same gate
-      try {
-        const { verification_uri, user_code, pollPromise } = await reauthGate
+        }
 
         // Background cleanup: when polling completes, clear the gate
-        pollPromise.then(() => { reauthGate = null }).catch(() => { reauthGate = null })
+        pollPromise.then(() => { setReauthGate(null); resetBrowserOpened() }).catch(() => { setReauthGate(null); resetBrowserOpened() })
 
         return new Response(
           JSON.stringify({
@@ -1139,7 +1159,8 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
           },
         )
       } catch (reauthErr) {
-        reauthGate = null
+        setReauthGate(null)
+        resetBrowserOpened()
         const msg =
           reauthErr instanceof Error ? reauthErr.message : String(reauthErr)
         return new Response(
@@ -1196,19 +1217,23 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
         }
 
         // Start device code re-auth (same as expired token path above)
-        if (!reauthGate) {
-          reauthGate = requestCopilotReauth()
-          reauthGate.then(({ verification_uri }) => {
+        if (!getReauthGate()) {
+          setReauthGate(requestCopilotReauth())
+        }
+
+        try {
+          const currentGate = getReauthGate()!
+          const { verification_uri, user_code, pollPromise } = await currentGate
+
+          // Open browser exactly once per reauth cycle
+          if (markBrowserOpened()) {
             try {
               const { exec } = require('child_process')
               exec(`open "${verification_uri}"`)
             } catch {}
-          }).catch(() => {})
-        }
+          }
 
-        try {
-          const { verification_uri, user_code, pollPromise } = await reauthGate
-          pollPromise.then(() => { reauthGate = null }).catch(() => { reauthGate = null })
+          pollPromise.then(() => { setReauthGate(null); resetBrowserOpened() }).catch(() => { setReauthGate(null); resetBrowserOpened() })
 
           return new Response(
             JSON.stringify({
@@ -1228,7 +1253,8 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
             },
           )
         } catch (reauthErr) {
-          reauthGate = null
+          setReauthGate(null)
+          resetBrowserOpened()
           const errorText = await copilotResponse.text().catch(() => '')
           return new Response(
             JSON.stringify({
