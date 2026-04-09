@@ -1194,9 +1194,9 @@ async function handleReauth(
 
     return createFakeAssistantResponse(
       `⚠️ ${message}\n\n` +
-      `请访问: ${verification_uri}\n` +
-      `验证码: \`${user_code}\`\n\n` +
-      `在浏览器中输入验证码完成授权，然后重新发送消息。`,
+      `1. 打开链接: [${verification_uri}](${verification_uri})\n` +
+      `2. 输入验证码: \`${user_code}\`\n` +
+      `3. 授权完成后，重新发送消息即可。`,
       isStreaming,
     )
   } catch (reauthErr) {
