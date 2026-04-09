@@ -44,19 +44,7 @@ export type ModelOption = {
 }
 
 export function getDefaultOptionForUser(fastMode = false): ModelOption {
-  if (process.env.USER_TYPE === 'ant') {
-    const currentModel = renderDefaultModelSetting(
-      getDefaultMainLoopModelSetting(),
-    )
-    return {
-      value: null,
-      label: 'Default (recommended)',
-      description: `Use the default model for Ants (currently ${currentModel})`,
-      descriptionForModel: `Default model (currently ${currentModel})`,
-    }
-  }
-
-  // Copilot provider
+  // Copilot provider (must come before ant check — --provider copilot overrides USER_TYPE)
   if (getAPIProvider() === 'copilot') {
     const currentModel = renderDefaultModelSetting(
       getDefaultMainLoopModelSetting(),
@@ -65,6 +53,18 @@ export function getDefaultOptionForUser(fastMode = false): ModelOption {
       value: null,
       label: 'Default (recommended)',
       description: `Use the default model (currently ${currentModel})`,
+      descriptionForModel: `Default model (currently ${currentModel})`,
+    }
+  }
+
+  if (process.env.USER_TYPE === 'ant') {
+    const currentModel = renderDefaultModelSetting(
+      getDefaultMainLoopModelSetting(),
+    )
+    return {
+      value: null,
+      label: 'Default (recommended)',
+      description: `Use the default model for Ants (currently ${currentModel})`,
       descriptionForModel: `Default model (currently ${currentModel})`,
     }
   }
@@ -283,25 +283,7 @@ function getOpusPlanOption(): ModelOption {
 // @[MODEL LAUNCH]: Update the model picker lists below to include/reorder options for the new model.
 // Each user tier (ant, Max/Team Premium, Pro/Team Standard/Enterprise, PAYG 1P, PAYG 3P) has its own list.
 function getModelOptionsBase(fastMode = false): ModelOption[] {
-  if (process.env.USER_TYPE === 'ant') {
-    // Build options from antModels config
-    const antModelOptions: ModelOption[] = getAntModels().map(m => ({
-      value: m.alias,
-      label: m.label,
-      description: m.description ?? `[ANT-ONLY] ${m.label} (${m.model})`,
-    }))
-
-    return [
-      getDefaultOptionForUser(),
-      ...antModelOptions,
-      getMergedOpus1MOption(fastMode),
-      getSonnet46Option(),
-      getSonnet46_1MOption(),
-      getHaiku45Option(),
-    ]
-  }
-
-  // Copilot provider: show all available Copilot models grouped by tier
+  // Copilot provider: must come before ant check — --provider copilot overrides USER_TYPE
   if (getAPIProvider() === 'copilot') {
     return [
       getDefaultOptionForUser(fastMode),
@@ -331,6 +313,24 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
       { value: 'claude-opus-4.5', label: 'Claude Opus 4.5', description: '3x' },
       // ── Grok ──
       { value: 'grok-code-fast-1', label: 'Grok Code Fast', description: '0.25x' },
+    ]
+  }
+
+  if (process.env.USER_TYPE === 'ant') {
+    // Build options from antModels config
+    const antModelOptions: ModelOption[] = getAntModels().map(m => ({
+      value: m.alias,
+      label: m.label,
+      description: m.description ?? `[ANT-ONLY] ${m.label} (${m.model})`,
+    }))
+
+    return [
+      getDefaultOptionForUser(),
+      ...antModelOptions,
+      getMergedOpus1MOption(fastMode),
+      getSonnet46Option(),
+      getSonnet46_1MOption(),
+      getHaiku45Option(),
     ]
   }
 

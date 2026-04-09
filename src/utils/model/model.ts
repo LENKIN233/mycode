@@ -181,17 +181,17 @@ export function getRuntimeMainLoopModel(params: {
  * @returns The default model setting to use
  */
 export function getDefaultMainLoopModelSetting(): ModelName | ModelAlias {
+  // Copilot provider: must come before ant check — --provider copilot overrides USER_TYPE
+  if (getAPIProvider() === 'copilot') {
+    return getDefaultSonnetModel()
+  }
+
   // Ants default to defaultModel from flag config, or Opus 1M if not configured
   if (process.env.USER_TYPE === 'ant') {
     return (
       getAntModelOverrideConfig()?.defaultModel ??
       getDefaultOpusModel() + '[1m]'
     )
-  }
-
-  // Copilot provider: default to Sonnet (no subscriber checks needed)
-  if (getAPIProvider() === 'copilot') {
-    return getDefaultSonnetModel()
   }
 
   // Max users get Opus as default
