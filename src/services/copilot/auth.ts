@@ -67,6 +67,22 @@ function saveStoredAuth(auth: StoredAuth): void {
 }
 
 /**
+ * Clear the cached Copilot API token (but keep the GitHub token).
+ * Called when the Copilot API returns 401, indicating the cached token
+ * is stale (e.g. system clock was wrong when it was obtained).
+ */
+export function invalidateCopilotToken(): void {
+  const stored = loadStoredAuth()
+  if (stored) {
+    saveStoredAuth({
+      ...stored,
+      copilot_token: undefined,
+      copilot_expires_at: undefined,
+    })
+  }
+}
+
+/**
  * Request a device code from GitHub for OAuth device flow.
  */
 async function requestDeviceCode(): Promise<DeviceCodeResponse> {

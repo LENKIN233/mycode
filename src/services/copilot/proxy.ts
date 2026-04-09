@@ -1157,10 +1157,6 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
         )
       }
     }
-          },
-        )
-      }
-    }
 
     // Translate request
     const translated = translateRequest(anthropicBody)
@@ -1188,7 +1184,69 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
     })
 
     if (!copilotResponse.ok) {
-      // Return error as Anthropic-formatted error
+      // If Copilot returns 401, the cached token is stale (e.g. system clock
+      // was wrong when it was issued). Clear it and trigger re-auth.
+      if (copilotResponse.status === 401) {
+        // Invalidate the cached token so next getCopilotToken call won't reuse it
+        try {
+          const { invalidateCopilotToken } = await import('./auth.js')
+          invalidateCopilotToken()
+        } catch {
+          // Best-effort — the re-auth flow below will recover
+        }
+
+        // Start device code re-auth (same as expired token path above)
+        if (!reauthGate) {
+          reauthGate = requestCopilotReauth()
+          reauthGate.then(({ verification_uri }) => {
+            try {
+              const { exec } = require('child_process')
+              exec(`open "${verification_uri}"`)
+            } catch {}
+          }).catch(() => {})
+        }
+
+        try {
+          const { verification_uri, user_code, pollPromise } = await reauthGate
+          pollPromise.then(() => { reauthGate = null }).catch(() => { reauthGate = null })
+
+          return new Response(
+            JSON.stringify({
+              type: 'error',
+              error: {
+                type: 'authentication_error',
+                message:
+                  `Copilot 认证令牌已失效，正在重新授权...\n\n` +
+                  `请在浏览器中访问: ${verification_uri}\n` +
+                  `输入验证码: ${user_code}\n\n` +
+                  `授权完成后，重新发送消息即可。`,
+              },
+            }),
+            {
+              status: 401,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          )
+        } catch (reauthErr) {
+          reauthGate = null
+          const errorText = await copilotResponse.text().catch(() => '')
+          return new Response(
+            JSON.stringify({
+              type: 'error',
+              error: {
+                type: 'authentication_error',
+                message: `Copilot API 401: ${errorText}. 请尝试 /provider login 手动重新认证。`,
+              },
+            }),
+            {
+              status: 401,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          )
+        }
+      }
+
+      // Return other errors as Anthropic-formatted error
       const errorText = await copilotResponse.text()
       return new Response(
         JSON.stringify({
