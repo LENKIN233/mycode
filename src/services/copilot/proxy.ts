@@ -1040,11 +1040,13 @@ function translateNonStreamingResponse(
 export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
   // Track a pending reauth flow so multiple concurrent requests don't
   // each start their own device code flow.
-  let pendingReauth: {
+  // reauthGate is set SYNCHRONOUSLY before awaiting requestCopilotReauth,
+  // so concurrent requests see it immediately and share the same promise.
+  let reauthGate: Promise<{
     pollPromise: Promise<void>
     verification_uri: string
     user_code: string
-  } | null = null
+  }> | null = null
 
   return async (
     input: RequestInfo | URL,
@@ -1078,64 +1080,46 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
     // Get a fresh Copilot token
     let copilotToken: string
     try {
-      // If a previous request already kicked off re-auth, wait for it
-      // then retry getting the token
-      if (pendingReauth) {
+      // If a previous message already kicked off re-auth and it completed,
+      // clear the gate and try the fresh token
+      if (reauthGate) {
         try {
-          await pendingReauth.pollPromise
+          const info = await reauthGate
+          await info.pollPromise
         } catch {
           // reauth failed — will be handled below when getCopilotToken throws
         }
-        pendingReauth = null
+        reauthGate = null
       }
       // autoLogin=false so we don't block on console.error prompts
       // that are invisible in the TUI's Ink alternate buffer
       copilotToken = await getCopilotToken({ autoLogin: false })
     } catch (err) {
-      // If another concurrent request already started reauth, reuse its info
-      if (pendingReauth) {
-        return new Response(
-          JSON.stringify({
-            type: 'error',
-            error: {
-              type: 'authentication_error',
-              message:
-                `Copilot 认证已过期，正在重新授权...\n\n` +
-                `请在浏览器中访问: ${pendingReauth.verification_uri}\n` +
-                `输入验证码: ${pendingReauth.user_code}\n\n` +
-                `授权完成后，重新发送消息即可。`,
-            },
-          }),
-          {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-          },
-        )
+      // Token expired or missing — start TUI-friendly device code flow.
+      // Use reauthGate to ensure only ONE device code request is made,
+      // even when multiple fetch calls race into this catch block.
+      if (!reauthGate) {
+        // First request to fail: create the gate SYNCHRONOUSLY (no await yet)
+        reauthGate = requestCopilotReauth()
+
+        // Open browser only once — after the device code is obtained
+        reauthGate.then(({ verification_uri }) => {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const { exec } = require('child_process')
+            exec(`open "${verification_uri}"`)
+          } catch {
+            // Ignore — the URL is shown in the error message
+          }
+        }).catch(() => {})
       }
 
-      // Token expired or missing — start TUI-friendly device code flow
+      // All requests (including the first) await the same gate
       try {
-        const { verification_uri, user_code, pollPromise } =
-          await requestCopilotReauth()
+        const { verification_uri, user_code, pollPromise } = await reauthGate
 
-        // Set pendingReauth BEFORE opening browser so concurrent requests
-        // can reuse this instead of creating new device codes
-        pendingReauth = { pollPromise, verification_uri, user_code }
-
-        // Start background cleanup: when polling completes, clear the flag
-        pollPromise.then(() => {
-          pendingReauth = null
-        }).catch(() => {
-          pendingReauth = null
-        })
-
-        // Try to open the browser automatically (macOS)
-        try {
-          const { exec } = await import('child_process')
-          exec(`open "${verification_uri}"`)
-        } catch {
-          // Ignore — the URL is shown in the error message below
-        }
+        // Background cleanup: when polling completes, clear the gate
+        pollPromise.then(() => { reauthGate = null }).catch(() => { reauthGate = null })
 
         return new Response(
           JSON.stringify({
@@ -1155,6 +1139,7 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
           },
         )
       } catch (reauthErr) {
+        reauthGate = null
         const msg =
           reauthErr instanceof Error ? reauthErr.message : String(reauthErr)
         return new Response(
@@ -1168,6 +1153,10 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
           {
             status: 401,
             headers: { 'Content-Type': 'application/json' },
+          },
+        )
+      }
+    }
           },
         )
       }
