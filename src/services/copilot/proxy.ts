@@ -1017,6 +1017,21 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
       return fetch(input, init)
     }
 
+    // Handle countTokens endpoint locally — Copilot API has no countTokens
+    // equivalent, and letting it fall through would waste a premium request
+    // (the proxy would send it as a chat completion).
+    if (url.includes('/count_tokens')) {
+      const body = JSON.parse(init?.body as string)
+      // Rough estimation: serialize messages + tools and count ~4 chars per token
+      const messageText = JSON.stringify(body.messages ?? [])
+      const toolText = JSON.stringify(body.tools ?? [])
+      const estimatedTokens = Math.ceil((messageText.length + toolText.length) / 4)
+      return new Response(
+        JSON.stringify({ input_tokens: estimatedTokens }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
     // Parse the Anthropic request body
     const anthropicBody = JSON.parse(init?.body as string)
 

@@ -46,10 +46,10 @@ function modelMatchesVersionPrefix(model: string, entry: string): boolean {
   if (prefixMatchesModel(resolvedModel, entry)) {
     return true
   }
-  // Try with "mycode-" prefix (e.g. "opus-4-5" → "claude-opus-4-5")
+  // Try with "claude-" prefix (e.g. "opus-4-5" → "claude-opus-4-5")
   if (
-    !entry.startsWith('mycode-') &&
-    prefixMatchesModel(resolvedModel, `mycode-${entry}`)
+    !entry.startsWith('claude-') &&
+    prefixMatchesModel(resolvedModel, `claude-${entry}`)
   ) {
     return true
   }
