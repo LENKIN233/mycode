@@ -56,6 +56,19 @@ export function getDefaultOptionForUser(fastMode = false): ModelOption {
     }
   }
 
+  // Copilot provider
+  if (getAPIProvider() === 'copilot') {
+    const currentModel = renderDefaultModelSetting(
+      getDefaultMainLoopModelSetting(),
+    )
+    return {
+      value: null,
+      label: 'Default (recommended)',
+      description: `Use the default model (currently ${currentModel})`,
+      descriptionForModel: `Default model (currently ${currentModel})`,
+    }
+  }
+
   // Subscribers
   if (isMyCodeAISubscriber()) {
     return {
@@ -285,6 +298,39 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
       getSonnet46Option(),
       getSonnet46_1MOption(),
       getHaiku45Option(),
+    ]
+  }
+
+  // Copilot provider: show all available Copilot models grouped by tier
+  if (getAPIProvider() === 'copilot') {
+    return [
+      getDefaultOptionForUser(fastMode),
+      // ── Claude ──
+      { value: 'claude-sonnet-4.6', label: 'Claude Sonnet 4.6', description: 'Best for everyday tasks · 1x' },
+      { value: 'claude-opus-4.6', label: 'Claude Opus 4.6', description: 'Most capable for complex work · 3x' },
+      { value: 'claude-haiku-4.5', label: 'Claude Haiku 4.5', description: 'Fastest Claude · 0.33x' },
+      // ── GPT (FREE on paid Copilot plans) ──
+      { value: 'gpt-4.1', label: 'GPT 4.1', description: 'FREE · General purpose' },
+      { value: 'gpt-4o', label: 'GPT 4o', description: 'FREE · Multimodal' },
+      { value: 'gpt-5-mini', label: 'GPT 5 Mini', description: 'FREE · Small & fast' },
+      // ── GPT (premium) ──
+      { value: 'gpt-5.4', label: 'GPT 5.4', description: 'Most capable GPT · 1x' },
+      { value: 'gpt-5.4-mini', label: 'GPT 5.4 Mini', description: '0.33x' },
+      { value: 'gpt-5.3-codex', label: 'GPT 5.3 Codex', description: 'Code-optimized · 1x' },
+      { value: 'gpt-5.2-codex', label: 'GPT 5.2 Codex', description: 'Code-optimized · 1x' },
+      { value: 'gpt-5.2', label: 'GPT 5.2', description: '1x' },
+      { value: 'gpt-5.1', label: 'GPT 5.1', description: '1x' },
+      // ── Gemini ──
+      { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', description: '1x' },
+      { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', description: 'Preview · 1x' },
+      { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', description: 'Preview · 0.33x' },
+      // ── Other Claude variants ──
+      { value: 'claude-sonnet-4.5', label: 'Claude Sonnet 4.5', description: '1x' },
+      { value: 'claude-sonnet-4', label: 'Claude Sonnet 4', description: '1x' },
+      { value: 'claude-opus-4.6-fast', label: 'Claude Opus 4.6 Fast', description: 'Lower latency · 3x' },
+      { value: 'claude-opus-4.5', label: 'Claude Opus 4.5', description: '3x' },
+      // ── Grok ──
+      { value: 'grok-code-fast-1', label: 'Grok Code Fast', description: '0.25x' },
     ]
   }
 

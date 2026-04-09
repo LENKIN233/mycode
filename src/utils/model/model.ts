@@ -121,6 +121,10 @@ export function getDefaultSonnetModel(): ModelName {
   if (process.env.ANTHROPIC_DEFAULT_SONNET_MODEL) {
     return process.env.ANTHROPIC_DEFAULT_SONNET_MODEL
   }
+  // Copilot has Sonnet 4.6 available
+  if (getAPIProvider() === 'copilot') {
+    return getModelStrings().sonnet46
+  }
   // Default to Sonnet 4.5 for 3P since they may not have 4.6 yet
   if (getAPIProvider() !== 'firstParty') {
     return getModelStrings().sonnet45
@@ -183,6 +187,11 @@ export function getDefaultMainLoopModelSetting(): ModelName | ModelAlias {
       getAntModelOverrideConfig()?.defaultModel ??
       getDefaultOpusModel() + '[1m]'
     )
+  }
+
+  // Copilot provider: default to Sonnet (no subscriber checks needed)
+  if (getAPIProvider() === 'copilot') {
+    return getDefaultSonnetModel()
   }
 
   // Max users get Opus as default

@@ -16,14 +16,14 @@ const COPILOT_API_BASE = 'https://api.githubcopilot.com'
 // full date-suffixed IDs like "claude-sonnet-4-5-20250929".
 //
 // Copilot model pricing (premium request multipliers):
-//   0x (FREE on paid plans): gpt-4.1, gpt-4o, gpt-5-mini, raptor-mini
+//   0x (FREE on paid plans): gpt-4.1, gpt-4o, gpt-5-mini
 //   0.25x: grok-code-fast-1
-//   0.33x: claude-haiku-4.5, gemini-3-flash, gpt-5.4-mini, gpt-5.1-codex-mini
-//   1x:    claude-sonnet-4/4.5/4.6, gemini-2.5-pro/3-pro/3.1-pro,
-//          gpt-5.1/5.2/5.3-codex/5.4
-//   3x:    claude-opus-4.5/4.6
+//   0.33x: claude-haiku-4.5, gemini-3-flash-preview, gpt-5.4-mini
+//   1x:    claude-sonnet-4/4.5/4.6, gemini-2.5-pro/3.1-pro-preview,
+//          gpt-5.1/5.2/5.2-codex/5.3-codex/5.4
+//   3x:    claude-opus-4.5/4.6/4.6-fast
 const MODEL_MAP: Record<string, string> = {
-  // MyCode: configs.ts copilot model strings → Copilot API names
+  // MyCode configs.ts copilot model strings → Copilot API names
   'claude-sonnet-4-20250514': 'claude-sonnet-4',
   'claude-sonnet-4-5-20250929': 'claude-sonnet-4.5',
   'claude-sonnet-4-6': 'claude-sonnet-4.6',
@@ -35,12 +35,13 @@ const MODEL_MAP: Record<string, string> = {
   'claude-3-5-haiku-20241022': 'claude-haiku-4.5', // 3.5-haiku not available, use 4.5
   'claude-3-5-sonnet-20241022': 'claude-sonnet-4',  // 3.5-sonnet not available, use 4.0
   'claude-3-7-sonnet-20250219': 'claude-sonnet-4',  // 3.7-sonnet not available, use 4.0
-  // MyCode short aliases
+  // Claude dotted aliases (pass through)
   'claude-sonnet-4': 'claude-sonnet-4',
   'claude-sonnet-4.5': 'claude-sonnet-4.5',
   'claude-sonnet-4.6': 'claude-sonnet-4.6',
   'claude-opus-4.5': 'claude-opus-4.5',
   'claude-opus-4.6': 'claude-opus-4.6',
+  'claude-opus-4.6-fast': 'claude-opus-4.6-fast',
   'claude-haiku-4.5': 'claude-haiku-4.5',
   // GPT: FREE on paid Copilot plans (0x multiplier)
   'gpt-4.1': 'gpt-4.1',
@@ -49,17 +50,19 @@ const MODEL_MAP: Record<string, string> = {
   // GPT: premium models
   'gpt-5.1': 'gpt-5.1',
   'gpt-5.2': 'gpt-5.2',
+  'gpt-5.2-codex': 'gpt-5.2-codex',
+  'gpt-5.3-codex': 'gpt-5.3-codex',
   'gpt-5.4': 'gpt-5.4',
   'gpt-5.4-mini': 'gpt-5.4-mini',
   // Gemini
   'gemini-2.5-pro': 'gemini-2.5-pro',
-  'gemini-3-flash': 'gemini-3-flash',
-  'gemini-3-pro': 'gemini-3-pro',
-  // Other free/cheap models
-  'raptor-mini': 'raptor-mini',
+  'gemini-3-flash': 'gemini-3-flash-preview',
+  'gemini-3.1-pro': 'gemini-3.1-pro-preview',
+  // Grok
+  'grok-code-fast-1': 'grok-code-fast-1',
 }
 
-const COPILOT_DEFAULT_MODEL = 'claude-sonnet-4'
+const COPILOT_DEFAULT_MODEL = 'claude-sonnet-4.6'
 
 function mapModel(model: string): string {
   if (MODEL_MAP[model]) return MODEL_MAP[model]
@@ -75,22 +78,33 @@ function mapModel(model: string): string {
 
 /**
  * Cap max_tokens for non-Claude models which have lower output limits.
- * Anthropic models support up to 128K output, but GPT/Gemini models don't.
+ * Limits sourced from Copilot /models API `capabilities.limits.max_output_tokens`.
  */
 function capMaxTokensForModel(model: string, maxTokens: number | undefined): number | undefined {
   if (maxTokens === undefined) return undefined
   const m = model.toLowerCase()
-  // GPT-4.1 / GPT-4.1-mini / GPT-4.1-nano: 32,768 max output
-  if (m.startsWith('gpt-4.1')) return Math.min(maxTokens, 32768)
-  // GPT-4o / GPT-4o-mini: 16,384 max output
+  // GPT-4.1: 16,384 max output
+  if (m.startsWith('gpt-4.1')) return Math.min(maxTokens, 16384)
+  // GPT-4o / GPT-4o-mini: 16,384 / 4,096 max output
+  if (m === 'gpt-4o-mini' || m.startsWith('gpt-4o-mini-')) return Math.min(maxTokens, 4096)
   if (m.startsWith('gpt-4o')) return Math.min(maxTokens, 16384)
-  // GPT-5-mini: 16,384 max output
-  if (m.startsWith('gpt-5')) return Math.min(maxTokens, 16384)
-  // Gemini models: 65,536 max output
-  if (m.startsWith('gemini')) return Math.min(maxTokens, 65536)
-  // o3/o4-mini reasoning models: 100,000 max output
-  if (m.startsWith('o3') || m.startsWith('o4')) return Math.min(maxTokens, 100000)
-  // MyCode / unknown models: pass through
+  // GPT-5-mini: 64,000 max output
+  if (m === 'gpt-5-mini') return Math.min(maxTokens, 64000)
+  // GPT-5.1: 64,000 max output
+  if (m === 'gpt-5.1') return Math.min(maxTokens, 64000)
+  // GPT-5.2 / 5.2-codex: 64,000 / 128,000 max output
+  if (m === 'gpt-5.2-codex') return Math.min(maxTokens, 128000)
+  if (m === 'gpt-5.2') return Math.min(maxTokens, 64000)
+  // GPT-5.3-codex: 128,000 max output
+  if (m === 'gpt-5.3-codex') return Math.min(maxTokens, 128000)
+  // GPT-5.4 / 5.4-mini: 128,000 max output
+  if (m.startsWith('gpt-5.4')) return Math.min(maxTokens, 128000)
+  // Gemini models: 64,000 max output
+  if (m.startsWith('gemini')) return Math.min(maxTokens, 64000)
+  // Grok: 64,000 max output
+  if (m.startsWith('grok')) return Math.min(maxTokens, 64000)
+  // Claude models: pass through (Copilot: 16K-64K depending on model)
+  // Unknown models: pass through
   return maxTokens
 }
 
