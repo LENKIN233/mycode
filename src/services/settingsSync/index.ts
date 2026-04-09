@@ -221,7 +221,7 @@ function isUsingOAuth(): boolean {
 }
 
 function getSettingsSyncEndpoint(): string {
-  return `${getOauthConfig().BASE_API_URL}/api/mycode/user_settings`
+  return `${getOauthConfig().BASE_API_URL}/api/claude_code/user_settings`
 }
 
 function getSettingsSyncAuthHeaders(): {

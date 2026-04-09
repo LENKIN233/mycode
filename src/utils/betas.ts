@@ -185,11 +185,11 @@ export function modelSupportsAutoMode(model: string): boolean {
       // Denylist: block known-unsupported mycode models, allow everything else (ant-internal models etc.)
       if (m.includes('claude-3-')) return false
       // mycode-*-4 not followed by -[6-9]: blocks bare -4, -4-YYYYMMDD, -4@, -4-0 thru -4-5
-      if (/mycode-(opus|sonnet|haiku)-4(?!-[6-9])/.test(m)) return false
+      if (/claude-(opus|sonnet|haiku)-4(?!-[6-9])/.test(m)) return false
       return true
     }
     // External allowlist (firstParty already checked above).
-    return /^mycode-(opus|sonnet)-4-6/.test(m)
+    return /^claude-(opus|sonnet)-4-6/.test(m)
   }
   return false
 }

@@ -8,7 +8,7 @@
  * terminal CLI that would break a host that only supports first-party auth.
  *
  * @[MODEL LAUNCH]: New models usually don't need changes here —
- * VERTEX_REGION_MYCODE_* is prefix-matched. New providers or new routing
+ * VERTEX_REGION_CLAUDE_* is prefix-matched. New providers or new routing
  * config vars (endpoint, project, region, auth) do.
  */
 const PROVIDER_MANAGED_ENV_VARS = new Set([
@@ -25,7 +25,7 @@ const PROVIDER_MANAGED_ENV_VARS = new Set([
   'ANTHROPIC_FOUNDRY_BASE_URL',
   'ANTHROPIC_FOUNDRY_RESOURCE',
   'ANTHROPIC_VERTEX_PROJECT_ID',
-  // Region routing (per-model VERTEX_REGION_MYCODE_* handled by prefix below)
+  // Region routing (per-model VERTEX_REGION_CLAUDE_* handled by prefix below)
   'CLOUD_ML_REGION',
   // Auth
   'ANTHROPIC_API_KEY',
@@ -58,7 +58,7 @@ const PROVIDER_MANAGED_ENV_VARS = new Set([
 const PROVIDER_MANAGED_ENV_PREFIXES = [
   // Per-model Vertex region overrides — scales with model releases, so
   // prefix-matched to avoid drift on each launch.
-  'VERTEX_REGION_MYCODE_',
+  'VERTEX_REGION_CLAUDE_',
 ]
 
 export function isProviderManagedEnvVar(key: string): boolean {
@@ -179,13 +179,13 @@ export const SAFE_ENV_VARS = new Set([
   'OTEL_METRICS_INCLUDE_VERSION',
   'OTEL_RESOURCE_ATTRIBUTES',
   'USE_BUILTIN_RIPGREP',
-  'VERTEX_REGION_MYCODE_3_5_HAIKU',
-  'VERTEX_REGION_MYCODE_3_5_SONNET',
-  'VERTEX_REGION_MYCODE_3_7_SONNET',
-  'VERTEX_REGION_MYCODE_4_0_OPUS',
-  'VERTEX_REGION_MYCODE_4_0_SONNET',
-  'VERTEX_REGION_MYCODE_4_1_OPUS',
-  'VERTEX_REGION_MYCODE_4_5_SONNET',
-  'VERTEX_REGION_MYCODE_4_6_SONNET',
-  'VERTEX_REGION_MODEL_HAIKU_4_5',
+  'VERTEX_REGION_CLAUDE_3_5_HAIKU',
+  'VERTEX_REGION_CLAUDE_3_5_SONNET',
+  'VERTEX_REGION_CLAUDE_3_7_SONNET',
+  'VERTEX_REGION_CLAUDE_4_0_OPUS',
+  'VERTEX_REGION_CLAUDE_4_0_SONNET',
+  'VERTEX_REGION_CLAUDE_4_1_OPUS',
+  'VERTEX_REGION_CLAUDE_4_5_SONNET',
+  'VERTEX_REGION_CLAUDE_4_6_SONNET',
+  'VERTEX_REGION_CLAUDE_HAIKU_4_5',
 ])

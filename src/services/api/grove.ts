@@ -242,7 +242,7 @@ export const getGroveNoticeConfig = memoize(
           throw new Error(`Failed to get auth headers: ${authHeaders.error}`)
         }
         return axios.get<GroveConfig>(
-          `${getOauthConfig().BASE_API_URL}/api/mycode_grove`,
+          `${getOauthConfig().BASE_API_URL}/api/claude_code_grove`,
           {
             headers: {
               ...authHeaders.headers,

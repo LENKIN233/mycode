@@ -89,8 +89,8 @@ const PROD_OAUTH_CONFIG = {
   MYCODE_AI_AUTHORIZE_URL: 'https://mycode.com/cai/oauth/authorize',
   MYCODE_AI_ORIGIN: 'https://mycode.ai',
   TOKEN_URL: 'https://platform.mycode.com/v1/oauth/token',
-  API_KEY_URL: 'https://api.anthropic.com/api/oauth/mycode_cli/create_api_key',
-  ROLES_URL: 'https://api.anthropic.com/api/oauth/mycode_cli/roles',
+  API_KEY_URL: 'https://api.anthropic.com/api/oauth/claude_cli/create_api_key',
+  ROLES_URL: 'https://api.anthropic.com/api/oauth/claude_cli/roles',
   CONSOLE_SUCCESS_URL:
     'https://platform.mycode.com/buy_credits?returnUrl=/oauth/code/success%3Fapp%3Dmycode',
   MYCODEAI_SUCCESS_URL:
@@ -126,9 +126,9 @@ const STAGING_OAUTH_CONFIG =
         MYCODE_AI_ORIGIN: 'https://mycode-ai.staging.ant.dev',
         TOKEN_URL: 'https://platform.staging.ant.dev/v1/oauth/token',
         API_KEY_URL:
-          'https://api-staging.anthropic.com/api/oauth/mycode_cli/create_api_key',
+          'https://api-staging.anthropic.com/api/oauth/claude_cli/create_api_key',
         ROLES_URL:
-          'https://api-staging.anthropic.com/api/oauth/mycode_cli/roles',
+          'https://api-staging.anthropic.com/api/oauth/claude_cli/roles',
         CONSOLE_SUCCESS_URL:
           'https://platform.staging.ant.dev/buy_credits?returnUrl=/oauth/code/success%3Fapp%3Dmycode',
         MYCODEAI_SUCCESS_URL:
@@ -161,8 +161,8 @@ function getLocalOauthConfig(): OauthConfig {
     MYCODE_AI_AUTHORIZE_URL: `${apps}/oauth/authorize`,
     MYCODE_AI_ORIGIN: apps,
     TOKEN_URL: `${api}/v1/oauth/token`,
-    API_KEY_URL: `${api}/api/oauth/mycode_cli/create_api_key`,
-    ROLES_URL: `${api}/api/oauth/mycode_cli/roles`,
+    API_KEY_URL: `${api}/api/oauth/claude_cli/create_api_key`,
+    ROLES_URL: `${api}/api/oauth/claude_cli/roles`,
     CONSOLE_SUCCESS_URL: `${consoleBase}/buy_credits?returnUrl=/oauth/code/success%3Fapp%3Dmycode`,
     MYCODEAI_SUCCESS_URL: `${consoleBase}/oauth/code/success?app=mycode`,
     MANUAL_REDIRECT_URL: `${consoleBase}/oauth/code/callback`,
@@ -212,8 +212,8 @@ export function getOauthConfig(): OauthConfig {
       MYCODE_AI_AUTHORIZE_URL: `${base}/oauth/authorize`,
       MYCODE_AI_ORIGIN: base,
       TOKEN_URL: `${base}/v1/oauth/token`,
-      API_KEY_URL: `${base}/api/oauth/mycode_cli/create_api_key`,
-      ROLES_URL: `${base}/api/oauth/mycode_cli/roles`,
+      API_KEY_URL: `${base}/api/oauth/claude_cli/create_api_key`,
+      ROLES_URL: `${base}/api/oauth/claude_cli/roles`,
       CONSOLE_SUCCESS_URL: `${base}/oauth/code/success?app=mycode`,
       MYCODEAI_SUCCESS_URL: `${base}/oauth/code/success?app=mycode`,
       MANUAL_REDIRECT_URL: `${base}/oauth/code/callback`,
