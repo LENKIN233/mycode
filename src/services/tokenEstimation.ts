@@ -204,6 +204,17 @@ export function roughTokenCountEstimation(
   content: string,
   bytesPerToken: number = 4,
 ): number {
+  // CJK characters (Chinese, Japanese, Korean) are typically 1-2 tokens each
+  // but only 1 char in JS string length. The default 4 chars/token ratio
+  // severely underestimates CJK text (~3-6x). Detect CJK density and adjust.
+  // eslint-disable-next-line no-control-regex
+  const cjkChars = content.match(/[\u3000-\u9fff\uf900-\ufaff\uac00-\ud7af]/g)
+  if (cjkChars && cjkChars.length > content.length * 0.15) {
+    // CJK-heavy text: ~1.5 chars per token (empirical average for CL100k)
+    const cjkRatio = cjkChars.length / content.length
+    const effectiveBytesPerToken = 4 * (1 - cjkRatio) + 1.5 * cjkRatio
+    return Math.round(content.length / effectiveBytesPerToken)
+  }
   return Math.round(content.length / bytesPerToken)
 }
 

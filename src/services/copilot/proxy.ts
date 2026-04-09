@@ -828,6 +828,32 @@ class StreamTranslator {
         case 'length':
           stopReason = 'max_tokens'
           break
+        case 'content_filter':
+          // GPT models may refuse to generate content. Surface this to the
+          // user as a text block so it's visible, rather than silently
+          // treating it as a normal end_turn.
+          if (!this.hasStartedText) {
+            this.hasStartedText = true
+            events.push(
+              this.formatSSE({
+                type: 'content_block_start',
+                index: this.contentBlockIndex,
+                content_block: { type: 'text', text: '' },
+              }),
+            )
+          }
+          events.push(
+            this.formatSSE({
+              type: 'content_block_delta',
+              index: this.contentBlockIndex,
+              delta: {
+                type: 'text_delta',
+                text: '\n\n[Content filtered by model safety policy]',
+              },
+            }),
+          )
+          stopReason = 'end_turn'
+          break
         default:
           stopReason = 'end_turn'
       }
@@ -977,6 +1003,12 @@ function translateNonStreamingResponse(
   let stopReason = 'end_turn'
   if (choices?.[0]?.finish_reason === 'tool_calls') stopReason = 'tool_use'
   if (choices?.[0]?.finish_reason === 'length') stopReason = 'max_tokens'
+  if (choices?.[0]?.finish_reason === 'content_filter') {
+    content.push({
+      type: 'text',
+      text: '\n\n[Content filtered by model safety policy]',
+    })
+  }
 
   const usage = openaiResponse.usage as {
     prompt_tokens?: number
