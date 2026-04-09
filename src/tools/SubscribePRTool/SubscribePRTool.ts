@@ -14,14 +14,14 @@ export const SubscribePRTool = buildTool({
   async description() {
     return 'Subscribe to a pull request for updates.'
   },
-  inputSchema,
+  inputSchema: inputSchema(),
   userFacingName() {
     return 'Subscribe PR'
   },
   isReadOnly() {
     return true
   },
-  async isEnabled() {
+  isEnabled() {
     return false
   },
   async call() {

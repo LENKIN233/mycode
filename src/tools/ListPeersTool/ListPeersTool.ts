@@ -12,14 +12,14 @@ export const ListPeersTool = buildTool({
   async description() {
     return 'List connected peers.'
   },
-  inputSchema,
+  inputSchema: inputSchema(),
   userFacingName() {
     return 'List Peers'
   },
   isReadOnly() {
     return true
   },
-  async isEnabled() {
+  isEnabled() {
     return false
   },
   async call() {

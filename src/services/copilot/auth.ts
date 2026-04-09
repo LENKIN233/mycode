@@ -236,14 +236,18 @@ export async function copilotLogin(): Promise<string> {
 
 /**
  * Get a valid Copilot API token, refreshing if necessary.
+ * If the GitHub OAuth token is also expired, automatically runs
+ * the device code flow to re-authenticate.
  * Returns the bearer token to use with the Copilot API.
  */
 export async function getCopilotToken(): Promise<string> {
   const stored = loadStoredAuth()
   if (!stored) {
-    throw new Error(
-      'No Copilot credentials found. Run with --copilot-login first.',
-    )
+    // No credentials at all — run first-time login
+    // biome-ignore lint/suspicious/noConsole: intentional user-facing output
+    console.error('\nNo Copilot credentials found. Starting login flow...')
+    await copilotLogin()
+    return getCopilotToken()
   }
 
   // Check if we have a cached Copilot token that's still valid
@@ -256,16 +260,27 @@ export async function getCopilotToken(): Promise<string> {
     return stored.copilot_token
   }
 
-  // Refresh the Copilot token
-  const copilotToken = await getCopilotApiToken(stored.github_token)
+  // Refresh the Copilot token using the stored GitHub token
+  try {
+    const copilotToken = await getCopilotApiToken(stored.github_token)
 
-  saveStoredAuth({
-    ...stored,
-    copilot_token: copilotToken.token,
-    copilot_expires_at: copilotToken.expires_at,
-  })
+    saveStoredAuth({
+      ...stored,
+      copilot_token: copilotToken.token,
+      copilot_expires_at: copilotToken.expires_at,
+    })
 
-  return copilotToken.token
+    return copilotToken.token
+  } catch (err) {
+    // GitHub token is invalid/expired — automatically re-authenticate
+    // biome-ignore lint/suspicious/noConsole: intentional user-facing output
+    console.error(
+      '\nCopilot session expired. Re-authenticating...',
+    )
+    await copilotLogin()
+    // After re-login, the new tokens are saved. Recurse to return the fresh token.
+    return getCopilotToken()
+  }
 }
 
 /**

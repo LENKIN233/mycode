@@ -14,14 +14,14 @@ export const SnipTool = buildTool({
   async description() {
     return 'Snip conversation history.'
   },
-  inputSchema,
+  inputSchema: inputSchema(),
   userFacingName() {
     return 'Snip'
   },
   isReadOnly() {
     return true
   },
-  async isEnabled() {
+  isEnabled() {
     return false
   },
   async call() {

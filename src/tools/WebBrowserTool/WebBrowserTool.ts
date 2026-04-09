@@ -14,14 +14,14 @@ export const WebBrowserTool = buildTool({
   async description() {
     return 'Browse a web page.'
   },
-  inputSchema,
+  inputSchema: inputSchema(),
   userFacingName() {
     return 'Web Browser'
   },
   isReadOnly() {
     return true
   },
-  async isEnabled() {
+  isEnabled() {
     return false
   },
   async call() {

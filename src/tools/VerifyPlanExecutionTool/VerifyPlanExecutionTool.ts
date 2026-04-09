@@ -14,14 +14,14 @@ export const VerifyPlanExecutionTool = buildTool({
   async description() {
     return 'Verify plan execution progress.'
   },
-  inputSchema,
+  inputSchema: inputSchema(),
   userFacingName() {
     return 'Verify Plan Execution'
   },
   isReadOnly() {
     return true
   },
-  async isEnabled() {
+  isEnabled() {
     return false
   },
   async call() {

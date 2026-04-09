@@ -14,14 +14,14 @@ export const REPLTool = buildTool({
   async description() {
     return 'Run code in an interactive REPL session.'
   },
-  inputSchema,
+  inputSchema: inputSchema(),
   userFacingName() {
     return 'REPL'
   },
   isReadOnly() {
     return false
   },
-  async isEnabled() {
+  isEnabled() {
     return false
   },
   async call() {

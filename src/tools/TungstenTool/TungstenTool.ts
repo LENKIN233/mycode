@@ -1,4 +1,8 @@
 import { buildTool } from '../../Tool.js'
+import { lazySchema } from '../../utils/lazySchema.js'
+import { z } from 'zod/v4'
+
+const tungstenInputSchema = lazySchema(() => z.object({}).passthrough())
 
 export const TungstenTool = buildTool({
   name: 'tungsten',
@@ -19,11 +23,7 @@ export const TungstenTool = buildTool({
       'or another available local tool instead.'
     )
   },
-  inputSchema: {
-    parse(value: unknown) {
-      return value
-    },
-  } as never,
+  inputSchema: tungstenInputSchema(),
   outputSchema: {
     parse(value: unknown) {
       return value

@@ -14,14 +14,14 @@ export const SuggestBackgroundPRTool = buildTool({
   async description() {
     return 'Suggest a background PR.'
   },
-  inputSchema,
+  inputSchema: inputSchema(),
   userFacingName() {
     return 'Suggest Background PR'
   },
   isReadOnly() {
     return true
   },
-  async isEnabled() {
+  isEnabled() {
     return false
   },
   async call() {

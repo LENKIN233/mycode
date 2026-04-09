@@ -14,14 +14,14 @@ export const TerminalCaptureTool = buildTool({
   async description() {
     return 'Capture terminal output.'
   },
-  inputSchema,
+  inputSchema: inputSchema(),
   userFacingName() {
     return 'Terminal Capture'
   },
   isReadOnly() {
     return true
   },
-  async isEnabled() {
+  isEnabled() {
     return false
   },
   async call() {

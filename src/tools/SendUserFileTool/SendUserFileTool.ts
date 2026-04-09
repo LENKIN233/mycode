@@ -14,14 +14,14 @@ export const SendUserFileTool = buildTool({
   async description() {
     return 'Send a file to the user.'
   },
-  inputSchema,
+  inputSchema: inputSchema(),
   userFacingName() {
     return 'Send User File'
   },
   isReadOnly() {
     return true
   },
-  async isEnabled() {
+  isEnabled() {
     return false
   },
   async call() {

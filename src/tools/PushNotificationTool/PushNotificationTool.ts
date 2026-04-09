@@ -15,14 +15,14 @@ export const PushNotificationTool = buildTool({
   async description() {
     return 'Send a push notification to the user.'
   },
-  inputSchema,
+  inputSchema: inputSchema(),
   userFacingName() {
     return 'Push Notification'
   },
   isReadOnly() {
     return true
   },
-  async isEnabled() {
+  isEnabled() {
     return false
   },
   async call() {

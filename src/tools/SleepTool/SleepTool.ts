@@ -15,14 +15,14 @@ export const SleepTool = buildTool({
   async description() {
     return 'Sleep for a specified duration.'
   },
-  inputSchema,
+  inputSchema: inputSchema(),
   userFacingName() {
     return 'Sleep'
   },
   isReadOnly() {
     return true
   },
-  async isEnabled() {
+  isEnabled() {
     return false
   },
   async call() {

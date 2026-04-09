@@ -14,14 +14,14 @@ export const CtxInspectTool = buildTool({
   async description() {
     return 'Inspect current context.'
   },
-  inputSchema,
+  inputSchema: inputSchema(),
   userFacingName() {
     return 'Context Inspect'
   },
   isReadOnly() {
     return true
   },
-  async isEnabled() {
+  isEnabled() {
     return false
   },
   async call() {
