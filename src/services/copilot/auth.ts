@@ -236,18 +236,24 @@ export async function copilotLogin(): Promise<string> {
 
 /**
  * Get a valid Copilot API token, refreshing if necessary.
- * If the GitHub OAuth token is also expired, automatically runs
- * the device code flow to re-authenticate.
- * Returns the bearer token to use with the Copilot API.
+ * If the GitHub OAuth token is also expired, behaviour depends on autoLogin:
+ *   - true (default): runs the interactive device code flow via console.error
+ *   - false: throws so the caller can handle re-auth in its own UI (e.g. TUI)
  */
-export async function getCopilotToken(): Promise<string> {
+export async function getCopilotToken(
+  options?: { autoLogin?: boolean },
+): Promise<string> {
+  const autoLogin = options?.autoLogin ?? true
+
   const stored = loadStoredAuth()
   if (!stored) {
-    // No credentials at all — run first-time login
+    if (!autoLogin) {
+      throw new Error('No Copilot credentials found. Please run /provider login.')
+    }
     // biome-ignore lint/suspicious/noConsole: intentional user-facing output
     console.error('\nNo Copilot credentials found. Starting login flow...')
     await copilotLogin()
-    return getCopilotToken()
+    return getCopilotToken(options)
   }
 
   // Check if we have a cached Copilot token that's still valid
@@ -271,15 +277,49 @@ export async function getCopilotToken(): Promise<string> {
     })
 
     return copilotToken.token
-  } catch (err) {
+  } catch {
+    if (!autoLogin) {
+      throw new Error('Copilot session expired. Re-authentication required.')
+    }
     // GitHub token is invalid/expired — automatically re-authenticate
     // biome-ignore lint/suspicious/noConsole: intentional user-facing output
     console.error(
       '\nCopilot session expired. Re-authenticating...',
     )
     await copilotLogin()
-    // After re-login, the new tokens are saved. Recurse to return the fresh token.
-    return getCopilotToken()
+    return getCopilotToken(options)
+  }
+}
+
+/**
+ * Request a device code and start a background polling flow for auth.
+ * Returns the verification info so callers (like the proxy error handler
+ * in TUI mode) can display it however they need.
+ */
+export async function requestCopilotReauth(): Promise<{
+  verification_uri: string
+  user_code: string
+  pollPromise: Promise<void>
+}> {
+  const deviceData = await requestDeviceCode()
+
+  const pollPromise = (async () => {
+    const githubToken = await pollForAccessToken(
+      deviceData.device_code,
+      deviceData.interval,
+    )
+    const copilotToken = await getCopilotApiToken(githubToken)
+    saveStoredAuth({
+      github_token: githubToken,
+      copilot_token: copilotToken.token,
+      copilot_expires_at: copilotToken.expires_at,
+    })
+  })()
+
+  return {
+    verification_uri: deviceData.verification_uri,
+    user_code: deviceData.user_code,
+    pollPromise,
   }
 }
 

@@ -7,7 +7,7 @@
  */
 
 import type { ClientOptions } from '@anthropic-ai/sdk'
-import { getCopilotToken } from './auth.js'
+import { getCopilotToken, requestCopilotReauth } from './auth.js'
 
 const COPILOT_API_BASE = 'https://api.githubcopilot.com'
 
@@ -1038,6 +1038,10 @@ function translateNonStreamingResponse(
  * OpenAI chat completions format for the Copilot API.
  */
 export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
+  // Track a pending reauth flow so multiple concurrent requests don't
+  // each start their own device code flow.
+  let pendingReauth: Promise<void> | null = null
+
   return async (
     input: RequestInfo | URL,
     init?: RequestInit,
@@ -1070,22 +1074,70 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
     // Get a fresh Copilot token
     let copilotToken: string
     try {
-      copilotToken = await getCopilotToken()
+      // If a previous request already kicked off re-auth, wait for it
+      if (pendingReauth) {
+        await pendingReauth
+        pendingReauth = null
+      }
+      // autoLogin=false so we don't block on console.error prompts
+      // that are invisible in the TUI's Ink alternate buffer
+      copilotToken = await getCopilotToken({ autoLogin: false })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      return new Response(
-        JSON.stringify({
-          type: 'error',
-          error: {
-            type: 'authentication_error',
-            message: `Copilot auth failed: ${msg}`,
+      // Token expired or missing — start TUI-friendly device code flow
+      try {
+        const { verification_uri, user_code, pollPromise } =
+          await requestCopilotReauth()
+        pendingReauth = pollPromise
+
+        // Try to open the browser automatically (macOS)
+        try {
+          const { exec } = await import('child_process')
+          exec(`open "${verification_uri}"`)
+        } catch {
+          // Ignore — the URL is shown in the error message below
+        }
+
+        // Start background cleanup: when polling completes, clear the flag
+        pollPromise.then(() => {
+          pendingReauth = null
+        }).catch(() => {
+          pendingReauth = null
+        })
+
+        return new Response(
+          JSON.stringify({
+            type: 'error',
+            error: {
+              type: 'authentication_error',
+              message:
+                `Copilot 认证已过期，正在重新授权...\n\n` +
+                `请在浏览器中访问: ${verification_uri}\n` +
+                `输入验证码: ${user_code}\n\n` +
+                `授权完成后，重新发送消息即可。`,
+            },
+          }),
+          {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
           },
-        }),
-        {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      )
+        )
+      } catch (reauthErr) {
+        const msg =
+          reauthErr instanceof Error ? reauthErr.message : String(reauthErr)
+        return new Response(
+          JSON.stringify({
+            type: 'error',
+            error: {
+              type: 'authentication_error',
+              message: `Copilot auth failed: ${msg}. 请尝试 /provider login 手动重新认证。`,
+            },
+          }),
+          {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        )
+      }
     }
 
     // Translate request
