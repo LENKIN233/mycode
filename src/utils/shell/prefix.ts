@@ -218,6 +218,7 @@ async function getCommandPrefixImpl(
     )
 
     const response = await queryHaiku({
+      taskCategory: 'utility',
       systemPrompt: asSystemPrompt(
         useSystemPromptPolicySpec
           ? [

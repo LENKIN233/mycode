@@ -12,6 +12,7 @@ import { lazySchema } from '../../utils/lazySchema.js'
 import { logError } from '../../utils/log.js'
 import { createUserMessage } from '../../utils/messages.js'
 import { getMainLoopModel, getSmallFastModel } from '../../utils/model/model.js'
+import { getModelForTask } from '../../utils/model/taskModels.js'
 import { jsonParse, jsonStringify } from '../../utils/slowOperations.js'
 import { asSystemPrompt } from '../../utils/systemPromptType.js'
 import { getWebSearchPrompt, WEB_SEARCH_TOOL_NAME } from './prompt.js'
@@ -277,7 +278,7 @@ export const WebSearchTool = buildTool({
       signal: context.abortController.signal,
       options: {
         getToolPermissionContext: async () => appState.toolPermissionContext,
-        model: useHaiku ? getSmallFastModel() : context.options.mainLoopModel,
+        model: useHaiku ? getModelForTask('analysis') : context.options.mainLoopModel,
         toolChoice: useHaiku ? { type: 'tool', name: 'web_search' } : undefined,
         isNonInteractiveSession: context.options.isNonInteractiveSession,
         hasAppendSystemPrompt: !!context.options.appendSystemPrompt,

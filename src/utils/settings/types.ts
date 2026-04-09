@@ -376,6 +376,14 @@ export const SettingsSchema = lazySchema(() =>
         .string()
         .optional()
         .describe('Override the default model used by MyCode'),
+      modelConfig: z
+        .record(z.string(), z.string())
+        .optional()
+        .describe(
+          'Per-task model overrides for auxiliary requests. ' +
+            'Keys: title, summary, analysis, utility, memory, permission, insights, hooks. ' +
+            'Values: model ID strings (e.g. "gpt-4.1", "claude-haiku-4.5").',
+        ),
       // Enterprise allowlist of models
       availableModels: z
         .array(z.string())

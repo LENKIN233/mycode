@@ -66,6 +66,7 @@ Parse the user's input into ISO 8601 format. Return ONLY the formatted string, o
 
   try {
     const result = await queryHaiku({
+      taskCategory: 'utility',
       systemPrompt,
       userPrompt,
       signal,

@@ -501,6 +501,7 @@ export async function applyPromptToMarkdown(
     isPreapprovedDomain,
   )
   const assistantMessage = await queryHaiku({
+    taskCategory: 'analysis',
     systemPrompt: asSystemPrompt([]),
     userPrompt: modelPrompt,
     signal,

@@ -88,6 +88,7 @@ import {
   getSmallFastModel,
   isNonCustomOpusModel,
 } from '../../utils/model/model.js'
+import { getModelForTask, type TaskCategory } from '../../utils/model/taskModels.js'
 import {
   asSystemPrompt,
   type SystemPrompt,
@@ -3248,12 +3249,14 @@ export async function queryHaiku({
   outputFormat,
   signal,
   options,
+  taskCategory,
 }: {
   systemPrompt: SystemPrompt
   userPrompt: string
   outputFormat?: BetaJSONOutputFormat
   signal: AbortSignal
   options: HaikuOptions
+  taskCategory?: TaskCategory
 }): Promise<AssistantMessage> {
   const result = await withVCR(
     [
@@ -3279,7 +3282,7 @@ export async function queryHaiku({
         signal,
         options: {
           ...options,
-          model: getSmallFastModel(),
+          model: taskCategory ? getModelForTask(taskCategory) : getSmallFastModel(),
           enablePromptCaching: options.enablePromptCaching ?? false,
           outputFormat,
           async getToolPermissionContext() {

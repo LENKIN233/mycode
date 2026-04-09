@@ -3,6 +3,7 @@ import { count } from './array.js'
 import { logForDebugging } from './debug.js'
 import { getLogDisplayTitle, logError } from './log.js'
 import { getSmallFastModel } from './model/model.js'
+import { getModelForTask } from './model/taskModels.js'
 import { isLiteLog, loadFullLog } from './sessionStorage.js'
 import { sideQuery } from './sideQuery.js'
 import { jsonParse } from './slowOperations.js'
@@ -258,7 +259,7 @@ Find the sessions that are most relevant to this query.`
   )
 
   try {
-    const model = getSmallFastModel()
+    const model = getModelForTask('memory')
     logForDebugging(`Agentic search using model: ${model}`)
 
     const response = await sideQuery({

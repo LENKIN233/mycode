@@ -26,6 +26,7 @@ import { execFileNoThrow } from '../utils/execFileNoThrow.js'
 import { logError } from '../utils/log.js'
 import { extractTextContent } from '../utils/messages.js'
 import { getDefaultOpusModel } from '../utils/model/model.js'
+import { getModelForTask } from '../utils/model/taskModels.js'
 import {
   getProjectsDir,
   getSessionFilesWithMtime,
@@ -37,14 +38,14 @@ import { countCharInString } from '../utils/stringUtils.js'
 import { asSystemPrompt } from '../utils/systemPromptType.js'
 import { escapeXmlAttr as escapeHtml } from '../utils/xml.js'
 
-// Model for facet extraction and summarization (Opus - best quality)
+// Model for facet extraction and summarization
 function getAnalysisModel(): string {
-  return getDefaultOpusModel()
+  return getModelForTask('insights')
 }
 
-// Model for narrative insights (Opus - best quality)
+// Model for narrative insights
 function getInsightsModel(): string {
-  return getDefaultOpusModel()
+  return getModelForTask('insights')
 }
 
 // ============================================================================

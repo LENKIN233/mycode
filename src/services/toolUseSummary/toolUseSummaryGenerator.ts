@@ -67,6 +67,7 @@ export async function generateToolUseSummary({
       : ''
 
     const response = await queryHaiku({
+      taskCategory: 'summary',
       systemPrompt: asSystemPrompt([TOOL_USE_SUMMARY_SYSTEM_PROMPT]),
       userPrompt: `${contextPrefix}Tools completed:\n\n${toolSummaries}\n\nLabel:`,
       signal,

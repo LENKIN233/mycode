@@ -105,6 +105,7 @@ async function generateTitleAndBranch(description: string, signal: AbortSignal):
   try {
     const userPrompt = SESSION_TITLE_AND_BRANCH_PROMPT.replace('{description}', description);
     const response = await queryHaiku({
+      taskCategory: 'title',
       systemPrompt: asSystemPrompt([]),
       userPrompt,
       outputFormat: {
