@@ -1120,71 +1120,87 @@ function createFakeAssistantResponse(text: string, isStreaming: boolean): Respon
 }
 
 /**
- * Global reauth gate shared across all createCopilotFetch() instances,
- * even if the module is loaded via different import paths.
+ * Global reauth state shared across all createCopilotFetch() instances.
  * Uses globalThis to guarantee a single device code flow per process.
+ *
+ * Once the device code is obtained, _resolved caches the result so
+ * concurrent requests can return the same verification info immediately
+ * without re-awaiting the gate promise.
  */
-type ReauthGateResult = {
-  pollPromise: Promise<void>
-  verification_uri: string
-  user_code: string
+interface ReauthState {
+  gate: Promise<{
+    pollPromise: Promise<void>
+    verification_uri: string
+    user_code: string
+  }>
+  resolved: {
+    verification_uri: string
+    user_code: string
+  } | null
 }
-const REAUTH_GATE_KEY = '__copilot_reauth_gate__'
-function getReauthGate(): Promise<ReauthGateResult> | null {
-  return (globalThis as Record<string, unknown>)[REAUTH_GATE_KEY] as Promise<ReauthGateResult> | null ?? null
+const REAUTH_KEY = '__copilot_reauth__'
+
+function getReauthState(): ReauthState | null {
+  return (globalThis as Record<string, unknown>)[REAUTH_KEY] as ReauthState | null ?? null
 }
-function setReauthGate(gate: Promise<ReauthGateResult> | null): void {
-  ;(globalThis as Record<string, unknown>)[REAUTH_GATE_KEY] = gate
-}
-const BROWSER_OPENED_KEY = '__copilot_browser_opened__'
-function markBrowserOpened(): boolean {
-  if ((globalThis as Record<string, unknown>)[BROWSER_OPENED_KEY]) return false
-  ;(globalThis as Record<string, unknown>)[BROWSER_OPENED_KEY] = true
-  return true
-}
-function resetBrowserOpened(): void {
-  ;(globalThis as Record<string, unknown>)[BROWSER_OPENED_KEY] = false
+function setReauthState(state: ReauthState | null): void {
+  ;(globalThis as Record<string, unknown>)[REAUTH_KEY] = state
 }
 
 /**
  * Handle TUI-friendly Copilot re-authentication.
  * Starts a device code flow (deduped across concurrent requests),
- * opens the browser, and returns a fake assistant response with
- * the verification URL and code so the user sees it in the TUI chat.
+ * and returns a fake assistant response with the verification URL
+ * and user code so the message appears directly in the TUI chat.
+ *
+ * Does NOT auto-open a browser — the user clicks the link themselves.
  */
 async function handleReauth(
   isStreaming: boolean,
   message: string,
 ): Promise<Response> {
-  if (!getReauthGate()) {
-    setReauthGate(requestCopilotReauth())
+  let state = getReauthState()
+
+  if (!state) {
+    const gate = requestCopilotReauth()
+    state = { gate, resolved: null }
+    setReauthState(state)
+
+    // When background polling completes (user authorized), clear the state
+    gate
+      .then(info => info.pollPromise)
+      .then(() => setReauthState(null))
+      .catch(() => setReauthState(null))
   }
 
   try {
-    const currentGate = getReauthGate()!
-    const { verification_uri, user_code, pollPromise } = await currentGate
+    // If we already have the resolved info (from a prior concurrent request),
+    // skip the await and return immediately. This prevents blocking.
+    let verification_uri: string
+    let user_code: string
 
-    if (markBrowserOpened()) {
-      try {
-        const { exec } = require('child_process')
-        exec(`open "${verification_uri}"`)
-      } catch {}
+    if (state.resolved) {
+      verification_uri = state.resolved.verification_uri
+      user_code = state.resolved.user_code
+    } else {
+      const info = await state.gate
+      state.resolved = {
+        verification_uri: info.verification_uri,
+        user_code: info.user_code,
+      }
+      verification_uri = info.verification_uri
+      user_code = info.user_code
     }
-
-    pollPromise
-      .then(() => { setReauthGate(null); resetBrowserOpened() })
-      .catch(() => { setReauthGate(null); resetBrowserOpened() })
 
     return createFakeAssistantResponse(
       `⚠️ ${message}\n\n` +
-      `请在浏览器中访问: ${verification_uri}\n` +
-      `输入验证码: **${user_code}**\n\n` +
-      `授权完成后，重新发送消息即可。`,
+      `请访问: ${verification_uri}\n` +
+      `验证码: \`${user_code}\`\n\n` +
+      `在浏览器中输入验证码完成授权，然后重新发送消息。`,
       isStreaming,
     )
   } catch (reauthErr) {
-    setReauthGate(null)
-    resetBrowserOpened()
+    setReauthState(null)
     const msg =
       reauthErr instanceof Error ? reauthErr.message : String(reauthErr)
     return createFakeAssistantResponse(
@@ -1235,29 +1251,22 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
     // Get a fresh Copilot token
     let copilotToken: string
     try {
-      // If a previous message already kicked off re-auth and it completed,
-      // clear the gate and try the fresh token
-      const gate = getReauthGate()
-      if (gate) {
-        try {
-          const info = await gate
-          await info.pollPromise
-        } catch {
-          // reauth failed — will be handled below when getCopilotToken throws
-        }
-        setReauthGate(null)
-        resetBrowserOpened()
+      // If a reauth flow is still in progress (background polling),
+      // skip straight to the reauth response — don't try getCopilotToken
+      // which would throw and start a duplicate device code flow.
+      if (getReauthState()) {
+        throw new Error('Reauth in progress')
       }
       // autoLogin=false so we don't block on console.error prompts
       // that are invisible in the TUI's Ink alternate buffer
       copilotToken = await getCopilotToken({ autoLogin: false })
     } catch (err) {
-      // Token expired or missing — start TUI-friendly device code flow.
-      // Return a fake successful response so the message appears in the TUI
-      // chat (401 errors get swallowed by the SDK's retry logic).
+      // Token expired/missing or reauth in progress — return a fake
+      // assistant response with the verification URL and code so the
+      // message appears in the TUI chat.
       return handleReauth(
         !!anthropicBody.stream,
-        'Copilot 认证已过期，正在重新授权...',
+        'Copilot 认证已过期，需要重新授权',
       )
     }
 
