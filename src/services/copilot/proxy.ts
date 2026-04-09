@@ -1031,6 +1031,95 @@ function translateNonStreamingResponse(
 }
 
 /**
+ * Create a fake successful Anthropic streaming response that displays a
+ * message to the user. Used for auth prompts that need to appear in the TUI
+ * chat (rather than being swallowed by the SDK's retry logic).
+ */
+function createFakeAssistantResponse(text: string, isStreaming: boolean): Response {
+  const msgId = `msg_reauth_${Date.now()}`
+  if (!isStreaming) {
+    return new Response(
+      JSON.stringify({
+        id: msgId,
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'text', text }],
+        model: 'copilot-reauth',
+        stop_reason: 'end_turn',
+        stop_sequence: null,
+        usage: { input_tokens: 0, output_tokens: 0 },
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'request-id': `copilot-reauth-${Date.now()}`,
+        },
+      },
+    )
+  }
+
+  // Build SSE stream matching Anthropic's streaming format
+  const events = [
+    `event: message_start\ndata: ${JSON.stringify({
+      type: 'message_start',
+      message: {
+        id: msgId,
+        type: 'message',
+        role: 'assistant',
+        content: [],
+        model: 'copilot-reauth',
+        stop_reason: null,
+        stop_sequence: null,
+        usage: { input_tokens: 0, output_tokens: 0 },
+      },
+    })}\n\n`,
+    `event: content_block_start\ndata: ${JSON.stringify({
+      type: 'content_block_start',
+      index: 0,
+      content_block: { type: 'text', text: '' },
+    })}\n\n`,
+    `event: content_block_delta\ndata: ${JSON.stringify({
+      type: 'content_block_delta',
+      index: 0,
+      delta: { type: 'text_delta', text },
+    })}\n\n`,
+    `event: content_block_stop\ndata: ${JSON.stringify({
+      type: 'content_block_stop',
+      index: 0,
+    })}\n\n`,
+    `event: message_delta\ndata: ${JSON.stringify({
+      type: 'message_delta',
+      delta: { stop_reason: 'end_turn', stop_sequence: null },
+      usage: { output_tokens: 0 },
+    })}\n\n`,
+    `event: message_stop\ndata: ${JSON.stringify({
+      type: 'message_stop',
+    })}\n\n`,
+  ]
+
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    start(controller) {
+      for (const event of events) {
+        controller.enqueue(encoder.encode(event))
+      }
+      controller.close()
+    },
+  })
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'close',
+      'request-id': `copilot-reauth-${Date.now()}`,
+    },
+  })
+}
+
+/**
  * Global reauth gate shared across all createCopilotFetch() instances,
  * even if the module is loaded via different import paths.
  * Uses globalThis to guarantee a single device code flow per process.
@@ -1116,65 +1205,42 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
       copilotToken = await getCopilotToken({ autoLogin: false })
     } catch (err) {
       // Token expired or missing — start TUI-friendly device code flow.
-      // Use reauthGate to ensure only ONE device code request is made,
-      // even when multiple fetch calls race into this catch block.
+      // Return a fake successful response so the message appears in the TUI
+      // chat (401 errors get swallowed by the SDK's retry logic).
+      const isStreaming = !!anthropicBody.stream
+
       if (!getReauthGate()) {
-        // First request to fail: create the gate SYNCHRONOUSLY (no await yet)
         setReauthGate(requestCopilotReauth())
       }
 
-      // All requests (including the first) await the same gate
       try {
         const currentGate = getReauthGate()!
         const { verification_uri, user_code, pollPromise } = await currentGate
 
-        // Open browser exactly once per reauth cycle
         if (markBrowserOpened()) {
           try {
             const { exec } = require('child_process')
             exec(`open "${verification_uri}"`)
-          } catch {
-            // Ignore — the URL is shown in the error message
-          }
+          } catch {}
         }
 
-        // Background cleanup: when polling completes, clear the gate
         pollPromise.then(() => { setReauthGate(null); resetBrowserOpened() }).catch(() => { setReauthGate(null); resetBrowserOpened() })
 
-        return new Response(
-          JSON.stringify({
-            type: 'error',
-            error: {
-              type: 'authentication_error',
-              message:
-                `Copilot 认证已过期，正在重新授权...\n\n` +
-                `请在浏览器中访问: ${verification_uri}\n` +
-                `输入验证码: ${user_code}\n\n` +
-                `授权完成后，重新发送消息即可。`,
-            },
-          }),
-          {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-          },
+        return createFakeAssistantResponse(
+          `⚠️ Copilot 认证已过期，正在重新授权...\n\n` +
+          `请在浏览器中访问: ${verification_uri}\n` +
+          `输入验证码: **${user_code}**\n\n` +
+          `授权完成后，重新发送消息即可。`,
+          isStreaming,
         )
       } catch (reauthErr) {
         setReauthGate(null)
         resetBrowserOpened()
         const msg =
           reauthErr instanceof Error ? reauthErr.message : String(reauthErr)
-        return new Response(
-          JSON.stringify({
-            type: 'error',
-            error: {
-              type: 'authentication_error',
-              message: `Copilot auth failed: ${msg}. 请尝试 /provider login 手动重新认证。`,
-            },
-          }),
-          {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-          },
+        return createFakeAssistantResponse(
+          `⚠️ Copilot 认证失败: ${msg}\n\n请运行 \`/provider login\` 手动重新认证。`,
+          isStreaming,
         )
       }
     }
@@ -1208,15 +1274,14 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
       // If Copilot returns 401, the cached token is stale (e.g. system clock
       // was wrong when it was issued). Clear it and trigger re-auth.
       if (copilotResponse.status === 401) {
+        const isStreaming = !!anthropicBody.stream
+
         // Invalidate the cached token so next getCopilotToken call won't reuse it
         try {
           const { invalidateCopilotToken } = await import('./auth.js')
           invalidateCopilotToken()
-        } catch {
-          // Best-effort — the re-auth flow below will recover
-        }
+        } catch {}
 
-        // Start device code re-auth (same as expired token path above)
         if (!getReauthGate()) {
           setReauthGate(requestCopilotReauth())
         }
@@ -1225,7 +1290,6 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
           const currentGate = getReauthGate()!
           const { verification_uri, user_code, pollPromise } = await currentGate
 
-          // Open browser exactly once per reauth cycle
           if (markBrowserOpened()) {
             try {
               const { exec } = require('child_process')
@@ -1235,39 +1299,21 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
 
           pollPromise.then(() => { setReauthGate(null); resetBrowserOpened() }).catch(() => { setReauthGate(null); resetBrowserOpened() })
 
-          return new Response(
-            JSON.stringify({
-              type: 'error',
-              error: {
-                type: 'authentication_error',
-                message:
-                  `Copilot 认证令牌已失效，正在重新授权...\n\n` +
-                  `请在浏览器中访问: ${verification_uri}\n` +
-                  `输入验证码: ${user_code}\n\n` +
-                  `授权完成后，重新发送消息即可。`,
-              },
-            }),
-            {
-              status: 401,
-              headers: { 'Content-Type': 'application/json' },
-            },
+          return createFakeAssistantResponse(
+            `⚠️ Copilot 认证令牌已失效，正在重新授权...\n\n` +
+            `请在浏览器中访问: ${verification_uri}\n` +
+            `输入验证码: **${user_code}**\n\n` +
+            `授权完成后，重新发送消息即可。`,
+            isStreaming,
           )
         } catch (reauthErr) {
           setReauthGate(null)
           resetBrowserOpened()
-          const errorText = await copilotResponse.text().catch(() => '')
-          return new Response(
-            JSON.stringify({
-              type: 'error',
-              error: {
-                type: 'authentication_error',
-                message: `Copilot API 401: ${errorText}. 请尝试 /provider login 手动重新认证。`,
-              },
-            }),
-            {
-              status: 401,
-              headers: { 'Content-Type': 'application/json' },
-            },
+          const msg =
+            reauthErr instanceof Error ? reauthErr.message : String(reauthErr)
+          return createFakeAssistantResponse(
+            `⚠️ Copilot 认证失败: ${msg}\n\n请运行 \`/provider login\` 手动重新认证。`,
+            isStreaming,
           )
         }
       }
