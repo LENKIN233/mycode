@@ -1147,6 +1147,54 @@ function resetBrowserOpened(): void {
 }
 
 /**
+ * Handle TUI-friendly Copilot re-authentication.
+ * Starts a device code flow (deduped across concurrent requests),
+ * opens the browser, and returns a fake assistant response with
+ * the verification URL and code so the user sees it in the TUI chat.
+ */
+async function handleReauth(
+  isStreaming: boolean,
+  message: string,
+): Promise<Response> {
+  if (!getReauthGate()) {
+    setReauthGate(requestCopilotReauth())
+  }
+
+  try {
+    const currentGate = getReauthGate()!
+    const { verification_uri, user_code, pollPromise } = await currentGate
+
+    if (markBrowserOpened()) {
+      try {
+        const { exec } = require('child_process')
+        exec(`open "${verification_uri}"`)
+      } catch {}
+    }
+
+    pollPromise
+      .then(() => { setReauthGate(null); resetBrowserOpened() })
+      .catch(() => { setReauthGate(null); resetBrowserOpened() })
+
+    return createFakeAssistantResponse(
+      `⚠️ ${message}\n\n` +
+      `请在浏览器中访问: ${verification_uri}\n` +
+      `输入验证码: **${user_code}**\n\n` +
+      `授权完成后，重新发送消息即可。`,
+      isStreaming,
+    )
+  } catch (reauthErr) {
+    setReauthGate(null)
+    resetBrowserOpened()
+    const msg =
+      reauthErr instanceof Error ? reauthErr.message : String(reauthErr)
+    return createFakeAssistantResponse(
+      `⚠️ Copilot 认证失败: ${msg}\n\n请运行 \`/provider login\` 手动重新认证。`,
+      isStreaming,
+    )
+  }
+}
+
+/**
  * Create a custom fetch function that proxies Anthropic SDK requests
  * through the GitHub Copilot API.
  *
@@ -1207,42 +1255,10 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
       // Token expired or missing — start TUI-friendly device code flow.
       // Return a fake successful response so the message appears in the TUI
       // chat (401 errors get swallowed by the SDK's retry logic).
-      const isStreaming = !!anthropicBody.stream
-
-      if (!getReauthGate()) {
-        setReauthGate(requestCopilotReauth())
-      }
-
-      try {
-        const currentGate = getReauthGate()!
-        const { verification_uri, user_code, pollPromise } = await currentGate
-
-        if (markBrowserOpened()) {
-          try {
-            const { exec } = require('child_process')
-            exec(`open "${verification_uri}"`)
-          } catch {}
-        }
-
-        pollPromise.then(() => { setReauthGate(null); resetBrowserOpened() }).catch(() => { setReauthGate(null); resetBrowserOpened() })
-
-        return createFakeAssistantResponse(
-          `⚠️ Copilot 认证已过期，正在重新授权...\n\n` +
-          `请在浏览器中访问: ${verification_uri}\n` +
-          `输入验证码: **${user_code}**\n\n` +
-          `授权完成后，重新发送消息即可。`,
-          isStreaming,
-        )
-      } catch (reauthErr) {
-        setReauthGate(null)
-        resetBrowserOpened()
-        const msg =
-          reauthErr instanceof Error ? reauthErr.message : String(reauthErr)
-        return createFakeAssistantResponse(
-          `⚠️ Copilot 认证失败: ${msg}\n\n请运行 \`/provider login\` 手动重新认证。`,
-          isStreaming,
-        )
-      }
+      return handleReauth(
+        !!anthropicBody.stream,
+        'Copilot 认证已过期，正在重新授权...',
+      )
     }
 
     // Translate request
@@ -1274,48 +1290,16 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
       // If Copilot returns 401, the cached token is stale (e.g. system clock
       // was wrong when it was issued). Clear it and trigger re-auth.
       if (copilotResponse.status === 401) {
-        const isStreaming = !!anthropicBody.stream
-
         // Invalidate the cached token so next getCopilotToken call won't reuse it
         try {
           const { invalidateCopilotToken } = await import('./auth.js')
           invalidateCopilotToken()
         } catch {}
 
-        if (!getReauthGate()) {
-          setReauthGate(requestCopilotReauth())
-        }
-
-        try {
-          const currentGate = getReauthGate()!
-          const { verification_uri, user_code, pollPromise } = await currentGate
-
-          if (markBrowserOpened()) {
-            try {
-              const { exec } = require('child_process')
-              exec(`open "${verification_uri}"`)
-            } catch {}
-          }
-
-          pollPromise.then(() => { setReauthGate(null); resetBrowserOpened() }).catch(() => { setReauthGate(null); resetBrowserOpened() })
-
-          return createFakeAssistantResponse(
-            `⚠️ Copilot 认证令牌已失效，正在重新授权...\n\n` +
-            `请在浏览器中访问: ${verification_uri}\n` +
-            `输入验证码: **${user_code}**\n\n` +
-            `授权完成后，重新发送消息即可。`,
-            isStreaming,
-          )
-        } catch (reauthErr) {
-          setReauthGate(null)
-          resetBrowserOpened()
-          const msg =
-            reauthErr instanceof Error ? reauthErr.message : String(reauthErr)
-          return createFakeAssistantResponse(
-            `⚠️ Copilot 认证失败: ${msg}\n\n请运行 \`/provider login\` 手动重新认证。`,
-            isStreaming,
-          )
-        }
+        return handleReauth(
+          !!anthropicBody.stream,
+          'Copilot 认证令牌已失效，正在重新授权...',
+        )
       }
 
       // Return other errors as Anthropic-formatted error
