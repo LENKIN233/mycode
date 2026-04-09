@@ -848,10 +848,14 @@ function translateStream(
           const lines = buffer.split('\n')
           buffer = lines.pop() ?? '' // Keep incomplete line in buffer
 
+          let streamDone = false
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const data = line.slice(6).trim()
-              if (data === '[DONE]') continue
+              if (data === '[DONE]') {
+                streamDone = true
+                break
+              }
 
               try {
                 const chunk = JSON.parse(data)
@@ -864,10 +868,12 @@ function translateStream(
               }
             }
           }
+          if (streamDone) break
         }
       } catch (err) {
         controller.error(err)
       } finally {
+        reader.cancel().catch(() => {})
         controller.close()
       }
     },
@@ -1058,7 +1064,7 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
+          Connection: 'close',
           // The Anthropic SDK looks for the request-id header
           'request-id': `copilot-${Date.now()}`,
         },

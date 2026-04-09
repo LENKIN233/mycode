@@ -322,8 +322,7 @@ export const getTools = (permissionContext: ToolPermissionContext): Tools => {
     }
   }
 
-  const isEnabled = allowedTools.map(_ => _.isEnabled())
-  return allowedTools.filter((_, i) => isEnabled[i])
+  return allowedTools.filter(tool => tool.isEnabled())
 }
 
 /**

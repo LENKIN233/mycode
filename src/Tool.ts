@@ -297,6 +297,18 @@ export type ToolUseContext = {
    * and bust the cache. See forkSubagent.ts.
    */
   renderedSystemPrompt?: SystemPrompt
+  /**
+   * Session-level cache for idempotent tool results. Caches results from
+   * read-only tools (Glob, Grep, Read) so repeated identical calls skip
+   * re-execution. Provisioned once per query session in query.ts.
+   */
+  toolResultCache?: import('./services/agent/toolResultCache.js').ToolResultCache
+  /**
+   * ReAct reflection tracker for error recovery. Detects repeated failures,
+   * stuck loops, and common error patterns, injecting targeted reflection
+   * prompts to help the model recover. Provisioned once per query session.
+   */
+  reflectionTracker?: import('./services/agent/reflectionLoop.js').ReflectionTracker
 }
 
 // Re-export ToolProgressData from centralized location

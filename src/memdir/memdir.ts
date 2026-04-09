@@ -260,6 +260,16 @@ export function buildMemoryLines(
     '',
   ]
 
+  // Add structured memory organization guidance
+  try {
+    const { buildStructuredMemoryGuidance } = require(
+      './structuredMemory.js',
+    ) as typeof import('./structuredMemory.js')
+    lines.push(...buildStructuredMemoryGuidance(memoryDir))
+  } catch {
+    // Non-critical: proceed without structured guidance
+  }
+
   lines.push(...buildSearchingPastContextSection(memoryDir))
 
   return lines

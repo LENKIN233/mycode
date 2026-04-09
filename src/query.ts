@@ -294,6 +294,21 @@ async function* queryLoop(
   // for what's included and why feature() gates are intentionally excluded.
   const config = buildQueryConfig()
 
+  // --- Agent enhancement: tool result cache + reflection tracker ---
+  // Provision once per query session. toolResultCache avoids re-executing
+  // idempotent tools (Glob, Grep, Read). reflectionTracker detects stuck
+  // loops and injects targeted recovery prompts.
+  const { ToolResultCache } = await import('./services/agent/toolResultCache.js')
+  const { ReflectionTracker } = await import('./services/agent/reflectionLoop.js')
+  using toolResultCache = new ToolResultCache()
+  const reflectionTracker = new ReflectionTracker()
+  // Attach to initial toolUseContext — will flow through all state transitions
+  state.toolUseContext = {
+    ...state.toolUseContext,
+    toolResultCache,
+    reflectionTracker,
+  }
+
   // Fired once per user turn — the prompt is invariant across loop iterations,
   // so per-iteration firing would ask sideQuery the same question N times.
   // Consume point polls settledAt (never blocks). `using` disposes on all
@@ -1712,6 +1727,46 @@ async function* queryLoop(
     }
 
     queryCheckpoint('query_recursive_call')
+
+    // --- Agent enhancement: ReAct reflection injection ---
+    // After tool results are collected, analyze them for failure patterns.
+    // If the model is stuck in a loop or repeatedly failing, inject a
+    // reflection message to help it recover before the next API call.
+    if (reflectionTracker && toolUseBlocks.length > 0) {
+      for (let bi = 0; bi < toolUseBlocks.length; bi++) {
+        const block = toolUseBlocks[bi]!
+        // Find the corresponding tool result message
+        const resultMsg = toolResults.find(
+          tr =>
+            tr.type === 'user' &&
+            Array.isArray(tr.message.content) &&
+            tr.message.content.some(
+              c => c.type === 'tool_result' && c.tool_use_id === block.id,
+            ),
+        )
+        if (resultMsg && resultMsg.type === 'user') {
+          const pattern = reflectionTracker.analyzeToolResult(block, resultMsg)
+          if (pattern && reflectionTracker.shouldReflect(pattern)) {
+            const errorContent =
+              Array.isArray(resultMsg.message.content)
+                ? resultMsg.message.content
+                    .filter(c => c.type === 'tool_result' && c.is_error)
+                    .map(c => (c.type === 'tool_result' && typeof c.content === 'string') ? c.content : '')
+                    .join('\n')
+                : ''
+            const reflectionMsg = reflectionTracker.buildReflectionMessage(
+              pattern,
+              block,
+              errorContent,
+            )
+            if (reflectionMsg.message.content) {
+              toolResults.push(reflectionMsg)
+            }
+          }
+        }
+      }
+    }
+
     const next: State = {
       messages: [...messagesForQuery, ...assistantMessages, ...toolResults],
       toolUseContext: toolUseContextWithQueryTracking,
