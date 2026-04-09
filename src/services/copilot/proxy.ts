@@ -495,6 +495,28 @@ function translateRequest(anthropicBody: Record<string, unknown>): {
     openaiBody.stream_options = { include_usage: true }
   }
 
+  // Convert Anthropic output_format → OpenAI response_format
+  // Anthropic: { type: 'json_schema', schema: { ... } }
+  // OpenAI:    { type: 'json_schema', json_schema: { name: 'response', schema: { ... } } }
+  const outputFormat = anthropicBody.output_format as { type?: string; schema?: unknown } | undefined
+  if (outputFormat?.type === 'json_schema' && outputFormat.schema) {
+    openaiBody.response_format = {
+      type: 'json_schema',
+      json_schema: {
+        name: 'response',
+        strict: true,
+        schema: outputFormat.schema,
+      },
+    }
+  } else if (outputFormat?.type === 'json') {
+    openaiBody.response_format = { type: 'json_object' }
+  }
+
+  // Convert stop_sequences
+  if (anthropicBody.stop_sequences) {
+    openaiBody.stop = anthropicBody.stop_sequences
+  }
+
   return {
     url: `${COPILOT_API_BASE}/chat/completions`,
     body: openaiBody,

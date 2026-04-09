@@ -1,5 +1,10 @@
 import { getSettings_DEPRECATED } from '../settings/settings.js'
 import { getSmallFastModel, getDefaultSonnetModel, getDefaultOpusModel, type ModelName } from './model.js'
+import { getAPIProvider } from './providers.js'
+
+// On Copilot, use FREE models (0x multiplier) for small tasks by default.
+// GPT-4.1 is the most capable FREE model (code-optimized, good at structured output).
+const COPILOT_FREE_SMALL_MODEL = 'gpt-4.1'
 
 export const TASK_CATEGORIES = {
   title: {
@@ -56,7 +61,9 @@ function getModelConfigFromSettings(): ModelConfigSettings {
 
 function getDefaultModelForTier(tier: 'small' | 'medium' | 'large'): ModelName {
   switch (tier) {
-    case 'small': return getSmallFastModel()
+    case 'small':
+      // On Copilot provider, default to FREE model to save premium requests
+      return getAPIProvider() === 'copilot' ? COPILOT_FREE_SMALL_MODEL : getSmallFastModel()
     case 'medium': return getDefaultSonnetModel()
     case 'large': return getDefaultOpusModel()
   }
