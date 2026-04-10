@@ -67,7 +67,12 @@ export function getUserSpecifiedModelSetting(): ModelSetting | undefined {
     specifiedModel = modelOverride
   } else {
     const settings = getSettings_DEPRECATED() || {}
-    specifiedModel = process.env.ANTHROPIC_MODEL || settings.model || undefined
+    specifiedModel =
+      process.env.ANTHROPIC_MODEL ||
+      settings.model ||
+      settings.modelConfig?.mainLoop ||
+      settings.modelConfig?.main_loop ||
+      undefined
   }
 
   // Ignore the user-specified model if it's not in the availableModels allowlist.

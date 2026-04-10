@@ -1,5 +1,11 @@
 import { getSettings_DEPRECATED } from '../settings/settings.js'
-import { getSmallFastModel, getDefaultSonnetModel, getDefaultOpusModel, type ModelName } from './model.js'
+import {
+  getSmallFastModel,
+  getDefaultSonnetModel,
+  getDefaultOpusModel,
+  getDefaultMainLoopModel,
+  type ModelName,
+} from './model.js'
 import { getAPIProvider } from './providers.js'
 
 // On Copilot, use FREE models (0x multiplier) for small tasks by default.
@@ -7,6 +13,11 @@ import { getAPIProvider } from './providers.js'
 const COPILOT_FREE_SMALL_MODEL = 'gpt-4.1'
 
 export const TASK_CATEGORIES = {
+  mainLoop: {
+    label: 'Main Loop',
+    description: 'Primary assistant turns and main conversation requests',
+    defaultTier: 'main' as const,
+  },
   title: {
     label: 'Title Generation',
     description: 'Session titles, rename, teleport, feedback titles',
@@ -47,6 +58,31 @@ export const TASK_CATEGORIES = {
     description: 'Default model for user-defined hooks',
     defaultTier: 'small' as const,
   },
+  quotaCheck: {
+    label: 'Quota Check',
+    description: 'Startup quota/rate-limit probe requests',
+    defaultTier: 'small' as const,
+  },
+  verifyApiKey: {
+    label: 'API Key Verification',
+    description: 'Credential verification checks',
+    defaultTier: 'small' as const,
+  },
+  tokenCount: {
+    label: 'Token Counting',
+    description: 'Context/token count API requests',
+    defaultTier: 'small' as const,
+  },
+  tokenCountFallback: {
+    label: 'Token Count Fallback',
+    description: 'Fallback token counting when primary path fails',
+    defaultTier: 'small' as const,
+  },
+  autoModeCritique: {
+    label: 'Auto Mode Critique',
+    description: 'Critique assistant for auto-mode rules',
+    defaultTier: 'medium' as const,
+  },
 } as const
 
 export type TaskCategory = keyof typeof TASK_CATEGORIES
@@ -59,8 +95,12 @@ function getModelConfigFromSettings(): ModelConfigSettings {
   return (settings as Record<string, unknown>)?.modelConfig as ModelConfigSettings ?? {}
 }
 
-function getDefaultModelForTier(tier: 'small' | 'medium' | 'large'): ModelName {
+function getDefaultModelForTier(
+  tier: 'main' | 'small' | 'medium' | 'large',
+): ModelName {
   switch (tier) {
+    case 'main':
+      return getDefaultMainLoopModel()
     case 'small':
       // On Copilot provider, default to FREE model to save premium requests
       return getAPIProvider() === 'copilot' ? COPILOT_FREE_SMALL_MODEL : getSmallFastModel()

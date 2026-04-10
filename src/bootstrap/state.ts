@@ -49,6 +49,7 @@ type State = {
   // Use for project identity (history, skills, sessions) not file operations.
   projectRoot: string
   totalCostUSD: number
+  totalModelRequests: number
   totalAPIDuration: number
   totalAPIDurationWithoutRetries: number
   totalToolDuration: number
@@ -278,6 +279,7 @@ function getInitialState(): State {
     originalCwd: resolvedCwd,
     projectRoot: resolvedCwd,
     totalCostUSD: 0,
+    totalModelRequests: 0,
     totalAPIDuration: 0,
     totalAPIDurationWithoutRetries: 0,
     totalToolDuration: 0,
@@ -552,6 +554,15 @@ export function resetTotalDurationStateAndCost_FOR_TESTS_ONLY(): void {
   STATE.totalAPIDuration = 0
   STATE.totalAPIDurationWithoutRetries = 0
   STATE.totalCostUSD = 0
+  STATE.totalModelRequests = 0
+}
+
+export function addToTotalModelRequests(count: number = 1): void {
+  STATE.totalModelRequests += count
+}
+
+export function getTotalModelRequests(): number {
+  return STATE.totalModelRequests
 }
 
 export function addToTotalCostState(
@@ -861,8 +872,9 @@ export function setSdkBetas(betas: string[] | undefined): void {
   STATE.sdkBetas = betas
 }
 
-export function resetCostState(): void {
+export function resetUsageState(): void {
   STATE.totalCostUSD = 0
+  STATE.totalModelRequests = 0
   STATE.totalAPIDuration = 0
   STATE.totalAPIDurationWithoutRetries = 0
   STATE.totalToolDuration = 0
@@ -875,11 +887,12 @@ export function resetCostState(): void {
 }
 
 /**
- * Sets cost state values for session restore.
- * Called by restoreCostStateForSession in cost-tracker.ts.
+ * Sets session usage state values during resume.
+ * Called by restoreSessionUsageForSession in usage-tracker.ts.
  */
-export function setCostStateForRestore({
+export function setUsageStateForRestore({
   totalCostUSD,
+  totalModelRequests,
   totalAPIDuration,
   totalAPIDurationWithoutRetries,
   totalToolDuration,
@@ -889,6 +902,7 @@ export function setCostStateForRestore({
   modelUsage,
 }: {
   totalCostUSD: number
+  totalModelRequests?: number
   totalAPIDuration: number
   totalAPIDurationWithoutRetries: number
   totalToolDuration: number
@@ -898,6 +912,7 @@ export function setCostStateForRestore({
   modelUsage: { [modelName: string]: ModelUsage } | undefined
 }): void {
   STATE.totalCostUSD = totalCostUSD
+  STATE.totalModelRequests = totalModelRequests ?? 0
   STATE.totalAPIDuration = totalAPIDuration
   STATE.totalAPIDurationWithoutRetries = totalAPIDurationWithoutRetries
   STATE.totalToolDuration = totalToolDuration

@@ -6,7 +6,8 @@ import { isMyCodeAISubscriber } from '../utils/auth.js'
 import { getModelBetas } from '../utils/betas.js'
 import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js'
 import { logError } from '../utils/log.js'
-import { getSmallFastModel } from '../utils/model/model.js'
+import { getModelForTask } from '../utils/model/taskModels.js'
+import { getAPIProvider } from '../utils/model/providers.js'
 import { isEssentialTrafficOnly } from '../utils/privacyLevel.js'
 import type { AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from './analytics/index.js'
 import { logEvent } from './analytics/index.js'
@@ -197,7 +198,7 @@ export function emitStatusChange(limits: MyCodeAILimits) {
 }
 
 async function makeTestQuery() {
-  const model = getSmallFastModel()
+  const model = getModelForTask('quotaCheck')
   const anthropic = await getAnthropicClient({
     maxRetries: 0,
     model,
@@ -218,6 +219,12 @@ async function makeTestQuery() {
 }
 
 export async function checkQuotaStatus(): Promise<void> {
+  // Copilot provider has separate billing semantics; this probe adds no value
+  // for personal Copilot usage and may consume request budget.
+  if (getAPIProvider() === 'copilot') {
+    return
+  }
+
   // Skip network requests if nonessential traffic is disabled
   if (isEssentialTrafficOnly()) {
     return

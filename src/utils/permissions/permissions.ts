@@ -763,7 +763,7 @@ export const hasPermissionsToUseTool: CanUseToolFn = async (
           classifierResult.promptLengths?.userPrompts,
         // Session totals at time of classifier call (for computing overhead %).
         // These are main-transcript-only — sideQuery (used by the classifier)
-        // does NOT call addToTotalSessionCost, so classifier tokens are excluded.
+        // does NOT call addToTotalSessionUsage, so classifier tokens are excluded.
         sessionInputTokens: getTotalInputTokens(),
         sessionOutputTokens: getTotalOutputTokens(),
         sessionCacheReadInputTokens: getTotalCacheReadInputTokens(),

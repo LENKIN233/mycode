@@ -142,10 +142,10 @@ function ModelConfigPicker({ onDone }: Props): React.ReactNode {
     <Pane color="permission">
       <Box flexDirection="column">
         <Text bold>
-          Auxiliary Task Model Configuration
+          Request Model Configuration
         </Text>
         <Text dimColor>
-          Configure which model is used for each type of background request.
+          Configure which model is used for each type of request path.
           {getAPIProvider() === 'copilot' ? ' Tip: use FREE models (gpt-4.1, gpt-4o, gpt-5-mini) to save premium requests.' : ''}
         </Text>
         <Box marginTop={1}>

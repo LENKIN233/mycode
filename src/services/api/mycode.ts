@@ -115,6 +115,7 @@ import {
   APIUserAbortError,
 } from '@anthropic-ai/sdk/error'
 import {
+  addToTotalModelRequests,
   getAfkModeHeaderLatched,
   getCacheEditingHeaderLatched,
   getFastModeHeaderLatched,
@@ -144,7 +145,7 @@ import {
 } from 'src/constants/betas.js'
 import type { QuerySource } from 'src/constants/querySource.js'
 import type { Notification } from 'src/context/notifications.js'
-import { addToTotalSessionCost } from 'src/cost-tracker.js'
+import { addToTotalSessionUsage, saveSessionUsageSnapshot } from 'src/usage-tracker.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js'
 import type { AgentId } from 'src/types/ids.js'
 import {
@@ -177,13 +178,13 @@ import {
 import { returnValue } from 'src/utils/generators.js'
 import { headlessProfilerCheckpoint } from 'src/utils/headlessProfiler.js'
 import { isMcpInstructionsDeltaEnabled } from 'src/utils/mcpInstructionsDelta.js'
-import { calculateUSDCost } from 'src/utils/modelCost.js'
 import { endQueryProfile, queryCheckpoint } from 'src/utils/queryProfiler.js'
 import {
   modelSupportsAdaptiveThinking,
   modelSupportsThinking,
   type ThinkingConfig,
 } from 'src/utils/thinking.js'
+import { getModelForTask } from 'src/utils/model/taskModels.js'
 import {
   extractDiscoveredToolNames,
   isDeferredToolsDeltaEnabled,
@@ -543,7 +544,7 @@ export async function verifyApiKey(
 
   try {
     // WARNING: if you change this to use a non-Haiku model, this request will fail in 1P unless it uses getCLISyspromptPrefix.
-    const model = getSmallFastModel()
+    const model = getModelForTask('verifyApiKey')
     const betas = getModelBetas(model)
     return await returnValue(
       withRetry(
@@ -866,6 +867,10 @@ export async function* executeNonStreamingRequest(
 
       try {
         // biome-ignore lint/plugin: non-streaming API call
+        if (getAPIProvider() !== 'copilot') {
+          addToTotalModelRequests()
+          saveSessionUsageSnapshot()
+        }
         return await anthropic.beta.messages.create(
           {
             ...adjustedParams,
@@ -1824,6 +1829,10 @@ async function* queryModel(
         // BetaMessageStream calls partialParse() on every input_json_delta, which we don't need
         // since we handle tool input accumulation ourselves
         // biome-ignore lint/plugin: main conversation loop handles attribution separately
+        if (getAPIProvider() !== 'copilot') {
+          addToTotalModelRequests()
+          saveSessionUsageSnapshot()
+        }
         const result = await anthropic.beta.messages
           .create(
             { ...params, stream: true },
@@ -2253,8 +2262,8 @@ async function* queryModel(
             }
 
             // Update cost
-            const costUSDForPart = calculateUSDCost(resolvedModel, usage)
-            costUSD += addToTotalSessionCost(
+            const costUSDForPart = 0
+            costUSD += addToTotalSessionUsage(
               costUSDForPart,
               usage,
               options.model,
@@ -2826,8 +2835,8 @@ async function* queryModel(
       const fallbackUsage = fallbackMessage.message.usage
       usage = updateUsage(EMPTY_USAGE, fallbackUsage)
       stopReason = fallbackMessage.message.stop_reason
-      const fallbackCost = calculateUSDCost(resolvedModel, fallbackUsage)
-      costUSD += addToTotalSessionCost(
+      const fallbackCost = 0
+      costUSD += addToTotalSessionUsage(
         fallbackCost,
         fallbackUsage,
         options.model,
@@ -3241,9 +3250,9 @@ export function buildSystemPromptBlocks(
   })
 }
 
-type HaikuOptions = Omit<Options, 'model' | 'getToolPermissionContext'>
+type TaskModelQueryOptions = Omit<Options, 'model' | 'getToolPermissionContext'>
 
-export async function queryHaiku({
+export async function queryTaskModel({
   systemPrompt = asSystemPrompt([]),
   userPrompt,
   outputFormat,
@@ -3255,7 +3264,7 @@ export async function queryHaiku({
   userPrompt: string
   outputFormat?: BetaJSONOutputFormat
   signal: AbortSignal
-  options: HaikuOptions
+  options: TaskModelQueryOptions
   taskCategory?: TaskCategory
 }): Promise<AssistantMessage> {
   const result = await withVCR(
@@ -3282,7 +3291,7 @@ export async function queryHaiku({
         signal,
         options: {
           ...options,
-          model: taskCategory ? getModelForTask(taskCategory) : getSmallFastModel(),
+          model: taskCategory ? getModelForTask(taskCategory) : getModelForTask('analysis'),
           enablePromptCaching: options.enablePromptCaching ?? false,
           outputFormat,
           async getToolPermissionContext() {
@@ -3293,18 +3302,18 @@ export async function queryHaiku({
       return [result]
     },
   )
-  // We don't use streaming for Haiku so this is safe
+  // We don't use streaming for task-model helper requests, so this is safe.
   return result[0]! as AssistantMessage
 }
 
-type QueryWithModelOptions = Omit<Options, 'getToolPermissionContext'>
+type QueryWithExplicitModelOptions = Omit<Options, 'getToolPermissionContext'>
 
 /**
  * Query a specific model through the MyCode infrastructure.
  * This goes through the full query pipeline including proper authentication,
  * betas, and headers - unlike direct API calls.
  */
-export async function queryWithModel({
+export async function queryWithExplicitModel({
   systemPrompt = asSystemPrompt([]),
   userPrompt,
   outputFormat,
@@ -3315,7 +3324,7 @@ export async function queryWithModel({
   userPrompt: string
   outputFormat?: BetaJSONOutputFormat
   signal: AbortSignal
-  options: QueryWithModelOptions
+  options: QueryWithExplicitModelOptions
 }): Promise<AssistantMessage> {
   const result = await withVCR(
     [

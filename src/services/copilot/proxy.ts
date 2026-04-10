@@ -8,6 +8,8 @@
 
 import type { ClientOptions } from '@anthropic-ai/sdk'
 import { getCopilotToken, requestCopilotReauth } from './auth.js'
+import { addToTotalModelRequests } from '../../bootstrap/state.js'
+import { saveSessionUsageSnapshot } from '../../usage-tracker.js'
 import { setClipboard } from '../../ink/termio/osc.js'
 
 const COPILOT_API_BASE = 'https://api.githubcopilot.com'
@@ -64,6 +66,40 @@ const MODEL_MAP: Record<string, string> = {
 }
 
 const COPILOT_DEFAULT_MODEL = 'claude-sonnet-4.6'
+
+function getCopilotRequestUnits(model: string): number {
+  const normalized = model.toLowerCase()
+
+  if (
+    normalized === 'gpt-4.1' ||
+    normalized === 'gpt-4o' ||
+    normalized === 'gpt-5-mini'
+  ) {
+    return 0
+  }
+
+  if (normalized === 'grok-code-fast-1') {
+    return 0.25
+  }
+
+  if (
+    normalized === 'claude-haiku-4.5' ||
+    normalized === 'gemini-3-flash-preview' ||
+    normalized === 'gpt-5.4-mini'
+  ) {
+    return 0.33
+  }
+
+  if (
+    normalized === 'claude-opus-4.5' ||
+    normalized === 'claude-opus-4.6' ||
+    normalized === 'claude-opus-4.6-fast'
+  ) {
+    return 3
+  }
+
+  return 1
+}
 
 function mapModel(model: string): string {
   if (MODEL_MAP[model]) return MODEL_MAP[model]
@@ -1336,6 +1372,10 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
         },
       )
     }
+
+    const billedUnits = getCopilotRequestUnits(String(translated.body.model ?? COPILOT_DEFAULT_MODEL))
+    addToTotalModelRequests(billedUnits)
+    saveSessionUsageSnapshot()
 
     if (anthropicBody.stream) {
       // Transform the streaming response

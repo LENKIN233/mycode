@@ -1,9 +1,9 @@
 import type { Command } from '../../commands.js'
 
 export default {
-  type: 'local-jsx',
+  type: 'local',
   name: 'usage',
-  description: 'Show plan usage limits',
-  availability: ['mycode-ai'],
-  load: () => import('./usage.js'),
+  description: 'Show usage and request counts of the current session',
+  supportsNonInteractive: true,
+  load: () => import('./summary.js'),
 } satisfies Command

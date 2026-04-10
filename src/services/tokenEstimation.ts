@@ -17,10 +17,9 @@ import {
 } from '../utils/model/bedrock.js'
 import {
   getDefaultSonnetModel,
-  getMainLoopModel,
-  getSmallFastModel,
   normalizeModelStringForAPI,
 } from '../utils/model/model.js'
+import { getModelForTask } from '../utils/model/taskModels.js'
 import { jsonStringify } from '../utils/slowOperations.js'
 import { isToolReferenceBlock } from '../utils/toolSearch.js'
 import { getAPIMetadata, getExtraBodyParams } from './api/mycode.js'
@@ -143,7 +142,7 @@ export async function countMessagesTokensWithAPI(
 ): Promise<number | null> {
   return withTokenCountVCR(messages, tools, async () => {
     try {
-      const model = getMainLoopModel()
+      const model = getModelForTask('tokenCount')
       const betas = getModelBetas(model)
       const containsThinking = hasThinkingBlocks(messages)
 
@@ -269,7 +268,7 @@ export async function countTokensViaHaikuFallback(
   // If we're on Vertex and using global region, always use Sonnet since Haiku is not available there.
   const isVertexGlobalEndpoint =
     isEnvTruthy(process.env.MYCODE_USE_VERTEX) &&
-    getVertexRegionForModel(getSmallFastModel()) === 'global'
+    getVertexRegionForModel(getModelForTask('tokenCountFallback')) === 'global'
   // If we're on Bedrock with thinking blocks, use Sonnet since Haiku 3.5 doesn't support thinking
   const isBedrockWithThinking =
     isEnvTruthy(process.env.MYCODE_USE_BEDROCK) && containsThinking
@@ -285,7 +284,7 @@ export async function countTokensViaHaikuFallback(
   const model =
     isVertexGlobalEndpoint || isBedrockWithThinking || isVertexWithThinking
       ? getDefaultSonnetModel()
-      : getSmallFastModel()
+      : getModelForTask('tokenCountFallback')
   const anthropic = await getAnthropicClient({
     maxRetries: 1,
     model,

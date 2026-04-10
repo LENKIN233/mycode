@@ -381,7 +381,7 @@ export const SettingsSchema = lazySchema(() =>
         .optional()
         .describe(
           'Per-task model overrides for auxiliary requests. ' +
-            'Keys: title, summary, analysis, utility, memory, permission, insights, hooks. ' +
+            'Keys: mainLoop, title, summary, analysis, utility, memory, permission, insights, hooks, quotaCheck, verifyApiKey, tokenCount, tokenCountFallback, autoModeCritique. ' +
             'Values: model ID strings (e.g. "gpt-4.1", "claude-haiku-4.5").',
         ),
       // Enterprise allowlist of models

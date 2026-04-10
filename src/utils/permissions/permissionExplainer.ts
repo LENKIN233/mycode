@@ -7,7 +7,7 @@ import { logForDebugging } from '../debug.js'
 import { errorMessage } from '../errors.js'
 import { lazySchema } from '../lazySchema.js'
 import { logError } from '../log.js'
-import { getMainLoopModel } from '../model/model.js'
+import { getModelForTask } from '../model/taskModels.js'
 import { sideQuery } from '../sideQuery.js'
 import { jsonStringify } from '../slowOperations.js'
 
@@ -141,7 +141,7 @@ export function isPermissionExplainerEnabled(): boolean {
 }
 
 /**
- * Generate a permission explanation using Haiku with structured output.
+ * Generate a permission explanation using structured model output.
  * Returns null if the feature is disabled, request is aborted, or an error occurs.
  */
 export async function generatePermissionExplanation({
@@ -172,7 +172,7 @@ ${conversationContext ? `\nRecent conversation context:\n${conversationContext}`
 
 Explain this command in context.`
 
-    const model = getMainLoopModel()
+    const model = getModelForTask('permission')
 
     // Use sideQuery with forced tool choice for guaranteed structured output
     const response = await sideQuery({

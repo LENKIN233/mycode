@@ -1431,7 +1431,7 @@ async function* queryLoop(
       config.gates.emitToolUseSummaries &&
       toolUseBlocks.length > 0 &&
       !toolUseContext.abortController.signal.aborted &&
-      !toolUseContext.agentId // subagents don't surface in mobile UI — skip the Haiku call
+      !toolUseContext.agentId // subagents don't surface in mobile UI — skip the summary-model call
     ) {
       // Extract the last assistant text block for context
       const lastAssistantMessage = assistantMessages.at(-1)

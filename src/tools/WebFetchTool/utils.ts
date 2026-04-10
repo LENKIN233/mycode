@@ -4,7 +4,7 @@ import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
 } from '../../services/analytics/index.js'
-import { queryHaiku } from '../../services/api/mycode.js'
+import { queryTaskModel } from '../../services/api/mycode.js'
 import { AbortError } from '../../utils/errors.js'
 import { getWebFetchUserAgent } from '../../utils/http.js'
 import { logError } from '../../utils/log.js'
@@ -12,6 +12,7 @@ import {
   isBinaryContentType,
   persistBinaryContent,
 } from '../../utils/mcpOutputStorage.js'
+import { createAxiosInstance } from '../../utils/proxy.js'
 import { getSettings_DEPRECATED } from '../../utils/settings/settings.js'
 import { asSystemPrompt } from '../../utils/systemPromptType.js'
 import { isPreapprovedHost } from './preapproved.js'
@@ -76,6 +77,8 @@ const DOMAIN_CHECK_CACHE = new LRUCache<string, true>({
   max: 128,
   ttl: 5 * 60 * 1000, // 5 minutes — shorter than URL_CACHE TTL
 })
+
+const webFetchHttp = createAxiosInstance()
 
 export function clearWebFetchCache(): void {
   URL_CACHE.clear()
@@ -180,7 +183,7 @@ export async function checkDomainBlocklist(
     return { status: 'allowed' }
   }
   try {
-    const response = await axios.get(
+    const response = await webFetchHttp.get(
       `https://api.anthropic.com/api/web/domain_info?domain=${encodeURIComponent(domain)}`,
       { timeout: DOMAIN_CHECK_TIMEOUT_MS },
     )
@@ -269,7 +272,7 @@ export async function getWithPermittedRedirects(
     throw new Error(`Too many redirects (exceeded ${MAX_REDIRECTS})`)
   }
   try {
-    return await axios.get(url, {
+    return await webFetchHttp.get(url, {
       signal,
       timeout: FETCH_TIMEOUT_MS,
       maxRedirects: 0,
@@ -500,7 +503,7 @@ export async function applyPromptToMarkdown(
     prompt,
     isPreapprovedDomain,
   )
-  const assistantMessage = await queryHaiku({
+  const assistantMessage = await queryTaskModel({
     taskCategory: 'analysis',
     systemPrompt: asSystemPrompt([]),
     userPrompt: modelPrompt,

@@ -876,7 +876,7 @@ export async function getAttachments(
     // Inter-turn skill discovery now runs via startSkillDiscoveryPrefetch
     // (query.ts, concurrent with the main turn). The blocking call that
     // previously lived here was the assistant_turn signal — 97% of those
-    // Haiku calls found nothing in prod. Prefetch + await-at-collection
+    // Model calls found nothing in prod. Prefetch + await-at-collection
     // replaces it; see src/services/skillSearch/prefetch.ts.
     maybe('plan_mode', () => getPlanModeAttachments(messages, toolUseContext)),
     maybe('plan_mode_exit', () => getPlanModeExitAttachment(toolUseContext)),

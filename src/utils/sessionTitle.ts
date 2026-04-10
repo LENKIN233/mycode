@@ -15,7 +15,7 @@
 import { z } from 'zod/v4'
 import { getIsNonInteractiveSession } from '../bootstrap/state.js'
 import { logEvent } from '../services/analytics/index.js'
-import { queryHaiku } from '../services/api/mycode.js'
+import { queryTaskModel } from '../services/api/mycode.js'
 import type { Message } from '../types/message.js'
 import { logForDebugging } from './debug.js'
 import { safeParseJSON } from './json.js'
@@ -26,7 +26,7 @@ import { asSystemPrompt } from './systemPromptType.js'
 const MAX_CONVERSATION_TEXT = 1000
 
 /**
- * Flatten a message array into a single text string for Haiku title input.
+ * Flatten a message array into a single text string for model-generated titles.
  * Skips meta/non-human messages. Tail-slices to the last 1000 chars so
  * recent context wins when the conversation is long.
  */
@@ -84,7 +84,7 @@ export async function generateSessionTitle(
   if (!trimmed) return null
 
   try {
-    const result = await queryHaiku({
+    const result = await queryTaskModel({
       systemPrompt: asSystemPrompt([SESSION_TITLE_PROMPT]),
       userPrompt: trimmed,
       taskCategory: 'title',

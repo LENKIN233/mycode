@@ -5,9 +5,9 @@
 
 import { errorMessage } from '../../utils/errors.js'
 import {
-  getMainLoopModel,
   parseUserSpecifiedModel,
 } from '../../utils/model/model.js'
+import { getModelForTask } from '../../utils/model/taskModels.js'
 import {
   type AutoModeRules,
   buildDefaultExternalSystemPrompt,
@@ -90,7 +90,7 @@ export async function autoModeCritiqueHandler(options: {
 
   const model = options.model
     ? parseUserSpecifiedModel(options.model)
-    : getMainLoopModel()
+    : getModelForTask('autoModeCritique')
 
   const defaults = getDefaultExternalAutoModeRules()
   const classifierPrompt = buildDefaultExternalSystemPrompt()

@@ -14,7 +14,7 @@ import {
 import { tmpdir } from 'os'
 import { extname, join } from 'path'
 import type { Command } from '../commands.js'
-import { queryWithModel } from '../services/api/mycode.js'
+import { queryWithExplicitModel } from '../services/api/mycode.js'
 import {
   AGENT_TOOL_NAME,
   LEGACY_AGENT_TOOL_NAME,
@@ -881,7 +881,7 @@ TRANSCRIPT CHUNK:
 
 async function summarizeTranscriptChunk(chunk: string): Promise<string> {
   try {
-    const result = await queryWithModel({
+    const result = await queryWithExplicitModel({
       systemPrompt: asSystemPrompt([]),
       userPrompt: SUMMARIZE_CHUNK_PROMPT + chunk,
       signal: new AbortController().signal,
@@ -1024,7 +1024,7 @@ RESPOND WITH ONLY A VALID JSON OBJECT matching this schema:
   "brief_summary": "One sentence: what user wanted and whether they got it"
 }`
 
-    const result = await queryWithModel({
+    const result = await queryWithExplicitModel({
       systemPrompt: asSystemPrompt([]),
       userPrompt: jsonPrompt,
       signal: new AbortController().signal,
@@ -1575,7 +1575,7 @@ async function generateSectionInsight(
   dataContext: string,
 ): Promise<{ name: string; result: unknown }> {
   try {
-    const result = await queryWithModel({
+    const result = await queryWithExplicitModel({
       systemPrompt: asSystemPrompt([]),
       userPrompt: section.prompt + '\n\nDATA:\n' + dataContext,
       signal: new AbortController().signal,

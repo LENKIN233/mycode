@@ -1930,7 +1930,7 @@ export async function bashToolHasPermission(
       }
 
       if (askResult?.matches && askResult.confidence === 'high') {
-        // Skip the Haiku call — the UI computes the prefix locally
+        // Skip the model call — the UI computes the prefix locally
         // and lets the user edit it. Still call the injected function
         // when tests override it.
         let suggestions: PermissionUpdate[]
@@ -2385,7 +2385,7 @@ export async function bashToolHasPermission(
   }
 
   // Query Haiku for command prefixes
-  // Skip the Haiku call — the UI computes the prefix locally and
+  // Skip the model call — the UI computes the prefix locally and
   // lets the user edit it. Still call when a custom fn is injected (tests).
   let commandSubcommandPrefix: Awaited<
     ReturnType<typeof getCommandSubcommandPrefixFn>

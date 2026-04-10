@@ -28,7 +28,7 @@ import {
   getModelUsage,
   getTotalAPIDuration,
   getTotalCost,
-} from './cost-tracker.js'
+} from './usage-tracker.js'
 import type { CanUseToolFn } from './hooks/useCanUseTool.js'
 import { loadMemoryPrompt } from './memdir/memdir.js'
 import { hasAutoMemPathOverride } from './memdir/paths.js'

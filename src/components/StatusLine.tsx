@@ -7,7 +7,7 @@ import type { PermissionMode } from 'src/utils/permissions/PermissionMode.js';
 import { getIsRemoteMode, getKairosActive, getMainThreadAgentType, getOriginalCwd, getSdkBetas, getSessionId } from '../bootstrap/state.js';
 import { DEFAULT_OUTPUT_STYLE_NAME } from '../constants/outputStyles.js';
 import { useNotifications } from '../context/notifications.js';
-import { getTotalAPIDuration, getTotalCost, getTotalDuration, getTotalInputTokens, getTotalLinesAdded, getTotalLinesRemoved, getTotalOutputTokens } from '../cost-tracker.js';
+import { getTotalAPIDuration, getTotalDuration, getTotalInputTokens, getTotalLinesAdded, getTotalLinesRemoved, getTotalModelRequests, getTotalOutputTokens } from '../usage-tracker.js';
 import { useMainLoopModel } from '../hooks/useMainLoopModel.js';
 import { type ReadonlySettings, useSettings } from '../hooks/useSettings.js';
 import { Ansi, Box, Text } from '../ink.js';
@@ -32,6 +32,12 @@ export function statusLineShouldDisplay(settings: ReadonlySettings): boolean {
   // REPL/daemon process, not what the agent child is actually running. Hide it.
   if (feature('KAIROS') && getKairosActive()) return false;
   return settings?.statusLine !== undefined;
+}
+
+function formatRequestUnits(units: number): string {
+  return Number.isInteger(units)
+    ? String(units)
+    : units.toFixed(2).replace(/\.?0+$/, '')
 }
 function buildStatusLineCommandInput(permissionMode: PermissionMode, exceeds200kTokens: boolean, settings: ReadonlySettings, messages: Message[], addedDirs: string[], mainLoopModel: ModelName, vimMode?: VimMode): StatusLineCommandInput {
   const agentType = getMainThreadAgentType();
@@ -80,8 +86,8 @@ function buildStatusLineCommandInput(permissionMode: PermissionMode, exceeds200k
     output_style: {
       name: outputStyleName
     },
-    cost: {
-      total_cost_usd: getTotalCost(),
+    usage: {
+      total_requests: getTotalModelRequests(),
       total_duration_ms: getTotalDuration(),
       total_api_duration_ms: getTotalAPIDuration(),
       total_lines_added: getTotalLinesAdded(),
@@ -169,12 +175,14 @@ function StatusLineInner({
   // Track previous state to detect changes and cache expensive calculations
   const previousStateRef = useRef<{
     messageId: string | null;
+    totalRequests: number;
     exceeds200kTokens: boolean;
     permissionMode: PermissionMode;
     vimMode: VimMode | undefined;
     mainLoopModel: ModelName;
   }>({
     messageId: null,
+    totalRequests: getTotalModelRequests(),
     exceeds200kTokens: false,
     permissionMode,
     vimMode,
@@ -232,6 +240,19 @@ function StatusLineInner({
       void doUpdate();
     }, 300, debounceTimerRef, doUpdate);
   }, [doUpdate]);
+
+  // Poll request counter so status line can refresh in near real-time while
+  // a turn is running (request count can change before assistant output lands).
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const requests = getTotalModelRequests();
+      if (requests !== previousStateRef.current.totalRequests) {
+        previousStateRef.current.totalRequests = requests;
+        scheduleUpdate();
+      }
+    }, 300);
+    return () => clearInterval(timer);
+  }, [scheduleUpdate]);
 
   // Only trigger update when assistant message, permission mode, vim mode, or model actually changes
   useEffect(() => {
@@ -311,6 +332,9 @@ function StatusLineInner({
   // a row from ScrollBox and shifts content. Reserve the row while loading
   // (same trick as PromptInputFooterLeftSide).
   return <Box paddingX={paddingX} gap={2}>
+      <Text dimColor>
+      req {formatRequestUnits(getTotalModelRequests())}
+      </Text>
       {statusLineText ? <Text dimColor wrap="truncate">
           <Ansi>{statusLineText}</Ansi>
         </Text> : isFullscreenEnvEnabled() ? <Text> </Text> : null}

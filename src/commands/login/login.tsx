@@ -1,7 +1,7 @@
 import { c as _c } from "react/compiler-runtime";
 import { feature } from 'bun:bundle';
 import * as React from 'react';
-import { resetCostState } from '../../bootstrap/state.js';
+import { resetUsageState } from '../../bootstrap/state.js';
 import { clearTrustedDeviceToken, enrollTrustedDevice } from '../../bridge/trustedDevice.js';
 import type { LocalJSXCommandContext } from '../../commands.js';
 import { ConfigurableShortcutHint } from '../../components/ConfigurableShortcutHint.js';
@@ -24,8 +24,8 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
     context.setMessages(stripSignatureBlocks);
     if (success) {
       // Post-login refresh logic. Keep in sync with onboarding in src/interactiveHelpers.tsx
-      // Reset cost state when switching accounts
-      resetCostState();
+      // Reset session usage state when switching accounts
+      resetUsageState();
       // Refresh remotely managed settings after login (non-blocking)
       void refreshRemoteManagedSettings();
       // Refresh policy limits after login (non-blocking)
