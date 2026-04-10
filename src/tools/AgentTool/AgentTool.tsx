@@ -576,24 +576,6 @@ export const AgentTool = buildTool({
     };
     const workerTools = assembleToolPool(workerPermissionContext, appState.mcp.tools);
 
-    // Apply role-based tool pool pruning for sub-agents.
-    // Removes clearly irrelevant tools (e.g., write tools from Explore agent).
-    let filteredWorkerTools = workerTools;
-    try {
-      const { selectToolsForRole } = await import(
-        '../../services/agent/smartToolSelection.js'
-      );
-      filteredWorkerTools = selectToolsForRole(workerTools, {
-        agentType: selectedAgent.agentType,
-        hasMcpServers: appState.mcp.tools.length > 0,
-        totalToolCount: workerTools.length,
-        isSubagent: true,
-        isCoordinatorMode: isCoordinator,
-      });
-    } catch {
-      // Non-critical: proceed with full tool pool
-    }
-
     // Create a stable agent ID early so it can be used for worktree slug
     const earlyAgentId = createAgentId();
 
@@ -642,7 +624,7 @@ export const AgentTool = buildTool({
       } : enhancedSystemPrompt && !worktreeInfo && !cwd ? {
         systemPrompt: asSystemPrompt(enhancedSystemPrompt)
       } : undefined,
-      availableTools: isForkPath ? toolUseContext.options.tools : filteredWorkerTools,
+      availableTools: isForkPath ? toolUseContext.options.tools : workerTools,
       // Pass parent conversation when the fork-subagent path needs full
       // context. useExactTools inherits thinkingConfig (runAgent.ts:624).
       forkContextMessages: isForkPath ? toolUseContext.messages : undefined,

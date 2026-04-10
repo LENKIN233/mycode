@@ -329,35 +329,6 @@ export class StreamingToolExecutor {
       // message when it is the one that caused the error.
       let thisToolErrored = false
 
-      // --- Tool result cache: check for cached read-only results ---
-      const cache = this.toolUseContext.toolResultCache
-      const toolInput = (tool.block.input as Record<string, unknown>) ?? {}
-      if (cache) {
-        const cachedResult = cache.get(tool.block.name, toolInput)
-        if (cachedResult) {
-          messages.push(
-            createUserMessage({
-              content: [
-                {
-                  type: 'tool_result',
-                  content: cachedResult,
-                  tool_use_id: tool.id,
-                },
-              ],
-              toolUseResult: cachedResult,
-              sourceToolAssistantUUID: tool.assistantMessage.uuid,
-            }),
-          )
-          tool.results = messages
-          tool.contextModifiers = contextModifiers
-          tool.status = 'completed'
-          this.updateInterruptibleState()
-          return
-        }
-        // Notify cache of write operations for invalidation
-        cache.notifyToolExecution(tool.block.name, toolInput)
-      }
-
       for await (const update of generator) {
         // Check if we were aborted by a sibling tool error or user interruption.
         // Only add the synthetic error if THIS tool didn't produce the error.
@@ -413,25 +384,6 @@ export class StreamingToolExecutor {
       tool.contextModifiers = contextModifiers
       tool.status = 'completed'
       this.updateInterruptibleState()
-
-      // --- Tool result cache: store successful read-only results ---
-      if (cache && !thisToolErrored && messages.length > 0) {
-        const resultMessage = messages.find(m => m.type === 'user')
-        if (resultMessage && resultMessage.type === 'user') {
-          const content = resultMessage.message.content
-          if (Array.isArray(content)) {
-            const resultBlock = content.find(b => b.type === 'tool_result')
-            if (
-              resultBlock &&
-              resultBlock.type === 'tool_result' &&
-              !resultBlock.is_error &&
-              typeof resultBlock.content === 'string'
-            ) {
-              cache.set(tool.block.name, toolInput, resultBlock.content)
-            }
-          }
-        }
-      }
 
       // NOTE: we currently don't support context modifiers for concurrent
       //       tools. None are actively being used, but if we want to use

@@ -438,22 +438,6 @@ export async function compactConversation(
       true,
     )
 
-    // Enhance compaction with retention hints from context summarizer.
-    // This tells the compactor which information is critical vs. droppable.
-    try {
-      const { buildRetentionHint } = await import(
-        '../agent/contextSummarizer.js'
-      )
-      const retentionHint = buildRetentionHint(messages)
-      if (retentionHint) {
-        customInstructions = customInstructions
-          ? `${customInstructions}\n\n${retentionHint}`
-          : retentionHint
-      }
-    } catch {
-      // Non-critical: proceed without retention hints
-    }
-
     const compactPrompt = getCompactPrompt(customInstructions)
     const summaryRequest = createUserMessage({
       content: compactPrompt,
