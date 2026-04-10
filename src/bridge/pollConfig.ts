@@ -103,7 +103,6 @@ export function getPollIntervalConfig(): PollIntervalConfig {
   const raw = getFeatureValue_CACHED_WITH_REFRESH<unknown>(
     'tengu_bridge_poll_interval_config',
     DEFAULT_POLL_CONFIG,
-    5 * 60 * 1000,
   )
   const parsed = pollIntervalConfigSchema().safeParse(raw)
   return parsed.success ? parsed.data : DEFAULT_POLL_CONFIG

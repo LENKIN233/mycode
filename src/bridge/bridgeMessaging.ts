@@ -304,7 +304,11 @@ export function handleServerControlRequest(
       break
 
     case 'set_model':
-      onSetModel?.(request.request.model)
+      onSetModel?.(
+        typeof request.request.model === 'string'
+          ? request.request.model
+          : undefined,
+      )
       response = {
         type: 'control_response',
         response: {
@@ -315,7 +319,11 @@ export function handleServerControlRequest(
       break
 
     case 'set_max_thinking_tokens':
-      onSetMaxThinkingTokens?.(request.request.max_thinking_tokens)
+      onSetMaxThinkingTokens?.(
+        typeof request.request.max_thinking_tokens === 'number'
+          ? request.request.max_thinking_tokens
+          : null,
+      )
       response = {
         type: 'control_response',
         response: {
@@ -333,11 +341,17 @@ export function handleServerControlRequest(
       // see daemonBridge.ts), return an error verdict rather than a silent
       // false-success: the mode is never actually applied in that context,
       // so success would lie to the client.
-      const verdict = onSetPermissionMode?.(request.request.mode) ?? {
-        ok: false,
-        error:
-          'set_permission_mode is not supported in this context (onSetPermissionMode callback not registered)',
-      }
+      const verdict: { ok: true } | { ok: false; error: string } =
+        typeof request.request.mode === 'string'
+          ? (onSetPermissionMode?.(request.request.mode as PermissionMode) ?? {
+              ok: false,
+              error:
+                'set_permission_mode callback returned no verdict',
+            })
+          : {
+              ok: false,
+              error: 'Invalid permission mode in control request',
+            }
       if (verdict.ok) {
         response = {
           type: 'control_response',
@@ -352,7 +366,10 @@ export function handleServerControlRequest(
           response: {
             subtype: 'error',
             request_id: request.request_id,
-            error: verdict.error,
+            error:
+              'error' in verdict
+                ? verdict.error
+                : 'Failed to set permission mode',
           },
         }
       }

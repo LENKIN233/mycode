@@ -177,8 +177,11 @@ export async function mcpListHandler(): Promise<void> {
       } else if (server.type === 'mycodeai-proxy') {
         // biome-ignore lint/suspicious/noConsole:: intentional console output
         console.log(`${name}: ${server.url} - ${status}`);
-      } else if (!server.type || server.type === 'stdio') {
-        const args = Array.isArray(server.args) ? server.args : [];
+      } else if ((!server.type || server.type === 'stdio') && 'command' in server && typeof server.command === 'string') {
+        const args =
+          'args' in server && Array.isArray(server.args)
+            ? server.args.filter((arg): arg is string => typeof arg === 'string')
+            : [];
         // biome-ignore lint/suspicious/noConsole:: intentional console output
         console.log(`${name}: ${server.command} ${args.join(' ')} - ${status}`);
       }

@@ -43,6 +43,64 @@ import {
   buildAPIProviderProperties,
 } from '../../utils/status.js'
 
+type OAuthProfileShape = {
+  account: {
+    uuid: string
+    email: string
+    display_name?: string
+    created_at?: string
+  }
+  organization: {
+    uuid: string
+    has_extra_usage_enabled?: boolean
+    billing_type?: string
+    subscription_created_at?: string
+  }
+}
+
+type TokenAccountShape = {
+  uuid: string
+  emailAddress: string
+  organizationUuid: string
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function toStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((v): v is string => typeof v === 'string')
+    : []
+}
+
+function getOrgValidationMessage(result: unknown): string {
+  if (isRecord(result) && typeof result.message === 'string') {
+    return result.message
+  }
+  return 'Organization validation failed'
+}
+
+function isOAuthProfileShape(value: unknown): value is OAuthProfileShape {
+  if (!isRecord(value) || !isRecord(value.account) || !isRecord(value.organization)) {
+    return false
+  }
+  return (
+    typeof value.account.uuid === 'string' &&
+    typeof value.account.email === 'string' &&
+    typeof value.organization.uuid === 'string'
+  )
+}
+
+function isTokenAccountShape(value: unknown): value is TokenAccountShape {
+  return (
+    isRecord(value) &&
+    typeof value.uuid === 'string' &&
+    typeof value.emailAddress === 'string' &&
+    typeof value.organizationUuid === 'string'
+  )
+}
+
 /**
  * Shared post-token-acquisition logic. Saves tokens, fetches profile/roles,
  * and sets up the local auth state.
@@ -54,7 +112,7 @@ export async function installOAuthTokens(tokens: OAuthTokens): Promise<void> {
   // Reuse pre-fetched profile if available, otherwise fetch fresh
   const profile =
     tokens.profile ?? (await getOauthProfileFromOauthToken(tokens.accessToken))
-  if (profile) {
+  if (isOAuthProfileShape(profile)) {
     storeOAuthAccountInfo({
       accountUuid: profile.account.uuid,
       emailAddress: profile.account.email,
@@ -67,7 +125,7 @@ export async function installOAuthTokens(tokens: OAuthTokens): Promise<void> {
         profile.organization.subscription_created_at ?? undefined,
       accountCreatedAt: profile.account.created_at,
     })
-  } else if (tokens.tokenAccount) {
+  } else if (isTokenAccountShape(tokens.tokenAccount)) {
     // Fallback to token exchange account data when profile endpoint fails
     storeOAuthAccountInfo({
       accountUuid: tokens.tokenAccount.uuid,
@@ -92,7 +150,7 @@ export async function installOAuthTokens(tokens: OAuthTokens): Promise<void> {
     logForDebugging(String(err), { level: 'error' }),
   )
 
-  if (shouldUseMyCodeAIAuth(tokens.scopes)) {
+  if (shouldUseMyCodeAIAuth(toStringArray(tokens.scopes))) {
     await fetchAndStoreMyCodeFirstTokenDate().catch(err =>
       logForDebugging(String(err), { level: 'error' }),
     )
@@ -159,7 +217,7 @@ export async function authLogin({
 
       const orgResult = await validateForceLoginOrg()
       if (!orgResult.valid) {
-        process.stderr.write(orgResult.message + '\n')
+        process.stderr.write(getOrgValidationMessage(orgResult) + '\n')
         process.exit(1)
       }
 
@@ -171,7 +229,7 @@ export async function authLogin({
       })
 
       logEvent('tengu_oauth_success', {
-        loginWithMyCodeAi: shouldUseMyCodeAIAuth(tokens.scopes),
+        loginWithMyCodeAi: shouldUseMyCodeAIAuth(toStringArray(tokens.scopes)),
       })
       process.stdout.write('Login successful.\n')
       process.exit(0)
@@ -209,7 +267,7 @@ export async function authLogin({
 
     const orgResult = await validateForceLoginOrg()
     if (!orgResult.valid) {
-      process.stderr.write(orgResult.message + '\n')
+      process.stderr.write(getOrgValidationMessage(orgResult) + '\n')
       process.exit(1)
     }
 

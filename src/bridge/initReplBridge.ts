@@ -37,7 +37,6 @@ import { errorMessage } from '../utils/errors.js'
 import { getBranch, getRemoteUrl } from '../utils/git.js'
 import { toSDKMessages } from '../utils/messages/mappers.js'
 import {
-  getContentText,
   getMessagesAfterCompactBoundary,
   isSyntheticMessage,
 } from '../utils/messages.js'
@@ -288,7 +287,29 @@ export async function initReplBridge(
           isSyntheticMessage(msg)
         )
           continue
-        const rawContent = getContentText(msg.message.content)
+        const rawContent =
+          typeof msg.message.content === 'string'
+            ? msg.message.content
+            : Array.isArray(msg.message.content)
+              ? msg.message.content
+                  .filter(
+                    (
+                      block,
+                    ): block is {
+                      type: 'text'
+                      text: string
+                    } =>
+                      typeof block === 'object' &&
+                      block !== null &&
+                      'type' in block &&
+                      (block as { type?: unknown }).type === 'text' &&
+                      'text' in block &&
+                      typeof (block as { text?: unknown }).text === 'string',
+                  )
+                  .map(block => block.text)
+                  .join('\n')
+                  .trim() || null
+              : null
         if (!rawContent) continue
         const derived = deriveTitle(rawContent)
         if (!derived) continue
@@ -380,7 +401,6 @@ export async function initReplBridge(
   const initialHistoryCap = getFeatureValue_CACHED_WITH_REFRESH(
     'tengu_bridge_initial_history_cap',
     200,
-    5 * 60 * 1000,
   )
 
   // Fetch orgUUID before the v1/v2 branch — both paths need it. v1 for

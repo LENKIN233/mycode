@@ -8,9 +8,12 @@
     "jsx": "react-jsx",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": false,
+    "noEmit": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "src/*": [
@@ -25,5 +28,8 @@
     "src/**/*",
     "vendor/**/*",
     "shims/**/*"
+  ],
+  "exclude": [
+    "node_modules"
   ]
 }

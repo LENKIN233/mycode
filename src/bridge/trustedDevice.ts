@@ -48,7 +48,8 @@ const readStoredToken = memoize((): string | undefined => {
   if (envToken) {
     return envToken
   }
-  return getSecureStorage().read()?.trustedDeviceToken
+  const token = getSecureStorage().read()?.trustedDeviceToken
+  return typeof token === 'string' ? token : undefined
 })
 
 export function getTrustedDeviceToken(): string | undefined {

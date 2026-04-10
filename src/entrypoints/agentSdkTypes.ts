@@ -13,6 +13,10 @@ import type {
   CallToolResult,
   ToolAnnotations,
 } from '@modelcontextprotocol/sdk/types.js'
+import {
+  EXIT_REASONS as CORE_EXIT_REASONS,
+  HOOK_EVENTS as CORE_HOOK_EVENTS,
+} from './sdk/coreTypes.js'
 
 // Control protocol types for SDK builders (bridge subpath consumers)
 /** @alpha */
@@ -29,6 +33,155 @@ export * from './sdk/runtimeTypes.js'
 export type { Settings } from './sdk/settingsTypes.generated.js'
 // Re-export tool types (all marked @internal until SDK API stabilizes)
 export * from './sdk/toolTypes.js'
+
+// Temporary compatibility types for restored trees where generated SDK types
+// may be incomplete.
+export type HookEvent = (typeof CORE_HOOK_EVENTS)[number]
+
+export type ModelUsage = {
+  inputTokens: number
+  outputTokens: number
+  cacheReadInputTokens: number
+  cacheCreationInputTokens: number
+  webSearchRequests: number
+  costUSD: number
+  contextWindow?: number
+  maxOutputTokens?: number
+}
+
+export type ExitReason = (typeof CORE_EXIT_REASONS)[number]
+
+export type PermissionMode = string
+
+export type SDKStatus = 'success' | 'error' | 'running' | 'ready' | string
+
+export type ModelInfo = {
+  id?: string
+  displayName?: string
+  [key: string]: unknown
+}
+
+export type PermissionResult = {
+  decision?: 'allow' | 'deny' | 'ask' | string
+  reason?: string
+  [key: string]: unknown
+}
+
+export type McpServerConfigForProcessTransport = {
+  command?: string
+  args?: string[]
+  [key: string]: unknown
+}
+
+export type McpServerStatus = {
+  name?: string
+  status?: string
+  [key: string]: unknown
+}
+
+export type RewindFilesResult = {
+  files?: string[]
+  failed?: string[]
+  [key: string]: unknown
+}
+
+export type SDKUserMessageReplay = SDKUserMessage & {
+  replay?: boolean
+}
+
+export type SDKAssistantMessage = SDKMessage & {
+  type: 'assistant'
+  message?: string
+  error?: string
+}
+
+export type SDKAssistantMessageError = SDKAssistantMessage & {
+  subtype?: 'error' | string
+}
+
+export type SDKPartialAssistantMessage = SDKMessage & {
+  type: 'assistant'
+  subtype?: 'partial' | string
+  event?: string
+}
+
+export type SDKStatusMessage = SDKMessage & {
+  type: 'status'
+  status?: SDKStatus
+}
+
+export type SDKSystemMessage = SDKMessage & {
+  type: 'system'
+  model?: string
+}
+
+export type SDKToolProgressMessage = SDKMessage & {
+  type: 'tool_progress'
+}
+
+export type SDKCompactBoundaryMessage = SDKMessage & {
+  type: 'compact_boundary'
+}
+
+export type SDKPermissionDenial = SDKMessage & {
+  type: 'permission_denial'
+}
+
+export type SDKRateLimitInfo = Record<string, unknown>
+
+export type ApiKeySource = 'env' | 'oauth' | 'api_key' | 'unknown' | string
+
+export type HookInput = {
+  hook_event_name: HookEvent
+  [key: string]: unknown
+}
+
+export type PermissionUpdate = {
+  mode: PermissionMode
+  [key: string]: unknown
+}
+
+export type SyncHookJSONOutput = {
+  continue?: boolean
+  decision?: 'approve' | 'block' | string
+  reason?: string
+  [key: string]: unknown
+}
+
+export type AsyncHookJSONOutput = {
+  async: true
+  [key: string]: unknown
+}
+
+export type HookJSONOutput = SyncHookJSONOutput | AsyncHookJSONOutput
+
+export type PreToolUseHookInput = HookInput
+export type PostToolUseHookInput = HookInput
+export type PostToolUseFailureHookInput = HookInput
+export type NotificationHookInput = HookInput
+export type SessionStartHookInput = HookInput
+export type SessionEndHookInput = HookInput
+export type SetupHookInput = HookInput
+export type StopHookInput = HookInput
+export type StopFailureHookInput = HookInput
+export type SubagentStartHookInput = HookInput
+export type SubagentStopHookInput = HookInput
+export type PreCompactHookInput = HookInput
+export type PostCompactHookInput = HookInput
+export type PermissionRequestHookInput = HookInput
+export type PermissionDeniedHookInput = HookInput
+export type TeammateIdleHookInput = HookInput
+export type TaskCreatedHookInput = HookInput
+export type TaskCompletedHookInput = HookInput
+export type ElicitationHookInput = HookInput
+export type ElicitationResultHookInput = HookInput
+export type ConfigChangeHookInput = HookInput
+export type WorktreeCreateHookInput = HookInput
+export type WorktreeRemoveHookInput = HookInput
+export type InstructionsLoadedHookInput = HookInput
+export type CwdChangedHookInput = HookInput
+export type FileChangedHookInput = HookInput
+export type UserPromptSubmitHookInput = HookInput
 
 // ============================================================================
 // Functions

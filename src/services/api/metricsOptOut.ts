@@ -123,10 +123,6 @@ export async function checkMetricsEnabled(): Promise<MetricsStatus> {
   return { enabled: false, hasError: false }
 }
 
-  // First-ever run on this machine: block on the network to populate disk.
-  return refreshMetricsStatus()
-}
-
 // Export for testing purposes only
 export const _clearMetricsEnabledCacheForTesting = (): void => {
   memoizedCheckMetrics.cache.clear()

@@ -19,19 +19,20 @@
     "start": "bun --feature TRANSCRIPT_CLASSIFIER --feature BASH_CLASSIFIER --feature COORDINATOR_MODE --feature TOKEN_BUDGET --feature CACHED_MICROCOMPACT --feature CONTEXT_COLLAPSE --feature PROMPT_CACHE_BREAK_DETECTION --feature VERIFICATION_AGENT --feature UNATTENDED_RETRY --feature CONNECTOR_TEXT --feature EXTRACT_MEMORIES --feature FORK_SUBAGENT --feature BUILTIN_EXPLORE_PLAN_AGENTS --feature ULTRAPLAN --feature MCP_SKILLS --feature EXPERIMENTAL_SKILL_SEARCH --feature PROACTIVE --feature KAIROS --feature KAIROS_BRIEF --feature HISTORY_SNIP --feature REACTIVE_COMPACT --feature HOOK_PROMPTS --feature COMPACTION_REMINDERS --feature WEB_BROWSER_TOOL --feature MCP_RICH_OUTPUT --feature TREE_SITTER_BASH --feature DUMP_SYSTEM_PROMPT ./src/bootstrap-entry.ts",
     "version": "bun --feature DUMP_SYSTEM_PROMPT ./src/bootstrap-entry.ts --version",
     "dev:restore-check": "bun run ./src/dev-entry.ts",
-    "dev:vanilla": "bun run ./src/bootstrap-entry.ts"
+    "dev:vanilla": "bun run ./src/bootstrap-entry.ts",
+    "postinstall": "node ./scripts/postinstall-fixes.mjs"
   },
   "dependencies": {
     "@alcalzone/ansi-tokenize": "*",
     "@ant/claude-for-chrome-mcp": "file:./shims/ant-claude-for-chrome-mcp",
-    "@ant/mycode-for-chrome-mcp": "file:./shims/ant-claude-for-chrome-mcp",
     "@ant/computer-use-input": "file:./shims/ant-computer-use-input",
     "@ant/computer-use-mcp": "file:./shims/ant-computer-use-mcp",
     "@ant/computer-use-swift": "file:./shims/ant-computer-use-swift",
+    "@ant/mycode-for-chrome-mcp": "file:./shims/ant-claude-for-chrome-mcp",
     "@anthropic-ai/claude-agent-sdk": "*",
     "@anthropic-ai/mcpb": "*",
     "@anthropic-ai/sandbox-runtime": "*",
-    "@anthropic-ai/sdk": "*",
+    "@anthropic-ai/sdk": "^0.87.0",
     "@aws-sdk/client-bedrock-runtime": "*",
     "@commander-js/extra-typings": "*",
     "@growthbook/growthbook": "*",
@@ -53,6 +54,7 @@
     "chokidar": "*",
     "cli-boxes": "*",
     "code-excerpt": "*",
+    "color-diff-napi": "file:./shims/color-diff-napi",
     "diff": "*",
     "emoji-regex": "*",
     "env-paths": "*",
@@ -70,6 +72,7 @@
     "lodash-es": "*",
     "lru-cache": "*",
     "marked": "*",
+    "modifiers-napi": "file:./shims/modifiers-napi",
     "p-map": "*",
     "picomatch": "*",
     "proper-lockfile": "*",
@@ -85,6 +88,7 @@
     "tree-kill": "*",
     "type-fest": "*",
     "undici": "*",
+    "url-handler-napi": "file:./shims/url-handler-napi",
     "usehooks-ts": "*",
     "vscode-jsonrpc": "*",
     "vscode-languageserver-protocol": "*",
@@ -93,9 +97,9 @@
     "ws": "*",
     "xss": "*",
     "yaml": "*",
-    "zod": "*",
-    "color-diff-napi": "file:./shims/color-diff-napi",
-    "modifiers-napi": "file:./shims/modifiers-napi",
-    "url-handler-napi": "file:./shims/url-handler-napi"
+    "zod": "*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.11"
   }
 }

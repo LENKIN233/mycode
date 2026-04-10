@@ -78,7 +78,9 @@ const coordinatorModeModule = feature('COORDINATOR_MODE') ? require('./coordinat
 // Dead code elimination: conditional import for KAIROS (assistant mode)
 /* eslint-disable @typescript-eslint/no-require-imports */
 const assistantModule = feature('KAIROS') ? require('./assistant/index.js') as typeof import('./assistant/index.js') : null;
-const kairosGate = feature('KAIROS') ? require('./assistant/gate.js') as typeof import('./assistant/gate.js') : null;
+const kairosGate = feature('KAIROS') ? require('./assistant/gate.ts') as typeof import('./assistant/gate.ts') : null;
+const BUILD_VARIANT: string = 'external'
+const loadDynamicModule = (modulePath: string): Promise<any> => import(modulePath)
 import { relative, resolve } from 'path';
 import { isAnalyticsDisabled } from 'src/services/analytics/config.js';
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js';
@@ -263,7 +265,7 @@ function isBeingDebugged() {
 }
 
 // Exit if we detect node debugging or inspection
-if ("external" !== 'ant' && isBeingDebugged()) {
+if (BUILD_VARIANT !== 'ant' && isBeingDebugged()) {
   // Use process.exit directly here since we're in the top-level code before imports
   // and gracefulShutdown is not yet available
   // eslint-disable-next-line custom-rules/no-top-level-side-effects
@@ -337,7 +339,7 @@ function runMigrations(): void {
     if (feature('TRANSCRIPT_CLASSIFIER')) {
       resetAutoModeOptInForDefaultOffer();
     }
-    if ("external" === 'ant') {
+    if (BUILD_VARIANT === 'ant') {
       migrateFennecToOpus();
     }
     saveGlobalConfig(prev => prev.migrationVersion === CURRENT_MIGRATION_VERSION ? prev : {
@@ -425,8 +427,8 @@ export function startDeferredPrefetches(): void {
   }
 
   // Event loop stall detector — logs when the main thread is blocked >500ms
-  if ("external" === 'ant') {
-    void import('./utils/eventLoopStallDetector.js').then(m => m.startEventLoopStallDetector());
+  if (BUILD_VARIANT === 'ant') {
+    void loadDynamicModule('./utils/eventLoopStallDetector.js').then((m: any) => m.startEventLoopStallDetector?.());
   }
 }
 function loadSettingsFromFlag(settingsFile: string): void {
@@ -622,7 +624,7 @@ export async function main() {
       const ccUrl = rawCliArgs[ccIdx]!;
       const {
         parseConnectUrl
-      } = await import('./server/parseConnectUrl.js');
+      } = await loadDynamicModule('./server/parseConnectUrl.js');
       const parsed = parseConnectUrl(ccUrl);
       _pendingConnect.dangerouslySkipPermissions = rawCliArgs.includes('--dangerously-skip-permissions');
       if (rawCliArgs.includes('-p') || rawCliArgs.includes('--print')) {
@@ -1164,11 +1166,11 @@ async function run(): Promise<CommanderCommand> {
     const disableSlashCommands = options.disableSlashCommands || false;
 
     // Extract tasks mode options (ant-only)
-    const tasksOption = "external" === 'ant' && (options as {
+    const tasksOption = BUILD_VARIANT === 'ant' && (options as {
       tasks?: boolean | string;
     }).tasks;
     const taskListId = tasksOption ? typeof tasksOption === 'string' ? tasksOption : DEFAULT_TASKS_MODE_TASK_LIST_ID : undefined;
-    if ("external" === 'ant' && taskListId) {
+    if (BUILD_VARIANT === 'ant' && taskListId) {
       process.env.MYCODE_TASK_LIST_ID = taskListId;
     }
 
@@ -1558,7 +1560,7 @@ async function run(): Promise<CommanderCommand> {
     };
     // Store the explicit CLI flag so teammates can inherit it
     setChromeFlagOverride(chromeOpts.chrome);
-    const enableMyCodeInChrome = shouldEnableMyCodeInChrome(chromeOpts.chrome) && ("external" === 'ant' || isMyCodeAISubscriber());
+    const enableMyCodeInChrome = shouldEnableMyCodeInChrome(chromeOpts.chrome) && (BUILD_VARIANT === 'ant' || isMyCodeAISubscriber());
     const autoEnableMyCodeInChrome = !enableMyCodeInChrome && shouldAutoEnableMyCodeInChrome();
     if (enableMyCodeInChrome) {
       const platform = getPlatform();
@@ -1790,7 +1792,7 @@ async function run(): Promise<CommanderCommand> {
     } = initResult;
 
     // Handle overly broad shell allow rules for ant users (Bash(*), PowerShell(*))
-    if ("external" === 'ant' && overlyBroadBashPermissions.length > 0) {
+    if (BUILD_VARIANT === 'ant' && overlyBroadBashPermissions.length > 0) {
       for (const permission of overlyBroadBashPermissions) {
         logForDebugging(`Ignoring overly broad shell permission ${permission.ruleDisplay} from ${permission.sourceDisplay}`);
       }
@@ -2040,7 +2042,7 @@ async function run(): Promise<CommanderCommand> {
     //  - no env override (which short-circuits _CACHED_MAY_BE_STALE before disk)
     //  - flag absent from disk (== null also catches pre-#22279 poisoned null)
     const explicitModel = options.model || process.env.ANTHROPIC_MODEL;
-    if ("external" === 'ant' && explicitModel && explicitModel !== 'default' && !hasGrowthBookEnvOverride('tengu_ant_model_override') && getGlobalConfig().cachedGrowthBookFeatures?.['tengu_ant_model_override'] == null) {
+    if (BUILD_VARIANT === 'ant' && explicitModel && explicitModel !== 'default' && !hasGrowthBookEnvOverride('tengu_ant_model_override') && getGlobalConfig().cachedGrowthBookFeatures?.['tengu_ant_model_override'] == null) {
       await initializeGrowthBook();
     }
 
@@ -2186,7 +2188,7 @@ async function run(): Promise<CommanderCommand> {
         // Log agent memory loaded event for tmux teammates
         if (customAgent.memory) {
           logEvent('tengu_agent_memory_loaded', {
-            ...("external" === 'ant' && {
+            ...(BUILD_VARIANT === 'ant' && {
               agent_type: customAgent.agentType as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
             }),
             scope: customAgent.memory as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -2250,7 +2252,7 @@ async function run(): Promise<CommanderCommand> {
       getFpsMetrics = ctx.getFpsMetrics;
       stats = ctx.stats;
       // Install asciicast recorder before Ink mounts (ant-only, opt-in via MYCODE_TERMINAL_RECORDING=1)
-      if ("external" === 'ant') {
+      if (BUILD_VARIANT === 'ant') {
         installAsciicastRecorder();
       }
       const {
@@ -2295,7 +2297,7 @@ async function run(): Promise<CommanderCommand> {
         if (choice === 'merge') {
           const {
             buildMergePrompt
-          } = await import('./components/agents/SnapshotUpdateDialog.js');
+          } = await loadDynamicModule('./components/agents/SnapshotUpdateDialog.js');
           const mergePrompt = buildMergePrompt(agentDef.agentType, agentDef.memory!);
           inputPrompt = inputPrompt ? `${mergePrompt}\n\n${inputPrompt}` : mergePrompt;
         }
@@ -2331,7 +2333,11 @@ async function run(): Promise<CommanderCommand> {
       // login state are fully loaded.
       const orgValidation = await validateForceLoginOrg();
       if (!orgValidation.valid) {
-        await exitWithError(root, orgValidation.message);
+        const orgValidationMessage =
+          'message' in orgValidation && typeof orgValidation.message === 'string'
+            ? orgValidation.message
+            : 'Organization validation failed'
+        await exitWithError(root, orgValidationMessage);
       }
     }
 
@@ -2643,7 +2649,11 @@ async function run(): Promise<CommanderCommand> {
       // Validate org restriction for non-interactive sessions
       const orgValidation = await validateForceLoginOrg();
       if (!orgValidation.valid) {
-        process.stderr.write(orgValidation.message + '\n');
+        const orgValidationMessage =
+          'message' in orgValidation && typeof orgValidation.message === 'string'
+            ? orgValidation.message
+            : 'Organization validation failed'
+        process.stderr.write(orgValidationMessage + '\n');
         process.exit(1);
       }
 
@@ -2846,8 +2856,8 @@ async function run(): Promise<CommanderCommand> {
       if (!isBareMode()) {
         startDeferredPrefetches();
         void import('./utils/backgroundHousekeeping.js').then(m => m.startBackgroundHousekeeping());
-        if ("external" === 'ant') {
-          void import('./utils/sdkHeapDumpMonitor.js').then(m => m.startSdkMemoryMonitor());
+        if (BUILD_VARIANT === 'ant') {
+          void loadDynamicModule('./utils/sdkHeapDumpMonitor.js').then((m: any) => m.startSdkMemoryMonitor?.());
         }
       }
       logSessionTelemetry();
@@ -3091,7 +3101,7 @@ async function run(): Promise<CommanderCommand> {
     //   - Runtime: uploader checks github.com/anthropics/* remote + gcloud auth.
     //   - Safety: MYCODE_DISABLE_SESSION_DATA_UPLOAD=1 bypasses (tests set this).
     // Import is dynamic + async to avoid adding startup latency.
-    const sessionUploaderPromise = "external" === 'ant' ? import('./utils/sessionDataUploader.js') : null;
+    const sessionUploaderPromise = BUILD_VARIANT === 'ant' ? loadDynamicModule('./utils/sessionDataUploader.js') : null;
 
     // Defer session uploader resolution to the onTurnComplete callback to avoid
     // adding a new top-level await in main.tsx (performance-critical path).
@@ -3608,13 +3618,13 @@ async function run(): Promise<CommanderCommand> {
           }
         }
       }
-      if ("external" === 'ant') {
+      if (BUILD_VARIANT === 'ant') {
         if (options.resume && typeof options.resume === 'string' && !maybeSessionId) {
           // Check for ccshare URL (e.g. https://go/ccshare/boris-20260311-211036)
           const {
             parseCcshareId,
             loadCcshare
-          } = await import('./utils/ccshareResume.js');
+          } = await loadDynamicModule('./utils/ccshareResume.js');
           const ccshareId = parseCcshareId(options.resume);
           if (ccshareId) {
             try {
@@ -3843,7 +3853,7 @@ async function run(): Promise<CommanderCommand> {
   if (canUserConfigureAdvisor()) {
     program.addOption(new Option('--advisor <model>', 'Enable the server-side advisor tool with the specified model (alias or full ID).').hideHelp());
   }
-  if ("external" === 'ant') {
+  if (BUILD_VARIANT === 'ant') {
     program.addOption(new Option('--delegate-permissions', '[ANT-ONLY] Alias for --permission-mode auto.').implies({
       permissionMode: 'auto'
     }));
@@ -4003,24 +4013,24 @@ async function run(): Promise<CommanderCommand> {
       } = await import('crypto');
       const {
         startServer
-      } = await import('./server/server.js');
+      } = await loadDynamicModule('./server/server.js');
       const {
         SessionManager
-      } = await import('./server/sessionManager.js');
+      } = await loadDynamicModule('./server/sessionManager.js');
       const {
         DangerousBackend
-      } = await import('./server/backends/dangerousBackend.js');
+      } = await loadDynamicModule('./server/backends/dangerousBackend.js');
       const {
         printBanner
-      } = await import('./server/serverBanner.js');
+      } = await loadDynamicModule('./server/serverBanner.js');
       const {
         createServerLogger
-      } = await import('./server/serverLog.js');
+      } = await loadDynamicModule('./server/serverLog.js');
       const {
         writeServerLock,
         removeServerLock,
         probeRunningServer
-      } = await import('./server/lockfile.js');
+      } = await loadDynamicModule('./server/lockfile.js');
       const existing = await probeRunningServer();
       if (existing) {
         process.stderr.write(`A mycode server is already running (pid ${existing.pid}) at ${existing.httpUrl}\n`);
@@ -4088,11 +4098,11 @@ async function run(): Promise<CommanderCommand> {
   if (feature('DIRECT_CONNECT')) {
     program.command('open <cc-url>').description('Connect to a MyCode server (internal — use cc:// URLs)').option('-p, --print [prompt]', 'Print mode (headless)').option('--output-format <format>', 'Output format: text, json, stream-json', 'text').action(async (ccUrl: string, opts: {
       print?: string | boolean;
-      outputFormat: string;
+      outputFormat?: string;
     }) => {
       const {
         parseConnectUrl
-      } = await import('./server/parseConnectUrl.js');
+      } = await loadDynamicModule('./server/parseConnectUrl.js');
       const {
         serverUrl,
         authToken
@@ -4118,10 +4128,10 @@ async function run(): Promise<CommanderCommand> {
       }
       const {
         runConnectHeadless
-      } = await import('./server/connectHeadless.js');
+      } = await loadDynamicModule('./server/connectHeadless.js');
       const prompt = typeof opts.print === 'string' ? opts.print : '';
       const interactive = opts.print === true;
-      await runConnectHeadless(connectConfig, prompt, opts.outputFormat, interactive);
+      await runConnectHeadless(connectConfig, prompt, opts.outputFormat ?? 'text', interactive);
     });
   }
 
@@ -4397,18 +4407,18 @@ async function run(): Promise<CommanderCommand> {
   });
 
   // mycode up — run the project's MYCODE.md "# mycode up" setup instructions.
-  if ("external" === 'ant') {
+  if (BUILD_VARIANT === 'ant') {
     program.command('up').description('[ANT-ONLY] Initialize or upgrade the local dev environment using the "# mycode up" section of the nearest MYCODE.md').action(async () => {
       const {
         up
-      } = await import('src/cli/up.js');
+      } = await loadDynamicModule('src/cli/up.js');
       await up();
     });
   }
 
   // mycode rollback (ant-only)
   // Rolls back to previous releases
-  if ("external" === 'ant') {
+  if (BUILD_VARIANT === 'ant') {
     program.command('rollback [target]').description('[ANT-ONLY] Roll back to a previous release\n\nExamples:\n  mycode rollback                                    Go 1 version back from current\n  mycode rollback 3                                  Go 3 versions back from current\n  mycode rollback 2.0.73-dev.20251217.t190658        Roll back to a specific version').option('-l, --list', 'List recent published versions with ages').option('--dry-run', 'Show what would be installed without installing').option('--safe', 'Roll back to the server-pinned safe version (set by oncall during incidents)').action(async (target?: string, options?: {
       list?: boolean;
       dryRun?: boolean;
@@ -4416,7 +4426,7 @@ async function run(): Promise<CommanderCommand> {
     }) => {
       const {
         rollback
-      } = await import('src/cli/rollback.js');
+      } = await loadDynamicModule('src/cli/rollback.js');
       await rollback(target, options);
     });
   }
@@ -4432,7 +4442,7 @@ async function run(): Promise<CommanderCommand> {
   });
 
   // ant-only commands
-  if ("external" === 'ant') {
+  if (BUILD_VARIANT === 'ant') {
     const validateLogId = (value: string) => {
       const maybeSessionId = validateUuid(value);
       if (maybeSessionId) return maybeSessionId;
@@ -4442,7 +4452,7 @@ async function run(): Promise<CommanderCommand> {
     program.command('log').description('[ANT-ONLY] Manage conversation logs.').argument('[number|sessionId]', 'A number (0, 1, 2, etc.) to display a specific log, or the sesssion ID (uuid) of a log', validateLogId).action(async (logId: string | number | undefined) => {
       const {
         logHandler
-      } = await import('./cli/handlers/ant.js');
+      } = await loadDynamicModule('./cli/handlers/ant.js');
       await logHandler(logId);
     });
 
@@ -4450,7 +4460,7 @@ async function run(): Promise<CommanderCommand> {
     program.command('error').description('[ANT-ONLY] View error logs. Optionally provide a number (0, -1, -2, etc.) to display a specific log.').argument('[number]', 'A number (0, 1, 2, etc.) to display a specific log', parseInt).action(async (number: number | undefined) => {
       const {
         errorHandler
-      } = await import('./cli/handlers/ant.js');
+      } = await loadDynamicModule('./cli/handlers/ant.js');
       await errorHandler(number);
     });
 
@@ -4463,10 +4473,10 @@ Examples:
   $ mycode export <uuid>.jsonl output.txt           Render JSONL session file to text`).action(async (source: string, outputFile: string) => {
       const {
         exportHandler
-      } = await import('./cli/handlers/ant.js');
+      } = await loadDynamicModule('./cli/handlers/ant.js');
       await exportHandler(source, outputFile);
     });
-    if ("external" === 'ant') {
+    if (BUILD_VARIANT === 'ant') {
       const taskCmd = program.command('task').description('[ANT-ONLY] Manage task list tasks');
       taskCmd.command('create <subject>').description('Create a new task').option('-d, --description <text>', 'Task description').option('-l, --list <id>', 'Task list ID (defaults to "tasklist")').action(async (subject: string, opts: {
         description?: string;
@@ -4474,7 +4484,7 @@ Examples:
       }) => {
         const {
           taskCreateHandler
-        } = await import('./cli/handlers/ant.js');
+        } = await loadDynamicModule('./cli/handlers/ant.js');
         await taskCreateHandler(subject, opts);
       });
       taskCmd.command('list').description('List all tasks').option('-l, --list <id>', 'Task list ID (defaults to "tasklist")').option('--pending', 'Show only pending tasks').option('--json', 'Output as JSON').action(async (opts: {
@@ -4484,7 +4494,7 @@ Examples:
       }) => {
         const {
           taskListHandler
-        } = await import('./cli/handlers/ant.js');
+        } = await loadDynamicModule('./cli/handlers/ant.js');
         await taskListHandler(opts);
       });
       taskCmd.command('get <id>').description('Get details of a task').option('-l, --list <id>', 'Task list ID (defaults to "tasklist")').action(async (id: string, opts: {
@@ -4492,7 +4502,7 @@ Examples:
       }) => {
         const {
           taskGetHandler
-        } = await import('./cli/handlers/ant.js');
+        } = await loadDynamicModule('./cli/handlers/ant.js');
         await taskGetHandler(id, opts);
       });
       taskCmd.command('update <id>').description('Update a task').option('-l, --list <id>', 'Task list ID (defaults to "tasklist")').option('-s, --status <status>', `Set status (${TASK_STATUSES.join(', ')})`).option('--subject <text>', 'Update subject').option('-d, --description <text>', 'Update description').option('--owner <agentId>', 'Set owner').option('--clear-owner', 'Clear owner').action(async (id: string, opts: {
@@ -4505,7 +4515,7 @@ Examples:
       }) => {
         const {
           taskUpdateHandler
-        } = await import('./cli/handlers/ant.js');
+        } = await loadDynamicModule('./cli/handlers/ant.js');
         await taskUpdateHandler(id, opts);
       });
       taskCmd.command('dir').description('Show the tasks directory path').option('-l, --list <id>', 'Task list ID (defaults to "tasklist")').action(async (opts: {
@@ -4513,7 +4523,7 @@ Examples:
       }) => {
         const {
           taskDirHandler
-        } = await import('./cli/handlers/ant.js');
+        } = await loadDynamicModule('./cli/handlers/ant.js');
         await taskDirHandler(opts);
       });
     }
@@ -4526,7 +4536,7 @@ Examples:
     }) => {
       const {
         completionHandler
-      } = await import('./cli/handlers/ant.js');
+      } = await loadDynamicModule('./cli/handlers/ant.js');
       await completionHandler(shell, opts, program);
     });
   }
@@ -4625,7 +4635,7 @@ async function logTenguInit({
         assistantActivationPath: assistantActivationPath as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       }),
       autoUpdatesChannel: (getInitialSettings().autoUpdatesChannel ?? 'latest') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      ...("external" === 'ant' ? (() => {
+      ...(BUILD_VARIANT === 'ant' ? (() => {
         const cwd = getCwd();
         const gitRoot = findGitRoot(cwd);
         const rp = gitRoot ? relative(gitRoot, cwd) || '.' : undefined;
