@@ -8,6 +8,7 @@
 
 import type { ClientOptions } from '@anthropic-ai/sdk'
 import { getCopilotToken, requestCopilotReauth } from './auth.js'
+import { setClipboard } from '../../ink/termio/osc.js'
 
 const COPILOT_API_BASE = 'https://api.githubcopilot.com'
 
@@ -1035,7 +1036,14 @@ function translateNonStreamingResponse(
  * message to the user. Used for auth prompts that need to appear in the TUI
  * chat (rather than being swallowed by the SDK's retry logic).
  */
-function createFakeAssistantResponse(text: string, isStreaming: boolean): Response {
+function createFakeAssistantResponse(text: string, isStreaming: boolean, clipboardText?: string): Response {
+  // Auto-copy text to clipboard if provided (e.g. verification code)
+  if (clipboardText) {
+    setClipboard(clipboardText).then(raw => {
+      if (raw) process.stdout.write(raw)
+    }).catch(() => {})
+  }
+
   const msgId = `msg_reauth_${Date.now()}`
   if (!isStreaming) {
     return new Response(
@@ -1195,9 +1203,10 @@ async function handleReauth(
     return createFakeAssistantResponse(
       `⚠️ ${message}\n\n` +
       `1. 打开链接: [${verification_uri}](${verification_uri})\n` +
-      `2. 输入验证码: \`${user_code}\`\n` +
+      `2. 输入验证码: **${user_code}** (已自动复制到剪贴板)\n` +
       `3. 授权完成后，重新发送消息即可。`,
       isStreaming,
+      user_code,
     )
   } catch (reauthErr) {
     setReauthState(null)

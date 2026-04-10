@@ -5,7 +5,7 @@ const resume: Command = {
   name: 'resume',
   description: 'Resume a previous conversation',
   aliases: ['continue'],
-  argumentHint: '[conversation id or search term]',
+  argumentHint: '[conversation id or search term | new | delete <id> | info]',
   load: () => import('./resume.js'),
 }
 

@@ -2,6 +2,7 @@ import { c as _c } from "react/compiler-runtime";
 import chalk from 'chalk';
 import type { UUID } from 'crypto';
 import figures from 'figures';
+import { unlink } from 'fs/promises';
 import * as React from 'react';
 import { getOriginalCwd, getSessionId } from '../../bootstrap/state.js';
 import type { CommandResultDisplay, ResumeEntrypoint } from '../../commands.js';
@@ -11,14 +12,14 @@ import { Spinner } from '../../components/Spinner.js';
 import { useIsInsideModal } from '../../context/modalContext.js';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import { setClipboard } from '../../ink/termio/osc.js';
-import { Box, Text } from '../../ink.js';
+import { Box, Text, useInput } from '../../ink.js';
 import type { LocalJSXCommandCall } from '../../types/command.js';
 import type { LogOption } from '../../types/logs.js';
 import { agenticSessionSearch } from '../../utils/agenticSessionSearch.js';
 import { checkCrossProjectResume } from '../../utils/crossProjectResume.js';
 import { getWorktreePaths } from '../../utils/getWorktreePaths.js';
 import { logError } from '../../utils/log.js';
-import { getLastSessionLog, getSessionIdFromLog, isCustomTitleEnabled, isLiteLog, loadAllProjectsMessageLogs, loadFullLog, loadSameRepoMessageLogs, searchSessionsByCustomTitle } from '../../utils/sessionStorage.js';
+import { getLastSessionLog, getSessionIdFromLog, getTranscriptPathForSession, isCustomTitleEnabled, isLiteLog, loadAllProjectsMessageLogs, loadFullLog, loadSameRepoMessageLogs, searchSessionsByCustomTitle } from '../../utils/sessionStorage.js';
 import { validateUuid } from '../../utils/uuid.js';
 type ResumeResult = {
   resultType: 'sessionNotFound';
@@ -100,6 +101,7 @@ function ResumeCommand({
   const [loading, setLoading] = React.useState(true);
   const [resuming, setResuming] = React.useState(false);
   const [showAllProjects, setShowAllProjects] = React.useState(false);
+  const [pendingDelete, setPendingDelete] = React.useState<LogOption | null>(null);
   const {
     rows
   } = useTerminalSize();
@@ -169,6 +171,29 @@ function ResumeCommand({
     setResuming(true);
     void onResume(sessionId, fullLog, 'slash_command_picker');
   }
+  async function handleDelete(log: LogOption) {
+    const sessionId = getSessionIdFromLog(log);
+    if (!sessionId || sessionId === getSessionId()) return;
+    setPendingDelete(log);
+  }
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const sessionId = getSessionIdFromLog(pendingDelete);
+    if (!sessionId) { setPendingDelete(null); return; }
+    try {
+      await unlink(getTranscriptPathForSession(sessionId));
+    } catch {}
+    setPendingDelete(null);
+    void loadLogs(showAllProjects, worktreePaths);
+  }
+  useInput((_input, key) => {
+    if (!pendingDelete) return;
+    if (_input === 'y' || _input === 'Y') {
+      void confirmDelete();
+    } else if (_input === 'n' || _input === 'N' || key.escape) {
+      setPendingDelete(null);
+    }
+  }, { isActive: pendingDelete !== null });
   function handleCancel() {
     onDone('Resume cancelled', {
       display: 'system'
@@ -186,7 +211,7 @@ function ResumeCommand({
         <Text> Resuming conversation…</Text>
       </Box>;
   }
-  return <LogSelector logs={logs} maxHeight={insideModal ? Math.floor(rows / 2) : rows - 2} onCancel={handleCancel} onSelect={handleSelect} onLogsChanged={() => loadLogs(showAllProjects, worktreePaths)} showAllProjects={showAllProjects} onToggleAllProjects={handleToggleAllProjects} onAgenticSearch={agenticSessionSearch} />;
+  return <Box flexDirection="column">{pendingDelete && <Box><Text color="yellow">{'  '}Delete session "{pendingDelete.title || getSessionIdFromLog(pendingDelete)?.slice(0, 8)}"? (y/n)</Text></Box>}<LogSelector logs={logs} maxHeight={insideModal ? Math.floor(rows / 2) : rows - (pendingDelete ? 3 : 2)} onCancel={handleCancel} onSelect={pendingDelete ? () => {} : handleSelect} onDelete={pendingDelete ? () => {} : handleDelete} onLogsChanged={() => loadLogs(showAllProjects, worktreePaths)} showAllProjects={showAllProjects} onToggleAllProjects={handleToggleAllProjects} onAgenticSearch={agenticSessionSearch} /></Box>;
 }
 export function filterResumableSessions(logs: LogOption[], currentSessionId: string): LogOption[] {
   return logs.filter(l => !l.isSidechain && getSessionIdFromLog(l) !== currentSessionId);
@@ -208,6 +233,50 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
   // No argument provided - show picker
   if (!arg) {
     return <ResumeCommand key={Date.now()} onDone={onDone} onResume={onResume} />;
+  }
+
+  // Sub-command: new — create a fresh session
+  if (arg === 'new') {
+    const { clearConversation } = await import('../clear/conversation.js');
+    await clearConversation(context);
+    const newSessionId = getSessionId();
+    onDone(`New session created: ${chalk.dim(newSessionId.slice(0, 8))}`);
+    return null;
+  }
+
+  // Sub-command: delete — delete a session by ID
+  if (arg.startsWith('delete')) {
+    const deleteArg = arg.slice(6).trim();
+    if (!deleteArg) {
+      onDone('Usage: /resume delete <session-id>\nOr use /resume and press Ctrl+X on a session to delete it.');
+      return null;
+    }
+    const targetId = validateUuid(deleteArg);
+    if (!targetId) {
+      onDone(`Invalid session ID: ${chalk.bold(deleteArg)}`);
+      return null;
+    }
+    if (targetId === getSessionId()) {
+      onDone('Cannot delete the current active session.');
+      return null;
+    }
+    try {
+      await unlink(getTranscriptPathForSession(targetId));
+      onDone(`Session ${chalk.dim(targetId.slice(0, 8))} deleted.`);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        onDone(`Session ${chalk.bold(deleteArg)} not found.`);
+      } else {
+        onDone(`Failed to delete session: ${(err as Error).message}`);
+      }
+    }
+    return null;
+  }
+
+  // Sub-command: info — show current session ID
+  if (arg === 'info') {
+    onDone(`Current session: ${chalk.dim(getSessionId())}`);
+    return null;
   }
 
   // Load logs to search (includes same-repo worktrees)
