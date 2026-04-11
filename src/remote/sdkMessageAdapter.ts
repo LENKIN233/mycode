@@ -1,3 +1,9 @@
+// Stub: SDK message adapter removed
+export type ConvertedMessage = any
+export function convertSDKMessage() { return {} as any }
+export function isSessionEndMessage() { return false }
+export function isSuccessResult() { return false }
+export function getResultText() { return null }
 import type {
   SDKAssistantMessage,
   SDKCompactBoundaryMessage,

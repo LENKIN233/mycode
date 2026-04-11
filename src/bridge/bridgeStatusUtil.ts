@@ -1,3 +1,21 @@
+// Stub: bridge status util removed
+export type StatusState = any
+export const TOOL_DISPLAY_EXPIRY_MS = 0
+export const SHIMMER_INTERVAL_MS = 0
+export function timestamp() { return '' }
+export function formatDuration() { return '' }
+export function truncateToWidth(s: string) { return s }
+export function abbreviateActivity() { return '' }
+export function buildBridgeConnectUrl() { return '' }
+export function buildBridgeSessionUrl() { return '' }
+export function computeGlimmerIndex() { return 0 }
+export function computeShimmerSegments() { return { before: '', shimmer: '', after: '' } }
+export type BridgeStatusInfo = any
+export function getBridgeStatus() { return {} as any }
+export function buildIdleFooterText() { return '' }
+export function buildActiveFooterText() { return '' }
+export const FAILED_FOOTER_TEXT = ''
+export function wrapWithOsc8Link(text: string) { return text }
 import {
   getMyCodeAiBaseUrl,
   getRemoteSessionUrl,

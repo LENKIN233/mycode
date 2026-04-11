@@ -1,3 +1,10 @@
+// Stub — ultraplan keyword detection removed (Anthropic official infrastructure)
+export type TriggerPosition = { start: number; end: number; keyword: string }
+export function findUltraplanTriggerPositions(_text: string): TriggerPosition[] { return [] }
+export function findUltrareviewTriggerPositions(_text: string): TriggerPosition[] { return [] }
+export function hasUltraplanKeyword(_text: string): boolean { return false }
+export function hasUltrareviewKeyword(_text: string): boolean { return false }
+export function replaceUltraplanKeyword(_text: string): string { return _text }
 type TriggerPosition = { word: string; start: number; end: number }
 
 const OPEN_TO_CLOSE: Record<string, string> = {

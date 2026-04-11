@@ -1,3 +1,6 @@
+// Stub: remote permission bridge removed
+export function createSyntheticAssistantMessage() { return {} as any }
+export function createToolStub() { return {} as any }
 import { randomUUID } from 'crypto'
 import type { SDKControlPermissionRequest } from '../entrypoints/sdk/controlTypes.js'
 import type { Tool } from '../Tool.js'

@@ -5,6 +5,7 @@ import { getIsNonInteractiveSession } from '../bootstrap/state.js'
 import { isMyCodeAISubscriber } from '../utils/auth.js'
 import { getModelBetas } from '../utils/betas.js'
 import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js'
+import { isEnvTruthy } from '../utils/envUtils.js'
 import { logError } from '../utils/log.js'
 import { getModelForTask } from '../utils/model/taskModels.js'
 import { getAPIProvider } from '../utils/model/providers.js'
@@ -219,6 +220,10 @@ async function makeTestQuery() {
 }
 
 export async function checkQuotaStatus(): Promise<void> {
+  if (isEnvTruthy(process.env.MYCODE_DISABLE_ANTHROPIC_OFFICIAL)) {
+    return
+  }
+
   // Copilot provider has separate billing semantics; this probe adds no value
   // for personal Copilot usage and may consume request budget.
   if (getAPIProvider() === 'copilot') {

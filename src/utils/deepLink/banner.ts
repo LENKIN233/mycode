@@ -1,3 +1,7 @@
+// Stub — deep link banner removed (Anthropic official infrastructure)
+export type DeepLinkBannerInfo = { cwd: string; prefillLength?: number; repo?: string; lastFetch?: Date }
+export function buildDeepLinkBanner(_info: DeepLinkBannerInfo): string { return '' }
+export async function readLastFetchTime(_cwd: string): Promise<Date | undefined> { return undefined }
 /**
  * Deep Link Origin Banner
  *

@@ -1,3 +1,14 @@
+// Stub — ultraplan CCR session removed (Anthropic official infrastructure)
+export type PollFailReason = string
+export class UltraplanPollError extends Error {
+  constructor(message: string, public reason: PollFailReason) { super(message) }
+}
+export const ULTRAPLAN_TELEPORT_SENTINEL = '__ultraplan_teleport__'
+export type ScanResult = { found: boolean }
+export type UltraplanPhase = 'planning' | 'executing' | 'reviewing' | 'done'
+export class ExitPlanModeScanner {
+  scan(): ScanResult { return { found: false } }
+}
 // CCR session polling for /ultraplan. Waits for an approved ExitPlanMode
 // tool_result, then extracts the plan text. Uses pollRemoteSessionEvents
 // (shared with RemoteAgentTask) for pagination + typed SDKMessage[].

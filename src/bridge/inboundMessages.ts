@@ -1,3 +1,6 @@
+// Stub: bridge inbound messages removed
+export function extractInboundMessageFields() { return undefined }
+export function normalizeImageBlocks(blocks: any[]) { return blocks }
 import type {
   Base64ImageSource,
   ContentBlockParam,

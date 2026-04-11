@@ -1,3 +1,12 @@
+// Stub: bridge messaging removed
+export function isSDKMessage() { return false }
+export function isSDKControlResponse() { return false }
+export function isSDKControlRequest() { return false }
+export function isEligibleBridgeMessage() { return false }
+export function extractTitleText() { return undefined }
+export function handleIngressMessage() {}
+export type ServerControlRequestHandlers = any
+export function handleServerControlRequest() {}
 /**
  * Shared transport-layer helpers for bridge message handling.
  *

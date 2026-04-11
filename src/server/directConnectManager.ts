@@ -1,3 +1,14 @@
+// Stub: direct connect manager removed
+export type DirectConnectConfig = any
+export type DirectConnectCallbacks = any
+export class DirectConnectSessionManager {
+  connect() { return Promise.resolve() }
+  sendMessage() {}
+  respondToPermissionRequest() {}
+  sendInterrupt() {}
+  disconnect() {}
+  isConnected() { return false }
+}
 /* eslint-disable eslint-plugin-n/no-unsupported-features/node-builtins */
 
 import type { SDKMessage } from '../entrypoints/agentSdkTypes.js'

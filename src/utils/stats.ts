@@ -323,6 +323,7 @@ async function processSessionFiles(
                 cacheCreationInputTokens: 0,
                 webSearchRequests: 0,
                 costUSD: 0,
+                requestCount: 0,
                 contextWindow: 0,
                 maxOutputTokens: 0,
               }

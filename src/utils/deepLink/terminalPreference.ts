@@ -1,3 +1,6 @@
+// Stub — deep link terminal preference removed (Anthropic official infrastructure)
+export const TERM_PROGRAM_TO_APP: Record<string, string> = {}
+export function updateDeepLinkTerminalPreference(): void {}
 /**
  * Terminal preference capture for deep link handling.
  *

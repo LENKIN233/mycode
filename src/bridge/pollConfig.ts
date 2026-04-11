@@ -1,3 +1,6 @@
+// Stub: bridge poll config removed
+export type PollIntervalConfig = any
+export function getPollIntervalConfig() { return {} as any }
 import { z } from 'zod/v4'
 import { getFeatureValue_CACHED_WITH_REFRESH } from '../services/analytics/growthbook.js'
 import { lazySchema } from '../utils/lazySchema.js'

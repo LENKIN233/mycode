@@ -1,13 +1,8 @@
-export type OAuthTokens = {
-  accessToken?: string
-  refreshToken?: string
-  expiresAt?: number
-  [key: string]: unknown
-}
-
-export type SubscriptionType = string
+// Stub: OAuth types removed
+export type OAuthTokens = { access_token: string; refresh_token: string; expires_at?: number }
+export type SubscriptionType = 'free' | 'pro' | 'max' | 'team' | 'enterprise'
 export type BillingType = string
-export type OAuthProfileResponse = Record<string, unknown>
-export type ReferralEligibilityResponse = Record<string, unknown>
-export type ReferralRedemptionsResponse = Record<string, unknown>
-export type ReferrerRewardInfo = Record<string, unknown>
+export type OAuthProfileResponse = any
+export type ReferralEligibilityResponse = any
+export type ReferralRedemptionsResponse = any
+export type ReferrerRewardInfo = any

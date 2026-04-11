@@ -1,3 +1,7 @@
+// Stub: bridge permission callbacks removed
+export type BridgePermissionResponse = any
+export type BridgePermissionCallbacks = any
+export function isBridgePermissionResponse() { return false }
 import type { PermissionUpdate } from '../utils/permissions/PermissionUpdateSchema.js'
 
 type BridgePermissionResponse = {

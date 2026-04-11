@@ -1,3 +1,9 @@
+// Stub: JWT utils removed
+export function decodeJwtPayload() { return null }
+export function decodeJwtExpiry() { return null }
+export function createTokenRefreshScheduler() {
+  return { schedule() {}, scheduleFromExpiresIn() {}, cancel() {}, cancelAll() {} }
+}
 import { logEvent } from '../services/analytics/index.js'
 import { logForDebugging } from '../utils/debug.js'
 import { logForDiagnosticsNoPII } from '../utils/diagLogs.js'

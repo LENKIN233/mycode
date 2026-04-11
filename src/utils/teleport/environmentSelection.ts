@@ -1,3 +1,6 @@
+// Stub — teleport environment selection removed (Anthropic official infrastructure)
+export type EnvironmentSelectionInfo = { environments: any[]; hasDefault: boolean }
+export async function getEnvironmentSelectionInfo(): Promise<EnvironmentSelectionInfo> { return { environments: [], hasDefault: false } }
 import { SETTING_SOURCES, type SettingSource } from '../settings/constants.js'
 import {
   getSettings_DEPRECATED,

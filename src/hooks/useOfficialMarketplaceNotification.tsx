@@ -2,6 +2,8 @@ import * as React from 'react';
 import type { Notification } from '../context/notifications.js';
 import { Text } from '../ink.js';
 import { logForDebugging } from '../utils/debug.js';
+import { isEnvTruthy } from '../utils/envUtils.js';
+import { getAPIProvider } from '../utils/model/providers.js';
 import { checkAndInstallOfficialMarketplace } from '../utils/plugins/officialMarketplaceStartupCheck.js';
 import { useStartupNotification } from './notifs/useStartupNotification.js';
 
@@ -13,6 +15,18 @@ export function useOfficialMarketplaceNotification() {
   useStartupNotification(_temp);
 }
 async function _temp() {
+  if (isEnvTruthy(process.env.MYCODE_DISABLE_ANTHROPIC_OFFICIAL)) {
+    logForDebugging('Skipping official marketplace auto-install notification because Anthropic official mode is disabled')
+    return []
+  }
+
+  if (getAPIProvider() === 'copilot') {
+    logForDebugging(
+      'Skipping official marketplace auto-install notification on copilot provider',
+    )
+    return []
+  }
+
   const result = await checkAndInstallOfficialMarketplace();
   const notifs = [];
   if (result.configSaveFailed) {
@@ -32,16 +46,6 @@ async function _temp() {
       priority: "immediate",
       timeoutMs: 7000
     });
-  } else {
-    if (result.skipped && result.reason === "unknown") {
-      logForDebugging("Showing marketplace installation failure notification");
-      notifs.push({
-        key: "marketplace-install-failed",
-        jsx: <Text color="warning">Failed to install Anthropic marketplace · Will retry on next startup</Text>,
-        priority: "immediate",
-        timeoutMs: 8000
-      });
-    }
   }
   return notifs;
 }

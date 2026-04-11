@@ -1,8 +1,4 @@
-export type FeedbackSurveyResponse =
-  | 'good'
-  | 'bad'
-  | 'neutral'
-  | 'dismissed'
-  | string
-
-export type FeedbackSurveyType = string
+// Stub: FeedbackSurvey utils removed
+export function isFeedbackSurveyEligible() { return false }
+export function shouldShowFeedbackSurvey() { return false }
+export function recordFeedbackResponse() {}

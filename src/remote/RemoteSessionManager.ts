@@ -1,3 +1,15 @@
+// Stub: remote session manager removed
+export type RemotePermissionResponse = any
+export type RemoteSessionConfig = any
+export type RemoteSessionCallbacks = any
+export class RemoteSessionManager {
+  connect() { return Promise.resolve() }
+  sendMessage() {}
+  respondToPermissionRequest() {}
+  isConnected() { return false }
+  cancelSession() {}
+  getSessionId() { return undefined }
+}
 import type { SDKMessage } from '../entrypoints/agentSdkTypes.js'
 import type {
   SDKControlCancelRequest,

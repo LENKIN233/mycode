@@ -1,3 +1,12 @@
+// Stub: bridge feature removed
+export function isBridgeEnabled() { return false }
+export function isBridgeEnabledBlocking() { return Promise.resolve(false) }
+export function getBridgeDisabledReason() { return Promise.resolve('Bridge removed') }
+export function isEnvLessBridgeEnabled() { return false }
+export function isCseShimEnabled() { return false }
+export function checkBridgeMinVersion() { return null }
+export function getCcrAutoConnectDefault() { return false }
+export function isCcrMirrorEnabled() { return false }
 import { feature } from 'bun:bundle'
 import {
   checkGate_CACHED_OR_BLOCKING,

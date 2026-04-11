@@ -1,7 +1,6 @@
-// Buddy companion system — stripped
+// Stub: buddy/companion feature removed
 import React from 'react'
-
-export const MIN_COLS_FOR_FULL_SPRITE = 100
-export function companionReservedColumns(_terminalColumns: number, _speaking: boolean): number { return 0 }
-export function CompanionSprite(): React.ReactNode { return null }
-export function CompanionFloatingBubble(): React.ReactNode { return null }
+export const CompanionSprite = () => null
+export const CompanionFloatingBubble = () => null
+export const MIN_COLS_FOR_FULL_SPRITE = Infinity
+export function companionReservedColumns() { return 0 }

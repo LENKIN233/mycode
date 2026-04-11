@@ -283,11 +283,13 @@ function formatModelUsage(): string {
         cacheCreationInputTokens: 0,
         webSearchRequests: 0,
         costUSD: 0,
+        requestCount: 0,
         contextWindow: 0,
         maxOutputTokens: 0,
       }
     }
     const accumulated = usageByShortName[shortName]
+    accumulated.requestCount += usage.requestCount ?? 0
     accumulated.inputTokens += usage.inputTokens
     accumulated.outputTokens += usage.outputTokens
     accumulated.cacheReadInputTokens += usage.cacheReadInputTokens
@@ -298,11 +300,11 @@ function formatModelUsage(): string {
 
   let result = 'Usage by model:'
   for (const [shortName, usage] of Object.entries(usageByShortName)) {
+    const totalInput = usage.inputTokens + usage.cacheReadInputTokens + usage.cacheCreationInputTokens
     const usageString =
-      `  ${formatNumber(usage.inputTokens)} input, ` +
-      `${formatNumber(usage.outputTokens)} output, ` +
-      `${formatNumber(usage.cacheReadInputTokens)} cache read, ` +
-      `${formatNumber(usage.cacheCreationInputTokens)} cache write` +
+      `  ${usage.requestCount} req, ` +
+      `${formatNumber(totalInput)} input (${formatNumber(usage.inputTokens)} new + ${formatNumber(usage.cacheReadInputTokens)} cache read + ${formatNumber(usage.cacheCreationInputTokens)} cache write), ` +
+      `${formatNumber(usage.outputTokens)} output` +
       (usage.webSearchRequests > 0
         ? `, ${formatNumber(usage.webSearchRequests)} web search`
         : '')
@@ -364,10 +366,12 @@ function addToTotalModelUsage(
     cacheCreationInputTokens: 0,
     webSearchRequests: 0,
     costUSD: 0,
+    requestCount: 0,
     contextWindow: 0,
     maxOutputTokens: 0,
   }
 
+  modelUsage.requestCount += 1
   modelUsage.inputTokens += usage.input_tokens
   modelUsage.outputTokens += usage.output_tokens
   modelUsage.cacheReadInputTokens += usage.cache_read_input_tokens ?? 0

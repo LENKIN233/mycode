@@ -1,3 +1,27 @@
+// Stub — teleport API removed (Anthropic official infrastructure)
+export const CCR_BYOC_BETA = 'ccr-byoc-2025-07-29'
+export function isTransientNetworkError(_error: unknown): boolean { return false }
+export async function axiosGetWithRetry<T>(_url: string, _config?: any): Promise<any> { throw new Error('teleport disabled') }
+export type SessionStatus = 'requires_action' | 'running' | 'idle' | 'archived'
+export type GitSource = { type: 'git'; repositoryUrl: string; branch: string; commit: string }
+export type KnowledgeBaseSource = { type: 'knowledge_base'; id: string; name: string }
+export type SessionContextSource = GitSource | KnowledgeBaseSource
+export type OutcomeGitInfo = { branch: string; commit: string; repositoryUrl: string }
+export type GitRepositoryOutcome = { type: 'git_repository'; info: OutcomeGitInfo }
+export type Outcome = GitRepositoryOutcome
+export type SessionContext = { sources: SessionContextSource[] }
+export type SessionResource = { id: string; status: SessionStatus; context?: SessionContext; outcome?: Outcome; title?: string; created_at?: string }
+export type ListSessionsResponse = { data: SessionResource[] }
+export const CodeSessionSchema = {} as any
+export type CodeSession = any
+export async function prepareApiRequest(): Promise<{ baseUrl: string; headers: Record<string, string> }> { throw new Error('teleport disabled') }
+export async function fetchCodeSessionsFromSessionsAPI(): Promise<ListSessionsResponse> { return { data: [] } }
+export function getOAuthHeaders(_accessToken: string): Record<string, string> { return {} }
+export async function fetchSession(_sessionId: string): Promise<SessionResource | null> { return null }
+export function getBranchFromSession(_session: SessionResource): string | null { return null }
+export type RemoteMessageContent = { type: string; content: string }
+export async function sendEventToRemoteSession(_sessionId: string, _messageContent: RemoteMessageContent, _opts?: any): Promise<void> {}
+export async function updateSessionTitle(_sessionId: string, _title: string): Promise<void> {}
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import { randomUUID } from 'crypto'
 import { getOauthConfig } from 'src/constants/oauth.js'

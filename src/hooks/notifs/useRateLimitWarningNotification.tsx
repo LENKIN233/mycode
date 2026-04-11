@@ -7,8 +7,13 @@ import { getRateLimitWarning, getUsingOverageText } from 'src/services/mycodeAiL
 import { useMyCodeAiLimits } from 'src/services/mycodeAiLimitsHook.js';
 import { getSubscriptionType } from 'src/utils/auth.js';
 import { hasMyCodeAiBillingAccess } from 'src/utils/billing.js';
+import { isEnvTruthy } from 'src/utils/envUtils.js';
 import { getIsRemoteMode } from '../../bootstrap/state.js';
 export function useRateLimitWarningNotification(model) {
+  if (isEnvTruthy(process.env.MYCODE_DISABLE_ANTHROPIC_OFFICIAL)) {
+    return;
+  }
+
   const $ = _c(17);
   const {
     addNotification

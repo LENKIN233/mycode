@@ -3,6 +3,10 @@ import { isEnvTruthy } from '../envUtils.js'
 
 export type APIProvider = 'firstParty' | 'bedrock' | 'vertex' | 'foundry' | 'copilot'
 
+function isAnthropicOfficialDisabled(): boolean {
+  return isEnvTruthy(process.env.MYCODE_DISABLE_ANTHROPIC_OFFICIAL)
+}
+
 // Runtime override — set by /provider command or --copilot-login
 let runtimeProviderOverride: APIProvider | null = null
 
@@ -19,6 +23,17 @@ export function setAPIProviderOverride(provider: APIProvider | null): void {
 
 export function getAPIProvider(): APIProvider {
   if (runtimeProviderOverride) return runtimeProviderOverride
+  if (isAnthropicOfficialDisabled()) {
+    // Personal/forked setups can hard-disable Anthropic first-party mode.
+    // Keep explicit 3P providers if configured, otherwise default to copilot.
+    return isEnvTruthy(process.env.MYCODE_USE_BEDROCK)
+      ? 'bedrock'
+      : isEnvTruthy(process.env.MYCODE_USE_VERTEX)
+        ? 'vertex'
+        : isEnvTruthy(process.env.MYCODE_USE_FOUNDRY)
+          ? 'foundry'
+          : 'copilot'
+  }
   return isEnvTruthy(process.env.MYCODE_USE_COPILOT)
     ? 'copilot'
     : isEnvTruthy(process.env.MYCODE_USE_BEDROCK)

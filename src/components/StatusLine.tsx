@@ -23,6 +23,7 @@ import { isFullscreenEnvEnabled } from '../utils/fullscreen.js';
 import { createBaseHookInput, executeStatusLineCommand } from '../utils/hooks.js';
 import { getLastAssistantMessage } from '../utils/messages.js';
 import { getRuntimeMainLoopModel, type ModelName, renderModelName } from '../utils/model/model.js';
+import { getAPIProvider } from '../utils/model/providers.js';
 import { getCurrentSessionTitle } from '../utils/sessionStorage.js';
 import { doesMostRecentAssistantMessageExceed200k, getCurrentUsage } from '../utils/tokens.js';
 import { getCurrentWorktreeSession } from '../utils/worktree.js';
@@ -331,9 +332,11 @@ function StatusLineInner({
   // flexShrink:0 so a 0→1 row change when the command finishes steals
   // a row from ScrollBox and shifts content. Reserve the row while loading
   // (same trick as PromptInputFooterLeftSide).
+  const isCopilot = getAPIProvider() === 'copilot'
+  const reqLabel = isCopilot ? 'premium req' : 'req'
   return <Box paddingX={paddingX} gap={2}>
       <Text dimColor>
-      req {formatRequestUnits(getTotalModelRequests())}
+      {reqLabel} {formatRequestUnits(getTotalModelRequests())}
       </Text>
       {statusLineText ? <Text dimColor wrap="truncate">
           <Ansi>{statusLineText}</Ansi>

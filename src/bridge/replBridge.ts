@@ -1,3 +1,9 @@
+// Stub: bridge replBridge removed
+export type ReplBridgeHandle = any
+export type BridgeState = any
+export type BridgeCoreParams = any
+export type BridgeCoreHandle = any
+export function initBridgeCore() { return Promise.resolve(null) }
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
 import { randomUUID } from 'crypto'
 import {

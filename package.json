@@ -29,7 +29,6 @@
     "@ant/computer-use-mcp": "file:./shims/ant-computer-use-mcp",
     "@ant/computer-use-swift": "file:./shims/ant-computer-use-swift",
     "@ant/mycode-for-chrome-mcp": "file:./shims/ant-claude-for-chrome-mcp",
-    "@anthropic-ai/claude-agent-sdk": "*",
     "@anthropic-ai/mcpb": "*",
     "@anthropic-ai/sandbox-runtime": "*",
     "@anthropic-ai/sdk": "^0.87.0",

@@ -1,3 +1,10 @@
+// Stub — teleport environments removed (Anthropic official infrastructure)
+export type EnvironmentKind = string
+export type EnvironmentState = string
+export type EnvironmentResource = { id: string; name: string; kind: EnvironmentKind; state: EnvironmentState }
+export type EnvironmentListResponse = { data: EnvironmentResource[] }
+export async function fetchEnvironments(): Promise<EnvironmentListResponse> { return { data: [] } }
+export async function createDefaultCloudEnvironment(_name: string): Promise<EnvironmentResource | null> { return null }
 import axios from 'axios'
 import { getOauthConfig } from 'src/constants/oauth.js'
 import { getOrganizationUUID } from 'src/services/oauth/client.js'

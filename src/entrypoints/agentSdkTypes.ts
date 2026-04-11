@@ -45,6 +45,7 @@ export type ModelUsage = {
   cacheCreationInputTokens: number
   webSearchRequests: number
   costUSD: number
+  requestCount: number
   contextWindow?: number
   maxOutputTokens?: number
 }
