@@ -54,10 +54,9 @@ import {
 } from '../messages.js'
 import { queryCheckpoint } from '../queryProfiler.js'
 import { parseSlashCommand } from '../slashCommandParsing.js'
-import {
-  hasUltraplanKeyword,
-  replaceUltraplanKeyword,
-} from '../ultraplan/keyword.js'
+// Ultraplan keyword detection disabled (Anthropic infrastructure removed)
+const hasUltraplanKeyword = (_text: string): boolean => false
+const replaceUltraplanKeyword = (text: string): string => text
 import { processTextPrompt } from './processTextPrompt.js'
 export type ProcessUserInputContext = ToolUseContext & LocalJSXCommandContext
 

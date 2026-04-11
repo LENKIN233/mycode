@@ -15,7 +15,11 @@ import { enqueuePendingNotification } from '../utils/messageQueueManager.js';
 import { ALL_MODEL_CONFIGS } from '../utils/model/configs.js';
 import { updateTaskState } from '../utils/task/framework.js';
 import { archiveRemoteSession, teleportToRemote } from '../utils/teleport.js';
-import { pollForApprovedExitPlanMode, UltraplanPollError } from '../utils/ultraplan/ccrSession.js';
+// Ultraplan CCR session inlined (Anthropic infrastructure removed)
+class UltraplanPollError extends Error {
+  constructor(message: string, public reason: string) { super(message) }
+}
+async function pollForApprovedExitPlanMode(): Promise<never> { throw new UltraplanPollError('disabled', 'teleport_disabled') }
 
 // TODO(prod-hardening): OAuth token may go stale over the 30min poll;
 // consider refresh.

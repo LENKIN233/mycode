@@ -107,7 +107,6 @@ import { MYCODE_IN_CHROME_SKILL_HINT, MYCODE_IN_CHROME_SKILL_HINT_WITH_WEBBROWSE
 import { setupMyCodeInChrome, shouldAutoEnableMyCodeInChrome, shouldEnableMyCodeInChrome } from './utils/mycodeInChrome/setup.js';
 import { getContextWindowForModel } from './utils/context.js';
 import { loadConversationForResume } from './utils/conversationRecovery.js';
-import { buildDeepLinkBanner } from './utils/deepLink/banner.js';
 import { hasNodeOption, isBareMode, isEnvTruthy, isInProtectedNamespace } from './utils/envUtils.js';
 import { refreshExampleCommands } from './utils/exampleCommands.js';
 import type { FpsMetrics } from './utils/fpsTracker.js';
@@ -649,38 +648,17 @@ export async function main() {
     }
   }
 
-  // Handle deep link URIs early — this is invoked by the OS protocol handler
-  // and should bail out before full init since it only needs to parse the URI
-  // and open a terminal.
+  // Handle deep link URIs early — deep link feature removed (Anthropic infrastructure)
   if (feature('LODESTONE')) {
     const handleUriIdx = process.argv.indexOf('--handle-uri');
     if (handleUriIdx !== -1 && process.argv[handleUriIdx + 1]) {
-      const {
-        enableConfigs
-      } = await import('./utils/config.js');
-      enableConfigs();
-      const uri = process.argv[handleUriIdx + 1]!;
-      const {
-        handleDeepLinkUri
-      } = await import('./utils/deepLink/protocolHandler.js');
-      const exitCode = await handleDeepLinkUri(uri);
-      process.exit(exitCode);
+      process.exit(1);
     }
 
     // macOS URL handler: when LaunchServices launches our .app bundle, the
-    // URL arrives via Apple Event (not argv). LaunchServices overwrites
-    // __CFBundleIdentifier to the launching bundle's ID, which is a precise
-    // positive signal — cheaper than importing and guessing with heuristics.
+    // URL arrives via Apple Event (not argv).
     if (process.platform === 'darwin' && process.env.__CFBundleIdentifier === 'com.mycode-url-handler') {
-      const {
-        enableConfigs
-      } = await import('./utils/config.js');
-      enableConfigs();
-      const {
-        handleUrlSchemeLaunch
-      } = await import('./utils/deepLink/protocolHandler.js');
-      const urlSchemeResult = await handleUrlSchemeLaunch();
-      process.exit(urlSchemeResult ?? 1);
+      process.exit(1);
     }
   }
 
@@ -1506,14 +1484,6 @@ async function run(): Promise<CommanderCommand> {
         let reservedNameError: string | null = null;
         if (nonSdkConfigNames.some(isMyCodeInChromeMCPServer)) {
           reservedNameError = `Invalid MCP configuration: "${MYCODE_IN_CHROME_MCP_SERVER_NAME}" is a reserved MCP name.`;
-        } else if (feature('CHICAGO_MCP')) {
-          const {
-            isComputerUseMCPServer,
-            COMPUTER_USE_MCP_SERVER_NAME
-          } = await import('src/utils/computerUse/common.js');
-          if (nonSdkConfigNames.some(isComputerUseMCPServer)) {
-            reservedNameError = `Invalid MCP configuration: "${COMPUTER_USE_MCP_SERVER_NAME}" is a reserved MCP name.`;
-          }
         }
         if (reservedNameError) {
           // stderr+exit(1) — a throw here becomes a silent unhandled
@@ -1626,40 +1596,7 @@ async function run(): Promise<CommanderCommand> {
       }
     }
 
-    // chicago MCP: guarded Computer Use (app allowlist + frontmost gate +
-    // SCContentFilter screenshots). Ant-only, GrowthBook-gated — failures
-    // are silent (this is dogfooding). Platform + interactive checks inline
-    // so non-macOS / print-mode ants skip the heavy @ant/computer-use-mcp
-    // import entirely. gates.js is light (type-only package import).
-    //
-    // Placed AFTER the enterprise-MCP-config check: that check rejects any
-    // dynamicMcpConfig entry with `type !== 'sdk'`, and our config is
-    // `type: 'stdio'`. An enterprise-config ant with the GB gate on would
-    // otherwise process.exit(1). Chrome has the same latent issue but has
-    // shipped without incident; chicago places itself correctly.
-    if (feature('CHICAGO_MCP') && getPlatform() === 'macos' && !getIsNonInteractiveSession()) {
-      try {
-        const {
-          getChicagoEnabled
-        } = await import('src/utils/computerUse/gates.js');
-        if (getChicagoEnabled()) {
-          const {
-            setupComputerUseMCP
-          } = await import('src/utils/computerUse/setup.js');
-          const {
-            mcpConfig,
-            allowedTools: cuTools
-          } = setupComputerUseMCP();
-          dynamicMcpConfig = {
-            ...dynamicMcpConfig,
-            ...mcpConfig
-          };
-          allowedTools.push(...cuTools);
-        }
-      } catch (error) {
-        logForDebugging(`[Computer Use MCP] Setup failed: ${errorMessage(error)}`);
-      }
-    }
+    // chicago MCP: Computer Use — removed (Anthropic infrastructure)
 
     // Store additional directories for MYCODE.md loading (controlled by env var)
     setAdditionalDirectoriesForMyCodeMd(addDir);
@@ -3824,12 +3761,7 @@ async function run(): Promise<CommanderCommand> {
             has_prefill: Boolean(options.prefill),
             has_repo: Boolean(options.deepLinkRepo)
           });
-          deepLinkBanner = createSystemMessage(buildDeepLinkBanner({
-            cwd: getCwd(),
-            prefillLength: options.prefill?.length,
-            repo: options.deepLinkRepo,
-            lastFetch: options.deepLinkLastFetch !== undefined ? new Date(options.deepLinkLastFetch) : undefined
-          }), 'warning');
+          // Deep link banner removed (Anthropic infrastructure)
         } else if (options.prefill) {
           deepLinkBanner = createSystemMessage('Launched with a pre-filled prompt — review it before pressing Enter.', 'warning');
         }

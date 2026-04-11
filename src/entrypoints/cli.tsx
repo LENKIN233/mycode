@@ -83,12 +83,8 @@ async function main(): Promise<void> {
     } = await import('../utils/mycodeInChrome/chromeNativeHost.js');
     await runChromeNativeHost();
     return;
-  } else if (feature('CHICAGO_MCP') && process.argv[2] === '--computer-use-mcp') {
-    profileCheckpoint('cli_computer_use_mcp_path');
-    const {
-      runComputerUseMcpServer
-    } = await import('../utils/computerUse/mcpServer.js');
-    await runComputerUseMcpServer();
+  } else if (false && process.argv[2] === '--computer-use-mcp') {
+    // Computer use MCP removed (Anthropic infrastructure)
     return;
   }
 
