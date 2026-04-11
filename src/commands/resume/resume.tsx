@@ -13,6 +13,7 @@ import { useIsInsideModal } from '../../context/modalContext.js';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import { setClipboard } from '../../ink/termio/osc.js';
 import { Box, Text, useInput } from '../../ink.js';
+import { saveCurrentProjectConfig } from '../../utils/config.js';
 import type { LocalJSXCommandCall } from '../../types/command.js';
 import type { LogOption } from '../../types/logs.js';
 import { agenticSessionSearch } from '../../utils/agenticSessionSearch.js';
@@ -182,6 +183,14 @@ function ResumeCommand({
     if (!sessionId) { setPendingDelete(null); return; }
     try {
       await unlink(getTranscriptPathForSession(sessionId));
+      // Clean up per-session usage data
+      saveCurrentProjectConfig(current => {
+        if (current.sessionUsage?.[sessionId]) {
+          const { [sessionId]: _, ...rest } = current.sessionUsage
+          return { ...current, sessionUsage: rest }
+        }
+        return current
+      })
     } catch {}
     setPendingDelete(null);
     void loadLogs(showAllProjects, worktreePaths);
@@ -262,6 +271,14 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
     }
     try {
       await unlink(getTranscriptPathForSession(targetId));
+      // Clean up per-session usage data
+      saveCurrentProjectConfig(current => {
+        if (current.sessionUsage?.[targetId]) {
+          const { [targetId]: _, ...rest } = current.sessionUsage
+          return { ...current, sessionUsage: rest }
+        }
+        return current
+      })
       onDone(`Session ${chalk.dim(targetId.slice(0, 8))} deleted.`);
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {

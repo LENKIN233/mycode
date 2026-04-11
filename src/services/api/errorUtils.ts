@@ -252,9 +252,63 @@ export function formatAPIError(error: APIError): string {
     )
   }
 
+  // Enhance 429 rate-limit errors with specific limit info and reset time
+  // (aligned with upstream v2.1.101)
+  if (error.status === 429) {
+    const rateLimitDetails = extractRateLimitDetails(error)
+    if (rateLimitDetails) {
+      return `${error.message} · ${rateLimitDetails}`
+    }
+  }
+
   const sanitizedMessage = sanitizeAPIError(error)
   // Use sanitized message if it's different from the original (i.e., HTML was sanitized)
   return sanitizedMessage !== error.message && sanitizedMessage.length > 0
     ? sanitizedMessage
     : error.message
+}
+
+/**
+ * Extract rate-limit details from API error headers.
+ * Returns a human-readable string describing which limit was triggered and when it resets.
+ */
+function extractRateLimitDetails(error: APIError): string | null {
+  const headers = error.headers as Headers | undefined
+  if (!headers?.get) return null
+
+  const parts: string[] = []
+
+  // Check for unified rate limit headers
+  const unifiedLimit = headers.get('anthropic-ratelimit-unified-limit')
+  const unifiedRemaining = headers.get('anthropic-ratelimit-unified-remaining')
+  const unifiedReset = headers.get('anthropic-ratelimit-unified-reset')
+
+  if (unifiedLimit) {
+    parts.push(`limit: ${unifiedLimit}`)
+    if (unifiedRemaining) {
+      parts.push(`remaining: ${unifiedRemaining}`)
+    }
+    if (unifiedReset) {
+      const resetSec = Number(unifiedReset)
+      if (Number.isFinite(resetSec)) {
+        const resetDate = new Date(resetSec * 1000)
+        const now = Date.now()
+        const diffMs = resetSec * 1000 - now
+        if (diffMs > 0) {
+          const diffMin = Math.ceil(diffMs / 60_000)
+          parts.push(`resets in ~${diffMin}min`)
+        }
+      }
+    }
+  }
+
+  // Check for specific rate limit type headers
+  const requestLimit = headers.get('anthropic-ratelimit-requests-limit')
+  const tokenLimit = headers.get('anthropic-ratelimit-tokens-limit')
+  if (!unifiedLimit) {
+    if (requestLimit) parts.push(`requests limit: ${requestLimit}`)
+    if (tokenLimit) parts.push(`tokens limit: ${tokenLimit}`)
+  }
+
+  return parts.length > 0 ? parts.join(', ') : null
 }

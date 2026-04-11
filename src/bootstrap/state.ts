@@ -50,6 +50,7 @@ type State = {
   projectRoot: string
   totalCostUSD: number
   totalModelRequests: number
+  sourceRequestCounts: Record<string, { count: number; units: number; model: string }>
   totalAPIDuration: number
   totalAPIDurationWithoutRetries: number
   totalToolDuration: number
@@ -280,6 +281,7 @@ function getInitialState(): State {
     projectRoot: resolvedCwd,
     totalCostUSD: 0,
     totalModelRequests: 0,
+    sourceRequestCounts: {},
     totalAPIDuration: 0,
     totalAPIDurationWithoutRetries: 0,
     totalToolDuration: 0,
@@ -557,8 +559,22 @@ export function resetTotalDurationStateAndCost_FOR_TESTS_ONLY(): void {
   STATE.totalModelRequests = 0
 }
 
-export function addToTotalModelRequests(count: number = 1): void {
+export function addToTotalModelRequests(count: number = 1, source?: string, model?: string): void {
   STATE.totalModelRequests += count
+  if (source) {
+    const existing = STATE.sourceRequestCounts[source]
+    if (existing) {
+      existing.count += 1
+      existing.units += count
+      if (model) existing.model = model
+    } else {
+      STATE.sourceRequestCounts[source] = { count: 1, units: count, model: model ?? 'unknown' }
+    }
+  }
+}
+
+export function getSourceRequestCounts(): Record<string, { count: number; units: number; model: string }> {
+  return STATE.sourceRequestCounts
 }
 
 export function getTotalModelRequests(): number {
@@ -893,6 +909,7 @@ export function resetUsageState(): void {
 export function setUsageStateForRestore({
   totalCostUSD,
   totalModelRequests,
+  sourceRequestCounts,
   totalAPIDuration,
   totalAPIDurationWithoutRetries,
   totalToolDuration,
@@ -903,6 +920,7 @@ export function setUsageStateForRestore({
 }: {
   totalCostUSD: number
   totalModelRequests?: number
+  sourceRequestCounts?: Record<string, { count: number; units: number; model: string }>
   totalAPIDuration: number
   totalAPIDurationWithoutRetries: number
   totalToolDuration: number
@@ -913,6 +931,9 @@ export function setUsageStateForRestore({
 }): void {
   STATE.totalCostUSD = totalCostUSD
   STATE.totalModelRequests = totalModelRequests ?? 0
+  if (sourceRequestCounts) {
+    STATE.sourceRequestCounts = sourceRequestCounts
+  }
   STATE.totalAPIDuration = totalAPIDuration
   STATE.totalAPIDurationWithoutRetries = totalAPIDurationWithoutRetries
   STATE.totalToolDuration = totalToolDuration

@@ -1,11 +1,23 @@
 import { execa } from 'execa'
 import { execSync_DEPRECATED } from './execSyncWrapper.js'
 
+// Validate command name to prevent shell injection in Node.js fallback paths.
+// Only allow alphanumeric, hyphens, underscores, dots, and forward slashes
+// (covers names like "node", "git-lfs", "python3.11", "/usr/bin/env").
+const SAFE_COMMAND_RE = /^[a-zA-Z0-9._\-/]+$/
+
+function isSafeCommand(command: string): boolean {
+  return SAFE_COMMAND_RE.test(command) && command.length < 256
+}
+
 async function whichNodeAsync(command: string): Promise<string | null> {
+  if (!isSafeCommand(command)) {
+    return null
+  }
+
   if (process.platform === 'win32') {
-    // On Windows, use where.exe and return the first result
-    const result = await execa(`where.exe ${command}`, {
-      shell: true,
+    // On Windows, use where.exe with argument array (no shell interpolation)
+    const result = await execa('where.exe', [command], {
       stderr: 'ignore',
       reject: false,
     })
@@ -16,11 +28,10 @@ async function whichNodeAsync(command: string): Promise<string | null> {
     return result.stdout.trim().split(/\r?\n/)[0] || null
   }
 
-  // On POSIX systems (macOS, Linux, WSL), use which
+  // On POSIX systems (macOS, Linux, WSL), use which with argument array
   // Cross-platform safe: Windows is handled above
   // eslint-disable-next-line custom-rules/no-cross-platform-process-issues
-  const result = await execa(`which ${command}`, {
-    shell: true,
+  const result = await execa('which', [command], {
     stderr: 'ignore',
     reject: false,
   })
@@ -31,9 +42,13 @@ async function whichNodeAsync(command: string): Promise<string | null> {
 }
 
 function whichNodeSync(command: string): string | null {
+  if (!isSafeCommand(command)) {
+    return null
+  }
+
   if (process.platform === 'win32') {
     try {
-      const result = execSync_DEPRECATED(`where.exe ${command}`, {
+      const result = execSync_DEPRECATED(`where.exe "${command}"`, {
         encoding: 'utf-8',
         stdio: ['ignore', 'pipe', 'ignore'],
       })
@@ -45,7 +60,7 @@ function whichNodeSync(command: string): string | null {
   }
 
   try {
-    const result = execSync_DEPRECATED(`which ${command}`, {
+    const result = execSync_DEPRECATED(`which "${command}"`, {
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'ignore'],
     })

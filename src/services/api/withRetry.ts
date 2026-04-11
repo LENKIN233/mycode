@@ -532,19 +532,23 @@ export function getRetryDelay(
   retryAfterHeader?: string | null,
   maxDelayMs = 32000,
 ): number {
-  if (retryAfterHeader) {
-    const seconds = parseInt(retryAfterHeader, 10)
-    if (!isNaN(seconds)) {
-      return seconds * 1000
-    }
-  }
-
+  // Always compute exponential backoff as a floor — prevents exhausting all
+  // retries in ~13s when the server returns a small Retry-After (e.g. 1s).
   const baseDelay = Math.min(
     BASE_DELAY_MS * Math.pow(2, attempt - 1),
     maxDelayMs,
   )
   const jitter = Math.random() * 0.25 * baseDelay
-  return baseDelay + jitter
+  const exponentialDelay = baseDelay + jitter
+
+  if (retryAfterHeader) {
+    const seconds = parseInt(retryAfterHeader, 10)
+    if (!isNaN(seconds)) {
+      return Math.max(seconds * 1000, exponentialDelay)
+    }
+  }
+
+  return exponentialDelay
 }
 
 export function parseMaxTokensContextOverflowError(error: APIError):

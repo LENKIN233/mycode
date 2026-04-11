@@ -59,7 +59,7 @@ export function generatePrompt(): string {
 ## Configurable settings list
 The following settings are available for you to change:
 
-### Global Settings (stored in ~/.mycode.json)
+### Global Settings (stored in ~/.mycode/config.json)
 ${globalSettings.join('\n')}
 
 ### Project Settings (stored in settings.json)

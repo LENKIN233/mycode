@@ -28,6 +28,8 @@ import { createChildAbortController } from './abortController.js'
 import { logForDebugging } from './debug.js'
 import { cloneFileStateCache } from './fileStateCache.js'
 import type { REPLHookContext } from './hooks/postSamplingHooks.js'
+import { getAPIProvider } from './model/providers.js'
+import { getModelForTask } from './model/taskModels.js'
 import {
   createUserMessage,
   extractTextContent,
@@ -516,6 +518,18 @@ export async function runForkedAgent({
     toolUseContext,
     overrides,
   )
+
+  // On Copilot, fork agents use the free model (gpt-5-mini) to avoid premium
+  // request waste. Copilot has no prompt caching, so sharing the parent's
+  // model provides zero cache benefit — only cost.
+  // Configurable via model-config setting: forkAgent
+  if (getAPIProvider() === 'copilot') {
+    const forkModel = getModelForTask('forkAgent')
+    isolatedToolUseContext.options = {
+      ...isolatedToolUseContext.options,
+      model: forkModel,
+    }
+  }
 
   // Do NOT filterIncompleteToolCalls here — it drops the whole assistant on
   // partial tool batches, orphaning the paired results (API 400). Dangling

@@ -8,6 +8,7 @@ import {
   getModelUsage,
   getSdkBetas,
   getSessionId,
+  getSourceRequestCounts,
   getTokenCounter,
   getTotalAPIDuration,
   getTotalAPIDurationWithoutRetries,
@@ -72,6 +73,7 @@ export {
 type StoredSessionUsageState = {
   totalCostUSD: number
   totalModelRequests: number
+  sourceRequestCounts?: Record<string, { count: number; units: number; model: string }>
   totalAPIDuration: number
   totalAPIDurationWithoutRetries: number
   totalToolDuration: number
@@ -91,7 +93,38 @@ export function getStoredSessionUsage(
 ): StoredSessionUsageState | undefined {
   const projectConfig = getCurrentProjectConfig()
 
-  // Only return costs if this is the same session that was last saved
+  // Try per-session storage first
+  const perSession = projectConfig.sessionUsage?.[sessionId]
+  if (perSession) {
+    let modelUsage: { [modelName: string]: ModelUsage } | undefined
+    if (perSession.modelUsage) {
+      modelUsage = Object.fromEntries(
+        Object.entries(perSession.modelUsage).map(([model, usage]) => [
+          model,
+          {
+            ...usage,
+            contextWindow: getContextWindowForModel(model, getSdkBetas()),
+            maxOutputTokens: getModelMaxOutputTokens(model).default,
+          },
+        ]),
+      )
+    }
+    return {
+      totalCostUSD: perSession.totalCostUSD,
+      totalModelRequests: perSession.totalModelRequests,
+      sourceRequestCounts: perSession.sourceRequestCounts,
+      totalAPIDuration: perSession.totalAPIDuration,
+      totalAPIDurationWithoutRetries: perSession.totalAPIDurationWithoutRetries,
+      totalToolDuration: perSession.totalToolDuration,
+      totalLinesAdded: perSession.totalLinesAdded,
+      totalLinesRemoved: perSession.totalLinesRemoved,
+      lastDuration: perSession.lastDuration,
+      modelUsage,
+    }
+  }
+
+  // Fallback: legacy single-session storage.
+  // TODO: Remove after legacy last* writers have been fully retired.
   if (projectConfig.lastSessionId !== sessionId) {
     return undefined
   }
@@ -114,6 +147,7 @@ export function getStoredSessionUsage(
   return {
     totalCostUSD: projectConfig.lastCost ?? 0,
     totalModelRequests: projectConfig.lastTotalModelRequests ?? 0,
+    sourceRequestCounts: projectConfig.lastSourceRequestCounts,
     totalAPIDuration: projectConfig.lastAPIDuration ?? 0,
     totalAPIDurationWithoutRetries:
       projectConfig.lastAPIDurationWithoutRetries ?? 0,
@@ -144,38 +178,56 @@ export function restoreSessionUsageForSession(sessionId: string): boolean {
  * Call this before switching sessions to avoid losing accumulated usage.
  */
 export function saveCurrentSessionUsage(fpsMetrics?: FpsMetrics): void {
-  saveCurrentProjectConfig(current => ({
-    ...current,
-    lastCost: getTotalCostUSD(),
-    lastTotalModelRequests: getTotalModelRequests(),
-    lastAPIDuration: getTotalAPIDuration(),
-    lastAPIDurationWithoutRetries: getTotalAPIDurationWithoutRetries(),
-    lastToolDuration: getTotalToolDuration(),
+  const sessionId = getSessionId()
+  const modelUsageSnapshot = Object.fromEntries(
+    Object.entries(getModelUsage()).map(([model, usage]) => [
+      model,
+      {
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        cacheReadInputTokens: usage.cacheReadInputTokens,
+        cacheCreationInputTokens: usage.cacheCreationInputTokens,
+        webSearchRequests: usage.webSearchRequests,
+        costUSD: usage.costUSD,
+      },
+    ]),
+  )
+
+  const sessionData = {
+    totalCostUSD: getTotalCostUSD(),
+    totalModelRequests: getTotalModelRequests(),
+    sourceRequestCounts: getSourceRequestCounts(),
+    totalAPIDuration: getTotalAPIDuration(),
+    totalAPIDurationWithoutRetries: getTotalAPIDurationWithoutRetries(),
+    totalToolDuration: getTotalToolDuration(),
+    totalLinesAdded: getTotalLinesAdded(),
+    totalLinesRemoved: getTotalLinesRemoved(),
     lastDuration: getTotalDuration(),
-    lastLinesAdded: getTotalLinesAdded(),
-    lastLinesRemoved: getTotalLinesRemoved(),
-    lastTotalInputTokens: getTotalInputTokens(),
-    lastTotalOutputTokens: getTotalOutputTokens(),
-    lastTotalCacheCreationInputTokens: getTotalCacheCreationInputTokens(),
-    lastTotalCacheReadInputTokens: getTotalCacheReadInputTokens(),
-    lastTotalWebSearchRequests: getTotalWebSearchRequests(),
-    lastFpsAverage: fpsMetrics?.averageFps,
-    lastFpsLow1Pct: fpsMetrics?.low1PctFps,
-    lastModelUsage: Object.fromEntries(
-      Object.entries(getModelUsage()).map(([model, usage]) => [
-        model,
-        {
-          inputTokens: usage.inputTokens,
-          outputTokens: usage.outputTokens,
-          cacheReadInputTokens: usage.cacheReadInputTokens,
-          cacheCreationInputTokens: usage.cacheCreationInputTokens,
-          webSearchRequests: usage.webSearchRequests,
-          costUSD: usage.costUSD,
-        },
-      ]),
-    ),
-    lastSessionId: getSessionId(),
-  }))
+    modelUsage: modelUsageSnapshot,
+  }
+
+  saveCurrentProjectConfig(current => {
+    // Keep up to 20 sessions to avoid unbounded growth
+    const existingUsage = current.sessionUsage ?? {}
+    const updatedUsage = { ...existingUsage, [sessionId]: sessionData }
+    const keys = Object.keys(updatedUsage)
+    if (keys.length > 20) {
+      // Remove oldest entries (first keys in insertion order)
+      for (const key of keys.slice(0, keys.length - 20)) {
+        delete updatedUsage[key]
+      }
+    }
+
+    return {
+      ...current,
+      // Legacy fields are now mostly read-only compatibility paths.
+      // Keep only values not yet represented in sessionUsage.
+      lastFpsAverage: fpsMetrics?.averageFps,
+      lastFpsLow1Pct: fpsMetrics?.low1PctFps,
+      lastSessionId: sessionId,
+      sessionUsage: updatedUsage,
+    }
+  })
 }
 
 /**
@@ -183,11 +235,30 @@ export function saveCurrentSessionUsage(fpsMetrics?: FpsMetrics): void {
  * Keeps session resume data in sync even before process exit.
  */
 export function saveSessionUsageSnapshot(): void {
-  saveCurrentProjectConfig(current => ({
-    ...current,
-    lastTotalModelRequests: getTotalModelRequests(),
-    lastSessionId: getSessionId(),
-  }))
+  const sessionId = getSessionId()
+  saveCurrentProjectConfig(current => {
+    const existingUsage = current.sessionUsage ?? {}
+    const existingSession = existingUsage[sessionId]
+    return {
+      ...current,
+      lastSessionId: sessionId,
+      sessionUsage: {
+        ...existingUsage,
+        [sessionId]: {
+          ...(existingSession ?? {
+            totalCostUSD: 0,
+            totalAPIDuration: 0,
+            totalAPIDurationWithoutRetries: 0,
+            totalToolDuration: 0,
+            totalLinesAdded: 0,
+            totalLinesRemoved: 0,
+          }),
+          totalModelRequests: getTotalModelRequests(),
+          sourceRequestCounts: getSourceRequestCounts(),
+        },
+      },
+    }
+  })
 }
 
 function formatCost(cost: number, maxDecimalPlaces: number = 4): string {
@@ -240,8 +311,28 @@ function formatModelUsage(): string {
   return result
 }
 
+export function formatSourceUsage(): string {
+  const sources = getSourceRequestCounts()
+  const entries = Object.entries(sources)
+  if (entries.length === 0) {
+    return ''
+  }
+
+  // Sort by units descending
+  entries.sort((a, b) => b[1].units - a[1].units)
+
+  const maxSourceLen = Math.max(...entries.map(([s]) => s.length), 6)
+  let result = 'Requests by source:'
+  for (const [source, info] of entries) {
+    const unitsStr = info.units === 0 ? 'free' : `${info.units % 1 === 0 ? info.units : info.units.toFixed(2)} units`
+    result += `\n  ${source.padEnd(maxSourceLen)}  ${String(info.count).padStart(3)} req  (${unitsStr.padStart(10)})  ${info.model}`
+  }
+  return result
+}
+
 export function formatUsageSummary(): string {
   const modelUsageDisplay = formatModelUsage()
+  const sourceUsageDisplay = formatSourceUsage()
   const totalRequests = getTotalModelRequests()
   const requestDisplay = Number.isInteger(totalRequests)
     ? formatNumber(totalRequests)
@@ -252,7 +343,8 @@ export function formatUsageSummary(): string {
       `Total duration (API):  ${formatDuration(getTotalAPIDuration())}
 Total duration (wall): ${formatDuration(getTotalDuration())}
 Total code changes:    ${getTotalLinesAdded()} ${getTotalLinesAdded() === 1 ? 'line' : 'lines'} added, ${getTotalLinesRemoved()} ${getTotalLinesRemoved() === 1 ? 'line' : 'lines'} removed
-${modelUsageDisplay}`,
+${modelUsageDisplay}` +
+      (sourceUsageDisplay ? `\n${sourceUsageDisplay}` : ''),
   )
 }
 

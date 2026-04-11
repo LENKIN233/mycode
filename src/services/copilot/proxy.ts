@@ -8,140 +8,117 @@
 
 import type { ClientOptions } from '@anthropic-ai/sdk'
 import { getCopilotToken, requestCopilotReauth } from './auth.js'
+import { getCopilotModelMaxOutput, warmModelCache } from './models.js'
 import { addToTotalModelRequests } from '../../bootstrap/state.js'
 import { saveSessionUsageSnapshot } from '../../usage-tracker.js'
 import { setClipboard } from '../../ink/termio/osc.js'
 
 const COPILOT_API_BASE = 'https://api.githubcopilot.com'
 
-// Map Anthropic model names to Copilot model IDs.
-// Copilot uses dotted version names like "claude-sonnet-4.5" while the SDK sends
-// full date-suffixed IDs like "claude-sonnet-4-5-20250929".
-//
-// Copilot model pricing (premium request multipliers):
-//   0x (FREE on paid plans): gpt-4.1, gpt-4o, gpt-5-mini
-//   0.25x: grok-code-fast-1
-//   0.33x: claude-haiku-4.5, gemini-3-flash-preview, gpt-5.4-mini
-//   1x:    claude-sonnet-4/4.5/4.6, gemini-2.5-pro/3.1-pro-preview,
-//          gpt-5.1/5.2/5.2-codex/5.3-codex/5.4
-//   3x:    claude-opus-4.5/4.6/4.6-fast
-const MODEL_MAP: Record<string, string> = {
-  // MyCode configs.ts copilot model strings → Copilot API names
-  'claude-sonnet-4-20250514': 'claude-sonnet-4',
-  'claude-sonnet-4-5-20250929': 'claude-sonnet-4.5',
-  'claude-sonnet-4-6': 'claude-sonnet-4.6',
-  'claude-opus-4-20250514': 'claude-sonnet-4',   // opus-4.0 not available, fallback to sonnet-4
-  'claude-opus-4-1-20250805': 'claude-sonnet-4',  // opus-4.1 not available, fallback to sonnet-4
-  'claude-opus-4-5-20251101': 'claude-opus-4.5',
-  'claude-opus-4-6': 'claude-opus-4.6',
-  'claude-haiku-4-5-20251001': 'claude-haiku-4.5',
-  'claude-3-5-haiku-20241022': 'claude-haiku-4.5', // 3.5-haiku not available, use 4.5
-  'claude-3-5-sonnet-20241022': 'claude-sonnet-4',  // 3.5-sonnet not available, use 4.0
-  'claude-3-7-sonnet-20250219': 'claude-sonnet-4',  // 3.7-sonnet not available, use 4.0
-  // Claude dotted aliases (pass through)
-  'claude-sonnet-4': 'claude-sonnet-4',
-  'claude-sonnet-4.5': 'claude-sonnet-4.5',
-  'claude-sonnet-4.6': 'claude-sonnet-4.6',
-  'claude-opus-4.5': 'claude-opus-4.5',
-  'claude-opus-4.6': 'claude-opus-4.6',
-  'claude-opus-4.6-fast': 'claude-opus-4.6-fast',
-  'claude-haiku-4.5': 'claude-haiku-4.5',
-  // GPT: FREE on paid Copilot plans (0x multiplier)
-  'gpt-4.1': 'gpt-4.1',
-  'gpt-4o': 'gpt-4o',
-  'gpt-5-mini': 'gpt-5-mini',
-  // GPT: premium models
-  'gpt-5.1': 'gpt-5.1',
-  'gpt-5.2': 'gpt-5.2',
-  'gpt-5.2-codex': 'gpt-5.2-codex',
-  'gpt-5.3-codex': 'gpt-5.3-codex',
-  'gpt-5.4': 'gpt-5.4',
-  'gpt-5.4-mini': 'gpt-5.4-mini',
-  // Gemini
-  'gemini-2.5-pro': 'gemini-2.5-pro',
-  'gemini-3-flash': 'gemini-3-flash-preview',
-  'gemini-3.1-pro': 'gemini-3.1-pro-preview',
-  // Grok
-  'grok-code-fast-1': 'grok-code-fast-1',
-}
-
 const COPILOT_DEFAULT_MODEL = 'claude-sonnet-4.6'
 
-function getCopilotRequestUnits(model: string): number {
-  const normalized = model.toLowerCase()
-
-  if (
-    normalized === 'gpt-4.1' ||
-    normalized === 'gpt-4o' ||
-    normalized === 'gpt-5-mini'
-  ) {
-    return 0
-  }
-
-  if (normalized === 'grok-code-fast-1') {
-    return 0.25
-  }
-
-  if (
-    normalized === 'claude-haiku-4.5' ||
-    normalized === 'gemini-3-flash-preview' ||
-    normalized === 'gpt-5.4-mini'
-  ) {
-    return 0.33
-  }
-
-  if (
-    normalized === 'claude-opus-4.5' ||
-    normalized === 'claude-opus-4.6' ||
-    normalized === 'claude-opus-4.6-fast'
-  ) {
-    return 3
-  }
-
-  return 1
-}
-
-function mapModel(model: string): string {
-  if (MODEL_MAP[model]) return MODEL_MAP[model]
-  // Fallback: strip date suffix and try again
-  const stripped = model.replace(/-\d{8}$/, '')
-  if (MODEL_MAP[stripped]) return MODEL_MAP[stripped]
-  // Non-Claude models not in the map: pass through as-is to Copilot API
-  // (allows using any model Copilot supports without updating the map)
-  if (!model.startsWith('claude-')) return model
-  // Unknown Claude model variant → pass through
-  return model
+// Known model prices (premium request multipliers).
+// Checked first; heuristic fallback handles unknown models.
+const KNOWN_PRICES: Record<string, number> = {
+  // 0x FREE
+  'gpt-4.1': 0, 'gpt-4o': 0, 'gpt-5-mini': 0,
+  // 0.25x
+  'grok-code-fast-1': 0.25,
+  // 0.33x
+  'claude-haiku-4.5': 0.33, 'gemini-3-flash-preview': 0.33, 'gpt-5.4-mini': 0.33,
+  // 1x (explicit entries for models that would match a wrong heuristic)
+  'gpt-5.1': 1, 'gpt-5.2': 1, 'gpt-5.2-codex': 1, 'gpt-5.3-codex': 1, 'gpt-5.4': 1,
+  'claude-sonnet-4': 1, 'claude-sonnet-4.5': 1, 'claude-sonnet-4.6': 1,
+  'gemini-2.5-pro': 1, 'gemini-3.1-pro-preview': 1,
+  // 3x
+  'claude-opus-4.5': 3, 'claude-opus-4.6': 3, 'claude-opus-4.6-fast': 3,
 }
 
 /**
- * Cap max_tokens for non-Claude models which have lower output limits.
- * Limits sourced from Copilot /models API `capabilities.limits.max_output_tokens`.
+ * Get the premium request multiplier for a Copilot model.
+ * Uses known prices first, then heuristics based on model name patterns.
+ */
+function getCopilotRequestUnits(model: string): number {
+  const normalized = model.toLowerCase()
+
+  // Exact match against known prices
+  if (normalized in KNOWN_PRICES) return KNOWN_PRICES[normalized]
+
+  // Heuristic fallback for new/unknown models
+  // Claude family
+  if (normalized.includes('opus')) return 3
+  if (normalized.includes('sonnet')) return 1
+  if (normalized.includes('haiku')) return 0.33
+  // GPT family
+  if (normalized.startsWith('gpt-4')) return 0       // legacy GPT-4.x tier = free
+  if (normalized.includes('-mini')) return 0.33       // mini variants = cheap
+  if (normalized.startsWith('gpt-5')) return 1        // GPT-5.x = standard
+  // Gemini family
+  if (normalized.includes('flash')) return 0.33
+  if (normalized.includes('gemini')) return 1
+  // Grok family
+  if (normalized.includes('grok')) return 0.25
+  // Unknown model → assume 1x (conservative)
+  return 1
+}
+
+// Legacy/alias model names that should be normalized for Copilot.
+const LEGACY_MODEL_ALIASES: Record<string, string> = {
+  'claude-sonnet-4-6': 'claude-sonnet-4.6',
+  'claude-opus-4-6': 'claude-opus-4.6',
+  'claude-opus-4-5': 'claude-opus-4.5',
+  'claude-haiku-4-5': 'claude-haiku-4.5',
+  'gemini-3-flash': 'gemini-3-flash-preview',
+  'gemini-3.1-pro': 'gemini-3.1-pro-preview',
+  'claude-3-5-sonnet': 'claude-sonnet-4',
+  'claude-3.5-sonnet': 'claude-sonnet-4',
+  'claude-3-7-sonnet': 'claude-sonnet-4',
+  'claude-3.7-sonnet': 'claude-sonnet-4',
+  'claude-3-5-haiku': 'claude-haiku-4.5',
+  'claude-3.5-haiku': 'claude-haiku-4.5',
+  'claude-opus-4': 'claude-sonnet-4',
+  'claude-opus-4.1': 'claude-sonnet-4',
+}
+
+function normalizeCopilotModel(model: string): string {
+  // Strip date suffix: claude-sonnet-4-20250514 -> claude-sonnet-4
+  let normalized = model.replace(/-\d{8}$/, '')
+
+  // Normalize Claude hyphen patch: claude-sonnet-4-6 -> claude-sonnet-4.6
+  if (normalized.startsWith('claude-')) {
+    normalized = normalized.replace(/(\d)-(\d)$/, '$1.$2')
+  }
+
+  return LEGACY_MODEL_ALIASES[normalized] ?? normalized
+}
+
+/**
+ * Cap max_tokens for models that have lower output limits.
+ * Tries dynamic limits from the /models API cache first; falls back to
+ * hardcoded values for offline/first-request resilience.
  */
 function capMaxTokensForModel(model: string, maxTokens: number | undefined): number | undefined {
   if (maxTokens === undefined) return undefined
+
+  // Dynamic limit from /models API cache (best source of truth)
+  const dynamicLimit = getCopilotModelMaxOutput(model)
+  if (dynamicLimit !== undefined) {
+    return Math.min(maxTokens, dynamicLimit)
+  }
+
+  // Hardcoded fallbacks for first request before cache is warm
   const m = model.toLowerCase()
-  // GPT-4.1: 16,384 max output
   if (m.startsWith('gpt-4.1')) return Math.min(maxTokens, 16384)
-  // GPT-4o / GPT-4o-mini: 16,384 / 4,096 max output
   if (m === 'gpt-4o-mini' || m.startsWith('gpt-4o-mini-')) return Math.min(maxTokens, 4096)
   if (m.startsWith('gpt-4o')) return Math.min(maxTokens, 16384)
-  // GPT-5-mini: 64,000 max output
   if (m === 'gpt-5-mini') return Math.min(maxTokens, 64000)
-  // GPT-5.1: 64,000 max output
-  if (m === 'gpt-5.1') return Math.min(maxTokens, 64000)
-  // GPT-5.2 / 5.2-codex: 64,000 / 128,000 max output
-  if (m === 'gpt-5.2-codex') return Math.min(maxTokens, 128000)
-  if (m === 'gpt-5.2') return Math.min(maxTokens, 64000)
-  // GPT-5.3-codex: 128,000 max output
-  if (m === 'gpt-5.3-codex') return Math.min(maxTokens, 128000)
-  // GPT-5.4 / 5.4-mini: 128,000 max output
-  if (m.startsWith('gpt-5.4')) return Math.min(maxTokens, 128000)
-  // Gemini models: 64,000 max output
+  if (m === 'gpt-5.1' || m === 'gpt-5.2') return Math.min(maxTokens, 64000)
+  if (m === 'gpt-5.2-codex' || m === 'gpt-5.3-codex' || m.startsWith('gpt-5.4')) {
+    return Math.min(maxTokens, 128000)
+  }
+  if (m.startsWith('gpt-5.')) return Math.min(maxTokens, 64000)
   if (m.startsWith('gemini')) return Math.min(maxTokens, 64000)
-  // Grok: 64,000 max output
   if (m.startsWith('grok')) return Math.min(maxTokens, 64000)
-  // Claude models: pass through (Copilot: 16K-64K depending on model)
-  // Unknown models: pass through
   return maxTokens
 }
 
@@ -441,7 +418,7 @@ function translateRequest(anthropicBody: Record<string, unknown>): {
   url: string
   body: Record<string, unknown>
 } {
-  const model = mapModel(anthropicBody.model as string)
+  const model = normalizeCopilotModel(anthropicBody.model as string)
   const system = convertSystem(
     anthropicBody.system as
       | string
@@ -1263,6 +1240,8 @@ async function handleReauth(
  * OpenAI chat completions format for the Copilot API.
  */
 export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
+  // Eagerly warm the model cache so capMaxTokensForModel has data for the first request
+  warmModelCache()
 
   return async (
     input: RequestInfo | URL,
@@ -1374,7 +1353,8 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
     }
 
     const billedUnits = getCopilotRequestUnits(String(translated.body.model ?? COPILOT_DEFAULT_MODEL))
-    addToTotalModelRequests(billedUnits)
+    const querySource = new Headers(init?.headers).get('x-mycode-query-source') ?? undefined
+    addToTotalModelRequests(billedUnits, querySource, String(translated.body.model ?? COPILOT_DEFAULT_MODEL))
     saveSessionUsageSnapshot()
 
     if (anthropicBody.stream) {

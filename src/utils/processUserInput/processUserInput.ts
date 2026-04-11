@@ -269,11 +269,16 @@ export async function processUserInput({
   return result
 }
 
-const MAX_HOOK_OUTPUT_LENGTH = 10000
+const MAX_HOOK_OUTPUT_LENGTH = 50_000
+const HOOK_DISK_PREVIEW_LENGTH = 500
 
 function applyTruncation(content: string): string {
   if (content.length > MAX_HOOK_OUTPUT_LENGTH) {
-    return `${content.substring(0, MAX_HOOK_OUTPUT_LENGTH)}… [output truncated - exceeded ${MAX_HOOK_OUTPUT_LENGTH} characters]`
+    // For very large hook output, provide only a preview + length info
+    // to prevent context inflation. The full content can be retrieved
+    // from the transcript if needed.
+    const preview = content.substring(0, HOOK_DISK_PREVIEW_LENGTH)
+    return `${preview}\n\n… [hook output truncated: ${content.length} characters total, showing first ${HOOK_DISK_PREVIEW_LENGTH}. Full output exceeds ${MAX_HOOK_OUTPUT_LENGTH} character limit]`
   }
   return content
 }

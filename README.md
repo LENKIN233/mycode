@@ -49,7 +49,34 @@ bun run dev
 
 登录后令牌会缓存到 `~/.mycode/copilot_token.json`，后续无需重复登录。
 
-通过 Copilot 可使用的模型（在会话中 `/model` 切换）：
+配置与会话数据默认存放在：
+
+- 全局配置：`~/.mycode/config.json`
+- 数据目录：`~/.mycode/`（`projects/`、`sessions/`、`history.jsonl`、`debug/` 等）
+
+> 兼容说明：旧版 `~/.mycode.json` 会在启动时自动迁移到 `~/.mycode/config.json`。
+
+#### 配置迁移策略（旧版 -> 新版）
+
+- 旧全局配置路径：`~/.mycode.json`
+- 更旧兼容路径：`~/.mycode/.config.json`
+- 新路径：`~/.mycode/config.json`
+
+迁移行为：
+
+1. 启动时优先读取新路径 `~/.mycode/config.json`
+2. 若新路径不存在，会尝试从旧路径自动迁移
+3. 若迁移失败（例如跨设备 rename 失败），会回退到旧路径继续运行，不阻塞启动
+
+建议：
+
+- 升级后优先以 `~/.mycode/config.json` 为准
+- 确认迁移完成后，再手动清理历史遗留文件
+
+通过 Copilot 可使用的模型会从 Copilot `/models` 接口动态发现。
+
+- 以会话内 `/model` 菜单显示的可选模型为准
+- 下表仅列常见模型与典型倍率
 
 | 模型 | 消耗倍率 | 说明 |
 |------|---------|------|
@@ -106,7 +133,21 @@ bun run dev
 /provider copilot      # 切换到 GitHub Copilot
 /provider anthropic    # 切换到 Anthropic API
 /provider login        # 触发 Copilot 登录流程
+/usage                 # 查看当前会话用量（按模型 + 按来源 source）
 ```
+
+### 常用运行时命令
+
+| 命令 | 作用 | 说明 |
+|------|------|------|
+| `/model` | 查看/切换当前会话模型 | 模型列表来自当前 provider（Copilot 下为动态可用模型） |
+| `/model <name>` | 直接切换到指定模型 | 模型名需是当前 provider 支持的 ID |
+| `/provider` | 查看当前 provider | 例如 `copilot`、`anthropic`、`bedrock` |
+| `/provider <name>` | 切换 provider | 切换后后续请求走新 provider |
+| `/provider login` | 执行 Copilot 设备登录 | 用于 token 过期或首次登录 |
+| `/usage` | 查看当前会话用量 | 包含总请求、按模型统计、按来源（source）统计 |
+
+提示：`/usage` 现在是按 session 持久化恢复，切换/恢复会话时会显示对应会话自己的统计。
 
 ### 基本使用
 

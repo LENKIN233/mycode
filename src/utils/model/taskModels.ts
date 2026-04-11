@@ -9,8 +9,8 @@ import {
 import { getAPIProvider } from './providers.js'
 
 // On Copilot, use FREE models (0x multiplier) for small tasks by default.
-// GPT-4.1 is the most capable FREE model (code-optimized, good at structured output).
-const COPILOT_FREE_SMALL_MODEL = 'gpt-4.1'
+// GPT-5-mini: free (0x), 64K max output, strong reasoning + tool use.
+const COPILOT_FREE_SMALL_MODEL = 'gpt-5-mini'
 
 export const TASK_CATEGORIES = {
   mainLoop: {
@@ -83,6 +83,11 @@ export const TASK_CATEGORIES = {
     description: 'Critique assistant for auto-mode rules',
     defaultTier: 'medium' as const,
   },
+  forkAgent: {
+    label: 'Fork Agent (background)',
+    description: 'Background forks: speculation, extract_memories, session_memory, prompt_suggestion, agent_summary',
+    defaultTier: 'main' as const,
+  },
 } as const
 
 export type TaskCategory = keyof typeof TASK_CATEGORIES
@@ -113,6 +118,17 @@ export function getModelForTask(category: TaskCategory): ModelName {
   const config = getModelConfigFromSettings()
   const override = config[category]
   if (override) return override
+  // Fork agents use the main model on non-Copilot (prompt cache benefit)
+  // but FREE model on Copilot (no prompt caching → pure waste)
+  if (category === 'forkAgent' && getAPIProvider() === 'copilot') {
+    return COPILOT_FREE_SMALL_MODEL
+  }
+  // On Copilot, medium-tier tasks (permission, autoModeCritique) use
+  // claude-haiku-4.5 (0.33x) instead of Sonnet (1x) for cost savings.
+  // Haiku is a Claude model with good safety classification ability.
+  if (getAPIProvider() === 'copilot' && TASK_CATEGORIES[category].defaultTier === 'medium') {
+    return 'claude-haiku-4.5'
+  }
   return getDefaultModelForTier(TASK_CATEGORIES[category].defaultTier)
 }
 

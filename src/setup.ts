@@ -447,27 +447,61 @@ export async function setup(
 
   // Log tengu_exit event from the last session?
   const projectConfig = getCurrentProjectConfig()
-  if (
-    projectConfig.lastCost !== undefined &&
-    projectConfig.lastDuration !== undefined
-  ) {
+  const lastSessionId = projectConfig.lastSessionId
+  const lastSessionUsage =
+    lastSessionId ? projectConfig.sessionUsage?.[lastSessionId] : undefined
+
+  const lastSessionCost =
+    lastSessionUsage?.totalCostUSD ?? projectConfig.lastCost
+  const lastSessionApiDuration =
+    lastSessionUsage?.totalAPIDuration ?? projectConfig.lastAPIDuration
+  const lastSessionToolDuration =
+    lastSessionUsage?.totalToolDuration ?? projectConfig.lastToolDuration
+  const lastSessionDuration =
+    lastSessionUsage?.lastDuration ?? projectConfig.lastDuration
+  const lastSessionLinesAdded =
+    lastSessionUsage?.totalLinesAdded ?? projectConfig.lastLinesAdded
+  const lastSessionLinesRemoved =
+    lastSessionUsage?.totalLinesRemoved ?? projectConfig.lastLinesRemoved
+
+  const modelUsage = lastSessionUsage?.modelUsage
+  const summedInputTokens = modelUsage
+    ? Object.values(modelUsage).reduce((sum, u) => sum + u.inputTokens, 0)
+    : undefined
+  const summedOutputTokens = modelUsage
+    ? Object.values(modelUsage).reduce((sum, u) => sum + u.outputTokens, 0)
+    : undefined
+  const summedCacheCreationTokens = modelUsage
+    ? Object.values(modelUsage).reduce(
+        (sum, u) => sum + u.cacheCreationInputTokens,
+        0,
+      )
+    : undefined
+  const summedCacheReadTokens = modelUsage
+    ? Object.values(modelUsage).reduce((sum, u) => sum + u.cacheReadInputTokens, 0)
+    : undefined
+
+  if (lastSessionCost !== undefined && lastSessionDuration !== undefined) {
     logEvent('tengu_exit', {
-      last_session_cost: projectConfig.lastCost,
-      last_session_api_duration: projectConfig.lastAPIDuration,
-      last_session_tool_duration: projectConfig.lastToolDuration,
-      last_session_duration: projectConfig.lastDuration,
-      last_session_lines_added: projectConfig.lastLinesAdded,
-      last_session_lines_removed: projectConfig.lastLinesRemoved,
-      last_session_total_input_tokens: projectConfig.lastTotalInputTokens,
-      last_session_total_output_tokens: projectConfig.lastTotalOutputTokens,
+      last_session_cost: lastSessionCost,
+      last_session_api_duration: lastSessionApiDuration,
+      last_session_tool_duration: lastSessionToolDuration,
+      last_session_duration: lastSessionDuration,
+      last_session_lines_added: lastSessionLinesAdded,
+      last_session_lines_removed: lastSessionLinesRemoved,
+      last_session_total_input_tokens:
+        summedInputTokens ?? projectConfig.lastTotalInputTokens,
+      last_session_total_output_tokens:
+        summedOutputTokens ?? projectConfig.lastTotalOutputTokens,
       last_session_total_cache_creation_input_tokens:
+        summedCacheCreationTokens ??
         projectConfig.lastTotalCacheCreationInputTokens,
       last_session_total_cache_read_input_tokens:
-        projectConfig.lastTotalCacheReadInputTokens,
+        summedCacheReadTokens ?? projectConfig.lastTotalCacheReadInputTokens,
       last_session_fps_average: projectConfig.lastFpsAverage,
       last_session_fps_low_1_pct: projectConfig.lastFpsLow1Pct,
       last_session_id:
-        projectConfig.lastSessionId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+        lastSessionId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       ...projectConfig.lastSessionMetrics,
     })
     // Note: We intentionally don't clear these values after logging.

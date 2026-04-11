@@ -77,11 +77,15 @@ export type ProjectConfig = {
   allowedTools: string[]
   mcpContextUris: string[]
   mcpServers?: Record<string, McpServerConfig>
+  // Deprecated legacy session snapshot fields.
+  // New writes should prefer sessionUsage; these are kept for read-only
+  // compatibility and gradual migration.
   lastAPIDuration?: number
   lastAPIDurationWithoutRetries?: number
   lastToolDuration?: number
   lastCost?: number
   lastTotalModelRequests?: number
+  lastSourceRequestCounts?: Record<string, { count: number; units: number; model: string }>
   lastDuration?: number
   lastLinesAdded?: number
   lastLinesRemoved?: number
@@ -134,6 +138,26 @@ export type ProjectConfig = {
   }
   /** Spawn mode for `mycode remote-control` multi-session. Set by first-run dialog or `w` toggle. */
   remoteControlSpawnMode?: 'same-dir' | 'worktree'
+  /** Per-session usage data. Keyed by session UUID. */
+  sessionUsage?: Record<string, {
+    totalCostUSD: number
+    totalModelRequests: number
+    sourceRequestCounts?: Record<string, { count: number; units: number; model: string }>
+    totalAPIDuration: number
+    totalAPIDurationWithoutRetries: number
+    totalToolDuration: number
+    totalLinesAdded: number
+    totalLinesRemoved: number
+    lastDuration?: number
+    modelUsage?: Record<string, {
+      inputTokens: number
+      outputTokens: number
+      cacheReadInputTokens: number
+      cacheCreationInputTokens: number
+      webSearchRequests: number
+      costUSD: number
+    }>
+  }>
 }
 
 const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
@@ -878,7 +902,7 @@ let configCacheHits = 0
 let configCacheMisses = 0
 // Session-total count of actual disk writes to the global config file.
 // Exposed for ant-only dev diagnostics (see inc-4552) so anomalous write
-// rates surface in the UI before they corrupt ~/.mycode.json.
+// rates surface in the UI before they corrupt ~/.mycode/config.json.
 let globalConfigWriteCount = 0
 
 export function getGlobalConfigWriteCount(): number {
@@ -1217,7 +1241,7 @@ function saveConfigWithLock<A extends object>(
     const currentConfig = getConfig(file, createDefault)
     if (file === getGlobalMyCodeFile() && wouldLoseAuthState(currentConfig)) {
       logForDebugging(
-        'saveConfigWithLock: re-read config is missing auth that cache has; refusing to write to avoid wiping ~/.mycode.json. See GH #3117.',
+        'saveConfigWithLock: re-read config is missing auth that cache has; refusing to write to avoid wiping ~/.mycode/config.json. See GH #3117.',
         { level: 'error' },
       )
       logEvent('tengu_config_auth_loss_prevented', {})

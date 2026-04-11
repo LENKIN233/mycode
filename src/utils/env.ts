@@ -10,19 +10,37 @@ import { which } from './which.js'
 
 type Platform = 'win32' | 'darwin' | 'linux'
 
-// Config and data paths
+// Config and data paths — unified under ~/.mycode/
 export const getGlobalMyCodeFile = memoize((): string => {
-  // Legacy fallback for backwards compatibility
-  if (
-    getFsImplementation().existsSync(
-      join(getConfigHomeDir(), '.config.json'),
-    )
-  ) {
-    return join(getConfigHomeDir(), '.config.json')
+  const suffix = fileSuffixForOauthConfig()
+  const configDir = getConfigHomeDir()
+  const newPath = join(configDir, `config${suffix}.json`)
+
+  // Already migrated — fast path
+  if (getFsImplementation().existsSync(newPath)) {
+    return newPath
   }
 
-  const filename = `.mycode${fileSuffixForOauthConfig()}.json`
-  return join(process.env.MYCODE_CONFIG_DIR || homedir(), filename)
+  // Auto-migrate from legacy locations
+  const fs = getFsImplementation()
+  const legacyPaths = [
+    join(configDir, '.config.json'),                                    // oldest legacy
+    join(process.env.MYCODE_CONFIG_DIR || homedir(), `.mycode${suffix}.json`), // previous default
+  ]
+
+  for (const legacy of legacyPaths) {
+    if (fs.existsSync(legacy)) {
+      try {
+        fs.renameSync(legacy, newPath)
+        return newPath
+      } catch {
+        // rename failed (cross-device etc.) — just use the old path
+        return legacy
+      }
+    }
+  }
+
+  return newPath
 })
 
 const hasInternetAccess = memoize(async (): Promise<boolean> => {

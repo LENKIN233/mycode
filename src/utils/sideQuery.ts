@@ -124,7 +124,7 @@ export async function sideQuery(opts: SideQueryOptions): Promise<BetaMessage> {
   const client = await getAnthropicClient({
     maxRetries,
     model,
-    source: 'side_query',
+    source: opts.querySource ?? 'side_query',
   })
   const betas = [...getModelBetas(model)]
   // Add structured-outputs beta if using output_format and provider supports it

@@ -868,7 +868,7 @@ export async function* executeNonStreamingRequest(
       try {
         // biome-ignore lint/plugin: non-streaming API call
         if (getAPIProvider() !== 'copilot') {
-          addToTotalModelRequests()
+          addToTotalModelRequests(1, retryOptions.querySource, clientOptions.model)
           saveSessionUsageSnapshot()
         }
         return await anthropic.beta.messages.create(
@@ -1830,7 +1830,7 @@ async function* queryModel(
         // since we handle tool input accumulation ourselves
         // biome-ignore lint/plugin: main conversation loop handles attribution separately
         if (getAPIProvider() !== 'copilot') {
-          addToTotalModelRequests()
+          addToTotalModelRequests(1, options.querySource, options.model)
           saveSessionUsageSnapshot()
         }
         const result = await anthropic.beta.messages
