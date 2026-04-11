@@ -2,11 +2,11 @@
 import { feature } from 'bun:bundle'
 import { readFile, stat } from 'fs/promises'
 import { dirname } from 'path'
-import {
-  downloadUserSettings,
-  redownloadUserSettings,
-} from 'src/services/settingsSync/index.js'
-import { waitForRemoteManagedSettingsToLoad } from 'src/services/remoteManagedSettings/index.js'
+// Settings sync removed (Anthropic infrastructure)
+const downloadUserSettings = () => Promise.resolve()
+const redownloadUserSettings = () => Promise.resolve(false)
+// Remote managed settings removed (Anthropic infrastructure)
+const waitForRemoteManagedSettingsToLoad = () => Promise.resolve()
 import { StructuredIO } from 'src/cli/structuredIO.js'
 import { RemoteIO } from 'src/cli/remoteIO.js'
 import {
@@ -187,7 +187,8 @@ import {
 } from 'src/services/PromptSuggestion/promptSuggestion.js'
 import { getLastCacheSafeParams } from 'src/utils/forkedAgent.js'
 import { getAccountInformation } from 'src/utils/auth.js'
-import { OAuthService } from 'src/services/oauth/index.js'
+// OAuth service removed (Anthropic infrastructure)
+class OAuthService { async login() { return null } async logout() {} async getToken() { return null } async refreshToken() { return null } cleanup() {} }
 import { installOAuthTokens } from 'src/cli/handlers/auth.js'
 import { getAPIProvider } from 'src/utils/model/providers.js'
 import type { HookCallbackMatcher } from 'src/types/hooks.js'

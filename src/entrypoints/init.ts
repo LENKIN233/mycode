@@ -7,16 +7,16 @@ import { getIsNonInteractiveSession } from 'src/bootstrap/state.js'
 import type { AttributedCounter } from '../bootstrap/state.js'
 import { getSessionCounter, setMeter } from '../bootstrap/state.js'
 import { shutdownLspServerManager } from '../services/lsp/manager.js'
-import { populateOAuthAccountInfoIfNeeded } from '../services/oauth/client.js'
+// OAuth account population removed (Anthropic infrastructure)
+const populateOAuthAccountInfoIfNeeded = () => {}
 import {
   initializePolicyLimitsLoadingPromise,
   isPolicyLimitsEligible,
 } from '../services/policyLimits/index.js'
-import {
-  initializeRemoteManagedSettingsLoadingPromise,
-  isEligibleForRemoteManagedSettings,
-  waitForRemoteManagedSettingsToLoad,
-} from '../services/remoteManagedSettings/index.js'
+// Remote managed settings removed (Anthropic infrastructure)
+const initializeRemoteManagedSettingsLoadingPromise = () => {}
+const isEligibleForRemoteManagedSettings = () => false
+const waitForRemoteManagedSettingsToLoad = () => Promise.resolve()
 import { preconnectAnthropicApi } from '../utils/apiPreconnect.js'
 import { applyExtraCACertsFromConfig } from '../utils/caCertsConfig.js'
 import { registerCleanup } from '../utils/cleanupRegistry.js'

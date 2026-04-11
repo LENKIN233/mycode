@@ -1,4 +1,3 @@
-import { isRemoteManagedSettingsEligible } from '../services/remoteManagedSettings/syncCache.js'
 import { clearCACertsCache } from './caCerts.js'
 import { getGlobalConfig } from './config.js'
 import { isEnvTruthy } from './envUtils.js'
@@ -148,13 +147,7 @@ export function applySafeConfigEnvironmentVariables(): void {
     )
   }
 
-  // Compute remote-managed-settings eligibility now, with userSettings and
-  // flagSettings env applied. Eligibility reads MYCODE_USE_BEDROCK,
-  // ANTHROPIC_BASE_URL — both settable via settings.env.
-  // getSettingsForSource('policySettings') below consults the remote cache,
-  // which guards on this. The two-phase structure makes the ordering
-  // dependency visible: non-policy env → eligibility → policy env.
-  isRemoteManagedSettingsEligible()
+  // Remote-managed-settings eligibility removed (Anthropic infrastructure)
 
   Object.assign(
     process.env,

@@ -1,8 +1,3 @@
-// Stub: env-less bridge config removed
-export type EnvLessBridgeConfig = any
-export const DEFAULT_ENV_LESS_BRIDGE_CONFIG = {}
-export function getEnvLessBridgeConfig() { return Promise.resolve({}) }
-export function checkEnvLessBridgeMinVersion() { return Promise.resolve(null) }
 export function shouldShowAppUpgradeMessage() { return Promise.resolve(false) }
 import { z } from 'zod/v4'
 import { getFeatureValue_DEPRECATED } from '../services/analytics/growthbook.js'

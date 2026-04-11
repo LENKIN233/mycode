@@ -4,14 +4,13 @@
  */
 
 import { APIError } from '@anthropic-ai/sdk'
-import {
-  applyMockHeaders,
-  checkMockFastModeRateLimit,
-  getMockHeaderless429Message,
-  getMockHeaders,
-  isMockFastModeRateLimitScenario,
-  shouldProcessMockLimits,
-} from './mockRateLimits.js'
+// Mock rate limits removed (Anthropic-only, /mock-limits command)
+const applyMockHeaders = (h: globalThis.Headers) => h
+const checkMockFastModeRateLimit = (_active?: boolean) => null
+const getMockHeaderless429Message = () => null
+const getMockHeaders = (): Record<string, string> | null => null
+const isMockFastModeRateLimitScenario = () => false
+const shouldProcessMockLimits = () => false
 
 /**
  * Process headers, applying mocks if /mock-limits command is active

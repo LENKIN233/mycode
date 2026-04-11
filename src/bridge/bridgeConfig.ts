@@ -1,8 +1,3 @@
-// Stub: bridge config removed
-export function getBridgeTokenOverride() { return undefined }
-export function getBridgeBaseUrlOverride() { return undefined }
-export function getBridgeAccessToken() { return undefined }
-export function getBridgeBaseUrl() { return '' }
 /**
  * Shared bridge auth/URL resolution. Consolidates the ant-only
  * MYCODE_BRIDGE_* dev overrides that were previously copy-pasted across

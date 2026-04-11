@@ -34,8 +34,13 @@ import { addToHistory } from './history.js';
 import type { Root } from './ink.js';
 import { launchRepl } from './replLauncher.js';
 import { hasGrowthBookEnvOverride, initializeGrowthBook, refreshGrowthBookAfterAuthChange } from './services/analytics/growthbook.js';
-import { fetchBootstrapData } from './services/api/bootstrap.js';
-import { type DownloadResult, downloadSessionFiles, type FilesApiConfig, parseFileSpecs } from './services/api/filesApi.js';
+// Bootstrap API removed — no-op
+const fetchBootstrapData = async () => {};
+// Files API removed — inlined no-ops
+type DownloadResult = { success: boolean };
+type FilesApiConfig = Record<string, any>;
+const downloadSessionFiles = async (..._args: any[]): Promise<DownloadResult[]> => [];
+const parseFileSpecs = (..._args: any[]): any[] => [];
 import { prefetchPassesEligibility } from './services/api/referral.js';
 import { prefetchOfficialMcpUrls } from './services/mcp/officialRegistry.js';
 import type { McpSdkServerConfig, McpServerConfig, ScopedMcpServerConfig } from './services/mcp/types.js';

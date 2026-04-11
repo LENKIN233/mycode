@@ -12,12 +12,11 @@ import { isEssentialTrafficOnly } from '../../utils/privacyLevel.js'
 // Teleport API removed — inlined no-ops
 const getOAuthHeaders = (_t: string): Record<string, string> => ({})
 const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('teleport disabled') }
-import type {
-  ReferralCampaign,
-  ReferralEligibilityResponse,
-  ReferralRedemptionsResponse,
-  ReferrerRewardInfo,
-} from '../oauth/types.js'
+// OAuth types removed (Anthropic infrastructure)
+type ReferralCampaign = string
+type ReferralEligibilityResponse = any
+type ReferralRedemptionsResponse = any
+type ReferrerRewardInfo = any
 
 // Cache expiration time: 24 hours (eligibility changes only on subscription/experiment changes)
 const CACHE_EXPIRATION_MS = 24 * 60 * 60 * 1000

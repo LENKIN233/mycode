@@ -1,17 +1,3 @@
-// Stub: bridge types removed
-export const DEFAULT_SESSION_TIMEOUT_MS = 0
-export const BRIDGE_LOGIN_INSTRUCTION = ''
-export const BRIDGE_LOGIN_ERROR = ''
-export const REMOTE_CONTROL_DISCONNECTED_MSG = ''
-export type WorkData = any
-export type WorkResponse = any
-export type WorkSecret = any
-export type SessionDoneStatus = string
-export type SessionActivityType = string
-export type SessionActivity = any
-export type SpawnMode = string
-export type BridgeWorkerType = string
-export type BridgeConfig = any
 export type PermissionResponseEvent = any
 export type BridgeApiClient = any
 export type SessionHandle = any

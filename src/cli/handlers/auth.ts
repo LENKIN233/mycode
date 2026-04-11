@@ -10,16 +10,17 @@ import {
 } from '../../services/analytics/index.js'
 import { getSSLErrorHint } from '../../services/api/errorUtils.js'
 import { fetchAndStoreMyCodeFirstTokenDate } from '../../services/api/firstTokenDate.js'
-import {
-  createAndStoreApiKey,
-  fetchAndStoreUserRoles,
-  refreshOAuthToken,
-  shouldUseMyCodeAIAuth,
-  storeOAuthAccountInfo,
-} from '../../services/oauth/client.js'
-import { getOauthProfileFromOauthToken } from '../../services/oauth/getOauthProfile.js'
-import { OAuthService } from '../../services/oauth/index.js'
-import type { OAuthTokens } from '../../services/oauth/types.js'
+// OAuth client removed (Anthropic infrastructure)
+const createAndStoreApiKey = async (_t: string) => ''
+const fetchAndStoreUserRoles = async (_t: string) => {}
+const refreshOAuthToken = async (_t: string, _o?: any) => ({} as any)
+const shouldUseMyCodeAIAuth = (_s?: string[]) => false
+const storeOAuthAccountInfo = (_o: any) => {}
+// OAuth profile removed
+const getOauthProfileFromOauthToken = async (_t: string) => null
+// OAuth service removed
+class OAuthService { async login() { return null } async logout() {} async getToken() { return null } async refreshToken() { return null } cleanup() {} }
+type OAuthTokens = { access_token: string; refresh_token: string; expires_at?: number; accessToken?: string; profile?: any; scopes?: string[] }
 import {
   clearOAuthTokenCache,
   getAnthropicApiKeyWithSource,

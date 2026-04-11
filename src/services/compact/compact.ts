@@ -107,7 +107,8 @@ import {
 } from '../api/errors.js'
 import { notifyCompaction } from '../api/promptCacheBreakDetection.js'
 import { getRetryDelay } from '../api/withRetry.js'
-import { logPermissionContextForAnts } from '../internalLogging.js'
+// Internal logging removed (Anthropic K8s telemetry)
+const logPermissionContextForAnts = (..._args: any[]) => {}
 import { getAPIProvider } from '../../utils/model/providers.js'
 import {
   roughTokenCountEstimation,

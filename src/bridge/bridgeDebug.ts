@@ -1,11 +1,3 @@
-// Stub: bridge debug removed
-export type BridgeFault = any
-export type BridgeDebugHandle = any
-export function registerBridgeDebugHandle() {}
-export function clearBridgeDebugHandle() {}
-export function getBridgeDebugHandle() { return null }
-export function injectBridgeFault() {}
-export function wrapApiForFaultInjection(api: any) { return api }
 import { logForDebugging } from '../utils/debug.js'
 import { BridgeFatalError } from './bridgeApi.js'
 import type { BridgeApiClient } from './types.js'

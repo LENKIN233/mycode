@@ -1,6 +1,3 @@
-// Stub: bridge handle removed
-export function setReplBridgeHandle() {}
-export function getReplBridgeHandle() { return null }
 export function getSelfBridgeCompatId() { return undefined }
 import { updateSessionBridgeId } from '../utils/concurrentSessions.js'
 import type { ReplBridgeHandle } from './replBridge.js'

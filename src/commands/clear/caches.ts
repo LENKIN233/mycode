@@ -19,7 +19,7 @@ import { clearFileSuggestionCaches } from '../../hooks/fileSuggestions.js'
 import { clearAllPendingCallbacks } from '../../hooks/useSwarmPermissionPoller.js'
 import { clearAllDumpState } from '../../services/api/dumpPrompts.js'
 import { resetPromptCacheBreakDetection } from '../../services/api/promptCacheBreakDetection.js'
-import { clearAllSessions } from '../../services/api/sessionIngress.js'
+// Session ingress removed — inlined no-op\nconst clearAllSessions = () => {}
 import { runPostCompactCleanup } from '../../services/compact/postCompactCleanup.js'
 import { resetAllLSPDiagnosticState } from '../../services/lsp/LSPDiagnosticRegistry.js'
 import { clearTrackedMagicDocs } from '../../services/MagicDocs/magicDocs.js'

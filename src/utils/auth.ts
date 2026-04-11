@@ -15,17 +15,17 @@ import {
   getIsNonInteractiveSession,
   preferThirdPartyAuthentication,
 } from '../bootstrap/state.js'
-import {
-  getMockSubscriptionType,
-  shouldUseMockSubscription,
-} from '../services/mockRateLimits.js'
-import {
-  isOAuthTokenExpired,
-  refreshOAuthToken,
-  shouldUseMyCodeAIAuth,
-} from '../services/oauth/client.js'
-import { getOauthProfileFromOauthToken } from '../services/oauth/getOauthProfile.js'
-import type { OAuthTokens, SubscriptionType } from '../services/oauth/types.js'
+// Mock rate limits removed (Anthropic-only)
+const getMockSubscriptionType = () => undefined
+const shouldUseMockSubscription = () => false
+// OAuth client removed (Anthropic infrastructure)
+const isOAuthTokenExpired = (_t: any) => true
+const refreshOAuthToken = async (_t: string, _o?: any) => ({} as any)
+const shouldUseMyCodeAIAuth = (_s?: string[]) => false
+// OAuth profile removed
+const getOauthProfileFromOauthToken = async (_t: string) => null
+type OAuthTokens = { access_token: string; refresh_token: string; expires_at?: number }
+type SubscriptionType = 'free' | 'pro' | 'max' | 'team' | 'enterprise'
 import {
   getApiKeyFromFileDescriptor,
   getOAuthTokenFromFileDescriptor,

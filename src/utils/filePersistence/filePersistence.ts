@@ -13,10 +13,9 @@ import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
 } from '../../services/analytics/index.js'
-import {
-  type FilesApiConfig,
-  uploadSessionFiles,
-} from '../../services/api/filesApi.js'
+// Files API removed — inlined no-ops
+type FilesApiConfig = Record<string, any>;
+const uploadSessionFiles = async (..._args: any[]): Promise<any[]> => [];
 import { getCwd } from '../cwd.js'
 import { errorMessage } from '../errors.js'
 import { logError } from '../log.js'

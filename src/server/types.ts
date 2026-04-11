@@ -1,10 +1,3 @@
-// Stub: server types removed
-import { z } from 'zod'
-export const connectResponseSchema = z.object({})
-export type ServerConfig = any
-export type SessionState = any
-export type SessionInfo = any
-export type SessionIndexEntry = any
 export type SessionIndex = any
 import type { ChildProcess } from 'child_process'
 import { z } from 'zod/v4'

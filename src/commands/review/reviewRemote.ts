@@ -16,7 +16,8 @@ import {
   logEvent,
 } from '../../services/analytics/index.js'
 import { fetchUltrareviewQuota } from '../../services/api/ultrareviewQuota.js'
-import { fetchUtilization } from '../../services/api/usage.js'
+// Usage API removed (Anthropic rate limits/billing)
+const fetchUtilization = async () => null
 import type { ToolUseContext } from '../../Tool.js'
 import {
   checkRemoteAgentEligibility,

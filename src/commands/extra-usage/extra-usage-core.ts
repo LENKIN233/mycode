@@ -4,7 +4,9 @@ import {
   getMyAdminRequests,
 } from '../../services/api/adminRequests.js'
 import { invalidateOverageCreditGrantCache } from '../../services/api/overageCreditGrant.js'
-import { type ExtraUsage, fetchUtilization } from '../../services/api/usage.js'
+// Usage API removed (Anthropic rate limits/billing)
+type ExtraUsage = Record<string, any>
+const fetchUtilization = async () => null
 import { getSubscriptionType } from '../../utils/auth.js'
 import { hasMyCodeAiBillingAccess } from '../../utils/billing.js'
 import { openBrowser } from '../../utils/browser.js'

@@ -42,33 +42,19 @@ import vim from './commands/vim/index.js'
 import { feature } from 'bun:bundle'
 // Dead code elimination: conditional imports
 /* eslint-disable @typescript-eslint/no-require-imports */
-const proactive =
-  feature('PROACTIVE') || feature('KAIROS')
-    ? require('./commands/proactive.js').default
-    : null
+const proactive = null // proactive command removed (disabled stub)
 const briefCommand =
   feature('KAIROS') || feature('KAIROS_BRIEF')
     ? require('./commands/brief.js').default
     : null
-const assistantCommand = feature('KAIROS')
-  ? require('./commands/assistant/index.js').default
-  : null
+const assistantCommand = null // assistant command removed (disabled stub)
 const bridge = feature('BRIDGE_MODE')
   ? require('./commands/bridge/index.js').default
   : null
-const remoteControlServerCommand =
-  feature('DAEMON') && feature('BRIDGE_MODE')
-    ? require('./commands/remoteControlServer/index.js').default
-    : null
+const remoteControlServerCommand = null // remoteControlServer removed (DAEMON+BRIDGE_MODE disabled)
 const voiceCommand = null
-const forceSnip = feature('HISTORY_SNIP')
-  ? require('./commands/force-snip.js').default
-  : null
-const workflowsCmd = feature('WORKFLOW_SCRIPTS')
-  ? (
-      require('./commands/workflows/index.js') as typeof import('./commands/workflows/index.js')
-    ).default
-  : null
+const forceSnip = null // force-snip command removed (disabled stub)
+const workflowsCmd = null // workflows command removed (WORKFLOW_SCRIPTS disabled)
 const webCmd = null
 const clearSkillIndexCache = feature('EXPERIMENTAL_SKILL_SEARCH')
   ? (
@@ -80,16 +66,8 @@ const ultraplan = feature('ULTRAPLAN')
   ? require('./commands/ultraplan.js').default
   : null
 const torch = null // torch command removed (TORCH disabled)
-const peersCmd = feature('UDS_INBOX')
-  ? (
-      require('./commands/peers/index.js') as typeof import('./commands/peers/index.js')
-    ).default
-  : null
-const forkCmd = feature('FORK_SUBAGENT')
-  ? (
-      require('./commands/fork/index.js') as typeof import('./commands/fork/index.js')
-    ).default
-  : null
+const peersCmd = null // peers command removed (UDS_INBOX disabled)
+const forkCmd = null // fork command removed (disabled stub)
 /* eslint-enable @typescript-eslint/no-require-imports */
 import thinkback from './commands/thinkback/index.js'
 import thinkbackPlay from './commands/thinkback-play/index.js'

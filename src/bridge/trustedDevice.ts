@@ -1,7 +1,3 @@
-// Stub: trusted device removed
-export function getTrustedDeviceToken() { return undefined }
-export function clearTrustedDeviceTokenCache() {}
-export function clearTrustedDeviceToken() {}
 export function enrollTrustedDevice() { return Promise.resolve() }
 import axios from 'axios'
 import memoize from 'lodash-es/memoize.js'
