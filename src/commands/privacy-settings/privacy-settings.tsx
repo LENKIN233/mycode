@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { type GroveDecision, GroveDialog, PrivacySettingsDialog } from '../../components/grove/Grove.js';
+// Grove component removed — inlined no-ops\ntype GroveDecision = 'accept' | 'reject';\nconst GroveDialog = (_props: any) => null;\nconst PrivacySettingsDialog = (_props: any) => null;
 import { type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS, logEvent } from '../../services/analytics/index.js';
 import { getGroveNoticeConfig, getGroveSettings, isQualifiedForGrove } from '../../services/api/grove.js';
 import type { LocalJSXCommandOnDone } from '../../types/command.js';

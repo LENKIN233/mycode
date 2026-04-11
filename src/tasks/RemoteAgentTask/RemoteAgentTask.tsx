@@ -15,8 +15,11 @@ import { deleteRemoteAgentMetadata, listRemoteAgentMetadata, type RemoteAgentMet
 import { jsonStringify } from '../../utils/slowOperations.js';
 import { appendTaskOutput, evictTaskOutput, getTaskOutputPath, initTaskOutput } from '../../utils/task/diskOutput.js';
 import { registerTask, updateTaskState } from '../../utils/task/framework.js';
-import { fetchSession } from '../../utils/teleport/api.js';
-import { archiveRemoteSession, pollRemoteSessionEvents } from '../../utils/teleport.js';
+// Teleport API removed — inlined no-op
+const fetchSession = async (_id: string): Promise<any> => null;
+// Teleport module removed — inlined no-ops
+const archiveRemoteSession = async (_id: string): Promise<void> => {};
+const pollRemoteSessionEvents = async (_id: string, _afterId?: string, _opts?: any): Promise<{ events: any[]; lastId?: string }> => ({ events: [] });
 import type { TodoList } from '../../utils/todo/types.js';
 // Ultraplan phase type inlined (Anthropic infrastructure removed)
 type UltraplanPhase = 'planning' | 'executing' | 'reviewing' | 'done'

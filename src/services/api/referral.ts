@@ -9,7 +9,9 @@ import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { logError } from '../../utils/log.js'
 import { isEssentialTrafficOnly } from '../../utils/privacyLevel.js'
-import { getOAuthHeaders, prepareApiRequest } from '../../utils/teleport/api.js'
+// Teleport API removed — inlined no-ops
+const getOAuthHeaders = (_t: string): Record<string, string> => ({})
+const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('teleport disabled') }
 import type {
   ReferralCampaign,
   ReferralEligibilityResponse,

@@ -14,7 +14,9 @@ import { logError } from '../utils/log.js';
 import { enqueuePendingNotification } from '../utils/messageQueueManager.js';
 import { ALL_MODEL_CONFIGS } from '../utils/model/configs.js';
 import { updateTaskState } from '../utils/task/framework.js';
-import { archiveRemoteSession, teleportToRemote } from '../utils/teleport.js';
+// Teleport module removed — inlined no-ops
+const archiveRemoteSession = async (_id: string): Promise<void> => {};
+const teleportToRemote = async (_options: any): Promise<any> => null;
 // Ultraplan CCR session inlined (Anthropic infrastructure removed)
 class UltraplanPollError extends Error {
   constructor(message: string, public reason: string) { super(message) }

@@ -5,7 +5,13 @@ import { useState } from 'react';
 import type { Root } from '../ink.js';
 import { Box, Text, useAnimationFrame } from '../ink.js';
 import { AppStateProvider } from '../state/AppState.js';
-import { checkOutTeleportedSessionBranch, processMessagesForTeleportResume, type TeleportProgressStep, type TeleportResult, teleportResumeCodeSession } from '../utils/teleport.js';
+// Teleport module removed — types + functions inlined
+import type { Message } from '../types/message.js';
+type TeleportResult = { messages: Message[]; branchName: string };
+type TeleportProgressStep = 'validating' | 'fetching_logs' | 'fetching_branch' | 'checking_out' | 'done';
+const checkOutTeleportedSessionBranch = async (_branch?: string): Promise<void> => {};
+const processMessagesForTeleportResume = (_messages: any[], _error?: any): Message[] => [];
+const teleportResumeCodeSession = async (_id: string, _onProgress?: any): Promise<TeleportResult | null> => null;
 type Props = {
   currentStep: TeleportProgressStep;
   sessionId?: string;

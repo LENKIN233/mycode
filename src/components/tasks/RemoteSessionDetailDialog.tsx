@@ -20,7 +20,8 @@ import { formatDuration, truncateToWidth } from '../../utils/format.js';
 import { toInternalMessages } from '../../utils/messages/mappers.js';
 import { EMPTY_LOOKUPS, normalizeMessages } from '../../utils/messages.js';
 import { plural } from '../../utils/stringUtils.js';
-import { teleportResumeCodeSession } from '../../utils/teleport.js';
+// Teleport module removed — inlined no-op
+const teleportResumeCodeSession = async (_id: string, _onProgress?: any): Promise<any> => null;
 import { Select } from '../CustomSelect/select.js';
 import { Byline } from '../design-system/Byline.js';
 import { Dialog } from '../design-system/Dialog.js';

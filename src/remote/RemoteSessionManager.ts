@@ -19,10 +19,9 @@ import type {
 } from '../entrypoints/sdk/controlTypes.js'
 import { logForDebugging } from '../utils/debug.js'
 import { logError } from '../utils/log.js'
-import {
-  type RemoteMessageContent,
-  sendEventToRemoteSession,
-} from '../utils/teleport/api.js'
+// Teleport removed (Anthropic infrastructure)
+type RemoteMessageContent = { type: string; content: string }
+const sendEventToRemoteSession = async (_sessionId: string, _messageContent: RemoteMessageContent, _opts?: any): Promise<void> => {}
 import {
   SessionsWebSocket,
   type SessionsWebSocketCallbacks,

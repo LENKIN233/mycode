@@ -30,8 +30,9 @@ import {
   type StreamingToolUse,
 } from '../utils/messages.js'
 import { generateSessionTitle } from '../utils/sessionTitle.js'
-import type { RemoteMessageContent } from '../utils/teleport/api.js'
-import { updateSessionTitle } from '../utils/teleport/api.js'
+// Teleport removed (Anthropic infrastructure)
+type RemoteMessageContent = { type: string; content: string }
+const updateSessionTitle = async (_sessionId: string, _title: string): Promise<void> => {}
 
 // How long to wait for a response before showing a warning
 const RESPONSE_TIMEOUT_MS = 60000 // 60 seconds

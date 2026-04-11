@@ -19,7 +19,8 @@ import type { Message as MessageType } from '../types/message.js'
 import type { PermissionAskDecision } from '../types/permissions.js'
 import { logForDebugging } from '../utils/debug.js'
 import { gracefulShutdown } from '../utils/gracefulShutdown.js'
-import type { RemoteMessageContent } from '../utils/teleport/api.js'
+// RemoteMessageContent inlined (teleport removed)
+type RemoteMessageContent = { type: string; content: string }
 
 type UseDirectConnectResult = {
   isRemoteMode: boolean

@@ -4,7 +4,9 @@ import { getOauthAccountInfo } from '../../utils/auth.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import { logError } from '../../utils/log.js'
 import { isEssentialTrafficOnly } from '../../utils/privacyLevel.js'
-import { getOAuthHeaders, prepareApiRequest } from '../../utils/teleport/api.js'
+// Teleport API removed — inlined no-ops
+const getOAuthHeaders = (_t: string): Record<string, string> => ({})
+const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('teleport disabled') }
 
 export type OverageCreditGrantInfo = {
   available: boolean

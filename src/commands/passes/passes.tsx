@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Passes } from '../../components/Passes/Passes.js';
+// Passes component removed — inlined null
+const Passes = (_props: any) => null;
 import { logEvent } from '../../services/analytics/index.js';
 import { getCachedRemainingPasses } from '../../services/api/referral.js';
 import type { LocalJSXCommandOnDone } from '../../types/command.js';

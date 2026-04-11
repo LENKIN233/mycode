@@ -1,6 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { useTerminalSize } from 'src/hooks/useTerminalSize.js';
-import { type CodeSession, fetchCodeSessionsFromSessionsAPI } from 'src/utils/teleport/api.js';
+// Teleport API removed — inlined
+type CodeSession = any;
+const fetchCodeSessionsFromSessionsAPI = async (): Promise<{ data: CodeSession[] }> => ({ data: [] });
 // eslint-disable-next-line custom-rules/prefer-use-keybindings -- raw j/k/arrow list navigation
 import { Box, Text, useInput } from '../ink.js';
 import { useKeybinding } from '../keybindings/useKeybinding.js';

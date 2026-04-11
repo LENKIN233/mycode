@@ -13,11 +13,10 @@ import {
 } from '../../utils/detectRepository.js'
 import { getRemoteUrl } from '../../utils/git.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
-import {
-  createDefaultCloudEnvironment,
-  type EnvironmentResource,
-  fetchEnvironments,
-} from '../../utils/teleport/environments.js'
+// Teleport environments removed — inlined no-ops
+type EnvironmentResource = { id: string; name: string; kind: string; state: string }
+const fetchEnvironments = async (): Promise<{ data: EnvironmentResource[] }> => ({ data: [] })
+const createDefaultCloudEnvironment = async (_name: string): Promise<EnvironmentResource | null> => null
 import { registerBundledSkill } from '../bundledSkills.js'
 
 // Base58 alphabet (Bitcoin-style) used by the tagged ID system

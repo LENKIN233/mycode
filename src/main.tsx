@@ -186,7 +186,9 @@ import { resetProToOpusDefault } from './migrations/resetProToOpusDefault.js';
 import { createRemoteSessionConfig } from './remote/RemoteSessionManager.js';
 /* eslint-enable @typescript-eslint/no-require-imports */
 // teleportWithProgress dynamically imported at call site
-import { createDirectConnectSession, DirectConnectError } from './server/createDirectConnectSession.js';
+// Direct connect removed — inlined no-ops
+class DirectConnectError extends Error {}
+const createDirectConnectSession = async (..._args: any[]): Promise<null> => null;
 import { initializeLspServerManager } from './services/lsp/manager.js';
 import { shouldEnablePromptSuggestion } from './services/PromptSuggestion/promptSuggestion.js';
 import { type AppState, getDefaultAppState, IDLE_SPECULATION_STATE } from './state/AppStateStore.js';
@@ -200,8 +202,15 @@ import { filterExistingPaths, getKnownPathsForRepo } from './utils/githubRepoPat
 import { clearPluginCache, loadAllPluginsCacheOnly } from './utils/plugins/pluginLoader.js';
 import { migrateChangelogFromConfig } from './utils/releaseNotes.js';
 import { SandboxManager } from './utils/sandbox/sandbox-adapter.js';
-import { fetchSession, prepareApiRequest } from './utils/teleport/api.js';
-import { checkOutTeleportedSessionBranch, processMessagesForTeleportResume, teleportToRemoteWithErrorHandling, validateGitState, validateSessionRepository } from './utils/teleport.js';
+// Teleport API removed — inlined no-ops
+const fetchSession = async (_id: string): Promise<any> => null;
+const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('teleport disabled') };
+// Teleport module removed — inlined no-ops
+const checkOutTeleportedSessionBranch = async (_branch?: string): Promise<void> => {};
+const processMessagesForTeleportResume = (_messages: any[], _error?: any): any[] => [];
+const teleportToRemoteWithErrorHandling = async (_root: any, _desc: string, _signal: AbortSignal, _branch?: string): Promise<any> => null;
+const validateGitState = async (): Promise<{ valid: boolean; error?: string }> => ({ valid: false, error: 'teleport disabled' });
+const validateSessionRepository = async (_data: any): Promise<{ valid: boolean; error?: string }> => ({ valid: false, error: 'teleport disabled' });
 import { shouldEnableThinkingByDefault, type ThinkingConfig } from './utils/thinking.js';
 import { initUser, resetUserCache } from './utils/user.js';
 import { getTmuxInstallInstructions, isTmuxAvailable, parsePRReference } from './utils/worktree.js';
@@ -3173,11 +3182,10 @@ async function run(): Promise<CommanderCommand> {
       // the REPL an SSHSession. Tools run remotely, UI renders locally.
       // `--local` skips probe/deploy/ssh and spawns the current binary
       // directly with the same env — e2e test of the proxy/auth plumbing.
-      const {
-        createSSHSession,
-        createLocalSSHSession,
-        SSHSessionError
-      } = await import('./ssh/createSSHSession.js');
+      // SSH feature removed — always throw
+      const SSHSessionError = class extends Error {};
+      const createSSHSession = async (..._args: any[]) => { throw new SSHSessionError('SSH sessions disabled') };
+      const createLocalSSHSession = (..._args: any[]) => ({ remoteCwd: process.cwd() });
       let sshSession;
       try {
         if (_pendingSSH.local) {

@@ -20,7 +20,8 @@ import {
   convertSDKMessage,
   isSessionEndMessage,
 } from '../remote/sdkMessageAdapter.js'
-import type { SSHSession } from '../ssh/createSSHSession.js'
+// SSH session removed — type inlined
+type SSHSession = { remoteCwd: string }
 import type { SSHSessionManager } from '../ssh/SSHSessionManager.js'
 import type { Tool } from '../Tool.js'
 import { findToolByName } from '../Tool.js'
@@ -28,7 +29,8 @@ import type { Message as MessageType } from '../types/message.js'
 import type { PermissionAskDecision } from '../types/permissions.js'
 import { logForDebugging } from '../utils/debug.js'
 import { gracefulShutdown } from '../utils/gracefulShutdown.js'
-import type { RemoteMessageContent } from '../utils/teleport/api.js'
+// RemoteMessageContent inlined (teleport removed)
+type RemoteMessageContent = { type: string; content: string }
 
 type UseSSHSessionResult = {
   isRemoteMode: boolean

@@ -12,8 +12,9 @@ import { logForDebugging } from '../../debug.js'
 import { detectCurrentRepository } from '../../detectRepository.js'
 import { errorMessage } from '../../errors.js'
 import { findGitRoot, getIsClean } from '../../git.js'
-import { getOAuthHeaders } from '../../teleport/api.js'
-import { fetchEnvironments } from '../../teleport/environments.js'
+// Teleport API removed — inlined no-ops
+const getOAuthHeaders = (_t: string): Record<string, string> => ({})
+const fetchEnvironments = async (): Promise<{ data: any[] }> => ({ data: [] })
 
 /**
  * Checks if user needs to log in with MyCode.ai

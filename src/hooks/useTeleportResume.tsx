@@ -3,9 +3,11 @@ import { useCallback, useState } from 'react';
 import { setTeleportedSessionInfo } from 'src/bootstrap/state.js';
 import { type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS, logEvent } from 'src/services/analytics/index.js';
 import type { TeleportRemoteResponse } from 'src/utils/conversationRecovery.js';
-import type { CodeSession } from 'src/utils/teleport/api.js';
+// Teleport API removed — CodeSession type inlined
+type CodeSession = any;
 import { errorMessage, TeleportOperationError } from '../utils/errors.js';
-import { teleportResumeCodeSession } from '../utils/teleport.js';
+// Teleport module removed — inlined no-op
+const teleportResumeCodeSession = async (_id: string, _onProgress?: any): Promise<any> => null;
 export type TeleportResumeError = {
   message: string;
   formattedMessage?: string;
