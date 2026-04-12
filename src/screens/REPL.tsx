@@ -61,8 +61,7 @@ import { useDirectConnect } from '../hooks/useDirectConnect.js';
 import type { DirectConnectConfig } from '../server/directConnectManager.js';
 import { useSSHSession } from '../hooks/useSSHSession.js';
 import { useAssistantHistory } from '../hooks/useAssistantHistory.js';
-// SSH session removed — type inlined
-type SSHSession = { remoteCwd: string };
+import type { SSHSession } from '../compat/disabled.js';
 import { SkillImprovementSurvey } from '../components/SkillImprovementSurvey.js';
 import { useSkillImprovementSurvey } from '../hooks/useSkillImprovementSurvey.js';
 import { useMoreRight } from '../moreright/useMoreRight.js';
@@ -95,14 +94,7 @@ import { isHumanTurn } from '../utils/messagePredicates.js';
 import { logError } from '../utils/log.js';
 // Dead code elimination: conditional imports
 /* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
-// Frustration detection is ant-only (dogfooding). Conditional require so external
-// builds eliminate the module entirely (including its two O(n) useMemos that run
-// on every messages change, plus the GrowthBook fetch).
-// FeedbackSurvey frustration detection removed — always returns closed
-const useFrustrationDetection = (..._args: any[]) => ({
-  state: 'closed' as const,
-  handleTranscriptSelect: () => {}
-});
+import { useFrustrationDetection } from '../compat/disabled.js';
 // Ant-only org warning. Conditional require so the org UUID list is
 // eliminated from external builds (one UUID is on excluded-strings).
 const useAntOrgWarningNotification: typeof import('../hooks/notifs/useAntOrgWarningNotification.js').useAntOrgWarningNotification = "external" === 'ant' ? require('../hooks/notifs/useAntOrgWarningNotification.js').useAntOrgWarningNotification : () => {};
@@ -220,10 +212,7 @@ import { activityManager } from '../utils/activityManager.js';
 import { createAbortController } from '../utils/abortController.js';
 import { MCPConnectionManager } from 'src/services/mcp/MCPConnectionManager.js';
 // FeedbackSurvey stubs inlined
-const useFeedbackSurvey = (..._args: any[]) => ({ show: false, dismiss: () => {}, state: 'closed' as const, lastResponse: null, handleSelect: (_s: any) => false, handleTranscriptSelect: undefined });
-const useMemorySurvey = (..._args: any[]) => ({ state: 'closed' as const, lastResponse: null, handleSelect: (_s: any) => {}, handleTranscriptSelect: undefined });
-const usePostCompactSurvey = (..._args: any[]) => ({ state: 'closed' as const, lastResponse: null, handleSelect: (_s: any) => {} });
-const FeedbackSurvey = (_props: any) => null;
+import { useFeedbackSurvey, useMemorySurvey, usePostCompactSurvey, FeedbackSurvey } from '../compat/disabled.js';
 import { useInstallMessages } from 'src/hooks/notifs/useInstallMessages.js';
 import { useAwaySummary } from 'src/hooks/useAwaySummary.js';
 import { useChromeExtensionNotification } from 'src/hooks/useChromeExtensionNotification.js';
@@ -268,16 +257,10 @@ const WebBrowserPanelModule = feature('WEB_BROWSER_TOOL') ? require('../tools/We
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { IssueFlagBanner } from '../components/PromptInput/IssueFlagBanner.js';
 import { useIssueFlagBanner } from '../hooks/useIssueFlagBanner.js';
-// Buddy feature removed — inlined no-ops
-const CompanionSprite = () => null;
-const CompanionFloatingBubble = () => null;
-const MIN_COLS_FOR_FULL_SPRITE = Infinity;
+import { CompanionSprite, CompanionFloatingBubble, MIN_COLS_FOR_FULL_SPRITE, type RemoteMessageContent } from '../compat/disabled.js';
 import { DevBar } from '../components/DevBar.js';
-// Session manager removed - using AppState now
 import type { RemoteSessionConfig } from '../remote/RemoteSessionManager.js';
 import { REMOTE_SAFE_COMMANDS } from '../commands.js';
-// RemoteMessageContent inlined (teleport removed)
-type RemoteMessageContent = { type: string; content: string }
 import { FullscreenLayout, useUnseenDivider, computeUnseenDivider } from '../components/FullscreenLayout.js';
 import { isFullscreenEnvEnabled, maybeGetTmuxMouseHint, isMouseTrackingEnabled } from '../utils/fullscreen.js';
 import { AlternateScreen } from '../ink/components/AlternateScreen.js';

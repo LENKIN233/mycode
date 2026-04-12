@@ -10,17 +10,16 @@ import {
 } from '../../services/analytics/index.js'
 import { getSSLErrorHint } from '../../services/api/errorUtils.js'
 import { fetchAndStoreMyCodeFirstTokenDate } from '../../services/api/firstTokenDate.js'
-// This fork uses API key auth (Copilot API / third-party providers).
-// OAuth login flow is unreachable — these functions provide type-safe fallbacks
-// for the installOAuthTokens/authLogin code paths that are never triggered.
-const createAndStoreApiKey = async (_t: string) => ''
-const fetchAndStoreUserRoles = async (_t: string) => {}
-const refreshOAuthToken = async (_t: string, _o?: any): Promise<OAuthTokens> => ({} as any)
-const shouldUseMyCodeAIAuth = (_s?: string[]) => false
-const storeOAuthAccountInfo = (_o: any) => {}
-const getOauthProfileFromOauthToken = async (_t: string) => null
-class OAuthService { async login() { return null } async logout() {} async getToken() { return null } async refreshToken() { return null } cleanup() {} startOAuthFlow(..._a: any[]) { return Promise.resolve(null as any) } }
-type OAuthTokens = { access_token: string; refresh_token: string; expires_at?: number; accessToken?: string; profile?: any; scopes?: string[]; refreshToken?: string; expiresAt?: number; tokenAccount?: any }
+import {
+  type OAuthTokens,
+  createAndStoreApiKey,
+  fetchAndStoreUserRoles,
+  refreshOAuthToken,
+  shouldUseMyCodeAIAuth,
+  storeOAuthAccountInfo,
+  getOauthProfileFromOauthToken,
+  OAuthService,
+} from '../../compat/disabled.js'
 import {
   clearOAuthTokenCache,
   getAnthropicApiKeyWithSource,

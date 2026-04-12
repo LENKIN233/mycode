@@ -34,13 +34,7 @@ import { addToHistory } from './history.js';
 import type { Root } from './ink.js';
 import { launchRepl } from './replLauncher.js';
 import { hasGrowthBookEnvOverride, initializeGrowthBook, refreshGrowthBookAfterAuthChange } from './services/analytics/growthbook.js';
-// Bootstrap API removed — no-op
-const fetchBootstrapData = async () => {};
-// Files API removed — inlined no-ops
-type DownloadResult = { success: boolean };
-type FilesApiConfig = Record<string, any>;
-const downloadSessionFiles = async (..._args: any[]): Promise<DownloadResult[]> => [];
-const parseFileSpecs = (..._args: any[]): any[] => [];
+import { fetchBootstrapData, downloadSessionFiles, parseFileSpecs, type DownloadResult, type FilesApiConfig } from './compat/disabled.js';
 import { prefetchPassesEligibility } from './services/api/referral.js';
 import { prefetchOfficialMcpUrls } from './services/mcp/officialRegistry.js';
 import type { McpSdkServerConfig, McpServerConfig, ScopedMcpServerConfig } from './services/mcp/types.js';
@@ -87,10 +81,10 @@ const kairosGate = feature('KAIROS') ? require('./assistant/gate.ts') as typeof 
 const BUILD_VARIANT: string = 'external'
 const loadDynamicModule = (modulePath: string): Promise<any> => import(modulePath)
 import { relative, resolve } from 'path';
-import { isAnalyticsDisabled } from 'src/services/analytics/config.js';
+import { isAnalyticsDisabled } from 'src/services/analytics/index.js';
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js';
 import { type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS, logEvent } from 'src/services/analytics/index.js';
-import { initializeAnalyticsGates } from 'src/services/analytics/sink.js';
+import { initializeAnalyticsGates } from 'src/services/analytics/index.js';
 import { getOriginalCwd, setAdditionalDirectoriesForMyCodeMd, setIsRemoteMode, setMainLoopModelOverride, setMainThreadAgentType, setTeleportedSessionInfo } from './bootstrap/state.js';
 import { filterCommandsForRemoteMode, getCommands } from './commands.js';
 import type { StatsStore } from './context/stats.js';
@@ -189,10 +183,7 @@ import { resetAutoModeOptInForDefaultOffer } from './migrations/resetAutoModeOpt
 import { resetProToOpusDefault } from './migrations/resetProToOpusDefault.js';
 import { createRemoteSessionConfig } from './remote/RemoteSessionManager.js';
 /* eslint-enable @typescript-eslint/no-require-imports */
-// teleportWithProgress dynamically imported at call site
-// Direct connect removed — inlined no-ops
-class DirectConnectError extends Error {}
-const createDirectConnectSession = async (..._args: any[]): Promise<null> => null;
+import { DirectConnectError, createDirectConnectSession } from './compat/disabled.js';
 import { initializeLspServerManager } from './services/lsp/manager.js';
 import { shouldEnablePromptSuggestion } from './services/PromptSuggestion/promptSuggestion.js';
 import { type AppState, getDefaultAppState, IDLE_SPECULATION_STATE } from './state/AppStateStore.js';
@@ -206,17 +197,15 @@ import { filterExistingPaths, getKnownPathsForRepo } from './utils/githubRepoPat
 import { clearPluginCache, loadAllPluginsCacheOnly } from './utils/plugins/pluginLoader.js';
 import { migrateChangelogFromConfig } from './utils/releaseNotes.js';
 import { SandboxManager } from './utils/sandbox/sandbox-adapter.js';
-// Teleport (remote session) APIs are not available in this fork.
-// These stubs are retained because their callers are deeply embedded in
-// assistant/teleport code paths that are conditionally reached via feature
-// flags. Removing the stubs would require deleting large code blocks.
-const fetchSession = async (_id: string): Promise<any> => null;
-const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('teleport disabled') };
-const checkOutTeleportedSessionBranch = async (_branch?: string): Promise<void> => {};
-const processMessagesForTeleportResume = (_messages: any[], _error?: any): any[] => [];
-const teleportToRemoteWithErrorHandling = async (_root: any, _desc: string, _signal: AbortSignal, _branch?: string): Promise<any> => null;
-const validateGitState = async (): Promise<{ valid: boolean; error?: string }> => ({ valid: false, error: 'teleport disabled' });
-const validateSessionRepository = async (_data: any): Promise<{ valid: boolean; error?: string }> => ({ valid: false, error: 'teleport disabled' });
+import {
+  fetchSession,
+  prepareApiRequest,
+  checkOutTeleportedSessionBranch,
+  processMessagesForTeleportResume,
+  teleportToRemoteWithErrorHandling,
+  validateGitState,
+  validateSessionRepository,
+} from './compat/disabled.js';
 import { shouldEnableThinkingByDefault, type ThinkingConfig } from './utils/thinking.js';
 import { initUser, resetUserCache } from './utils/user.js';
 import { getTmuxInstallInstructions, isTmuxAvailable, parsePRReference } from './utils/worktree.js';

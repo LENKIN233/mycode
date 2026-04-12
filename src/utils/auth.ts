@@ -15,14 +15,12 @@ import {
   getIsNonInteractiveSession,
   preferThirdPartyAuthentication,
 } from '../bootstrap/state.js'
-// This fork uses API key authentication (Copilot API / third-party providers).
-// OAuth-based MyCode AI auth is not used — shouldUseMyCodeAIAuth returns false,
-// which makes the entire OAuth refresh/profile flow unreachable.
-const shouldUseMyCodeAIAuth = (_s?: string[]) => false
-// Mock rate limits are an Ant-employee-only testing feature, not applicable here.
-const getMockSubscriptionType = () => undefined
-const shouldUseMockSubscription = () => false
-type OAuthTokens = { access_token: string; refresh_token: string; expires_at?: number }
+import {
+  shouldUseMyCodeAIAuth,
+  getMockSubscriptionType,
+  shouldUseMockSubscription,
+  type OAuthTokens,
+} from '../compat/disabled.js'
 type SubscriptionType = 'free' | 'pro' | 'max' | 'team' | 'enterprise'
 import {
   getApiKeyFromFileDescriptor,

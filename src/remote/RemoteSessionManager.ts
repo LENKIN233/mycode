@@ -7,26 +7,12 @@ import type {
 } from '../entrypoints/sdk/controlTypes.js'
 import { logForDebugging } from '../utils/debug.js'
 import { logError } from '../utils/log.js'
-// Teleport removed (Anthropic infrastructure)
-type RemoteMessageContent = { type: string; content: string }
-const sendEventToRemoteSession = async (_sessionId: string, _messageContent: RemoteMessageContent, _opts?: any): Promise<void> => {}
-// SessionsWebSocket deleted — inline stub class (remote sessions not available in this fork)
-type SessionsWebSocketCallbacks = {
-  onMessage: (message: any) => void
-  onConnected?: () => void
-  onClose?: () => void
-  onReconnecting?: () => void
-  onError?: (error: Error) => void
-}
-class SessionsWebSocket {
-  constructor(_sessionId: string, _orgUuid: string, _getAccessToken: () => string, _callbacks: SessionsWebSocketCallbacks) {}
-  async connect() {}
-  sendControlResponse(_response: any) {}
-  sendControlRequest(_request: any) {}
-  isConnected() { return false }
-  close() {}
-  reconnect() {}
-}
+import {
+  type RemoteMessageContent,
+  sendEventToRemoteSession,
+  type SessionsWebSocketCallbacks,
+  SessionsWebSocket,
+} from '../compat/disabled.js'
 
 /**
  * Type guard to check if a message is an SDKMessage (not a control message)

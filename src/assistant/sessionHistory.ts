@@ -1,10 +1,8 @@
 import axios from 'axios'
 import { getOauthConfig } from '../constants/oauth.js'
+import { getOAuthHeaders, prepareApiRequest } from '../compat/disabled.js'
 import type { SDKMessage } from '../entrypoints/agentSdkTypes.js'
 import { logForDebugging } from '../utils/debug.js'
-// Teleport API removed — inlined no-ops
-const getOAuthHeaders = (_t: string): Record<string, string> => ({})
-const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('teleport disabled') }
 
 export const HISTORY_PAGE_SIZE = 100
 

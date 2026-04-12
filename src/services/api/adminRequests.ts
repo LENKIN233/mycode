@@ -39,8 +39,8 @@ export type AdminRequest = {
  */
 export async function createAdminRequest(
   _params: AdminRequestCreateParams,
-): Promise<AdminRequest> {
-  throw new Error('Anthropic platform API not available')
+): Promise<AdminRequest | null> {
+  return null
 }
 
 /**
@@ -51,7 +51,7 @@ export async function getMyAdminRequests(
   _requestType: AdminRequestType,
   _statuses: AdminRequestStatus[],
 ): Promise<AdminRequest[] | null> {
-  throw new Error('Anthropic platform API not available')
+  return null
 }
 
 type AdminRequestEligibilityResponse = {
@@ -66,5 +66,5 @@ type AdminRequestEligibilityResponse = {
 export async function checkAdminRequestEligibility(
   _requestType: AdminRequestType,
 ): Promise<AdminRequestEligibilityResponse | null> {
-  throw new Error('Anthropic platform API not available')
+  return null
 }
