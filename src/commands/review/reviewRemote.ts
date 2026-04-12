@@ -16,8 +16,6 @@ import {
   logEvent,
 } from '../../services/analytics/index.js'
 import { fetchUltrareviewQuota } from '../../services/api/ultrareviewQuota.js'
-// Usage API removed (Anthropic rate limits/billing)
-const fetchUtilization = async () => null
 import type { ToolUseContext } from '../../Tool.js'
 import {
   checkRemoteAgentEligibility,
@@ -29,7 +27,8 @@ import { isEnterpriseSubscriber, isTeamSubscriber } from '../../utils/auth.js'
 import { detectCurrentRepositoryWithHost } from '../../utils/detectRepository.js'
 import { execFileNoThrow } from '../../utils/execFileNoThrow.js'
 import { getDefaultBranch, gitExe } from '../../utils/git.js'
-// Teleport module removed — inlined no-op
+// Teleport (remote container execution) is not available in this fork.
+// Callers handle null → return user-facing error messages.
 const teleportToRemote = async (_options: any): Promise<any> => null
 
 // One-time session flag: once the user confirms overage billing via the
@@ -59,10 +58,7 @@ export async function checkOverageGate(): Promise<OverageGate> {
     return { kind: 'proceed', billingNote: '' }
   }
 
-  const [quota, utilization] = await Promise.all([
-    fetchUltrareviewQuota(),
-    fetchUtilization().catch(() => null),
-  ])
+  const quota = await fetchUltrareviewQuota()
 
   // No quota info (non-subscriber or endpoint down) — let it through,
   // server-side billing will handle it.
@@ -77,41 +73,9 @@ export async function checkOverageGate(): Promise<OverageGate> {
     }
   }
 
-  // Utilization fetch failed (transient network error, timeout, etc.) —
-  // let it through, same rationale as the quota fallback above.
-  if (!utilization) {
-    return { kind: 'proceed', billingNote: '' }
-  }
-
-  // Free reviews exhausted — check Extra Usage setup.
-  const extraUsage = utilization.extra_usage
-  if (!extraUsage?.is_enabled) {
-    logEvent('tengu_review_overage_not_enabled', {})
-    return { kind: 'not-enabled' }
-  }
-
-  // Check available balance (null monthly_limit = unlimited).
-  const monthlyLimit = extraUsage.monthly_limit
-  const usedCredits = extraUsage.used_credits ?? 0
-  const available =
-    monthlyLimit === null || monthlyLimit === undefined
-      ? Infinity
-      : monthlyLimit - usedCredits
-
-  if (available < 10) {
-    logEvent('tengu_review_overage_low_balance', { available })
-    return { kind: 'low-balance', available }
-  }
-
-  if (!sessionOverageConfirmed) {
-    logEvent('tengu_review_overage_dialog_shown', {})
-    return { kind: 'needs-confirm' }
-  }
-
-  return {
-    kind: 'proceed',
-    billingNote: ' This review bills as Extra Usage.',
-  }
+  // Utilization API not available in this fork — let it through,
+  // server-side billing will handle it.
+  return { kind: 'proceed', billingNote: '' }
 }
 
 /**

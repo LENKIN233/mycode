@@ -2,11 +2,6 @@
 import { feature } from 'bun:bundle'
 import { readFile, stat } from 'fs/promises'
 import { dirname } from 'path'
-// Settings sync removed (Anthropic infrastructure)
-const downloadUserSettings = () => Promise.resolve()
-const redownloadUserSettings = () => Promise.resolve(false)
-// Remote managed settings removed (Anthropic infrastructure)
-const waitForRemoteManagedSettingsToLoad = () => Promise.resolve()
 import { StructuredIO } from 'src/cli/structuredIO.js'
 import { RemoteIO } from 'src/cli/remoteIO.js'
 import {
@@ -187,9 +182,6 @@ import {
 } from 'src/services/PromptSuggestion/promptSuggestion.js'
 import { getLastCacheSafeParams } from 'src/utils/forkedAgent.js'
 import { getAccountInformation } from 'src/utils/auth.js'
-// OAuth service removed (Anthropic infrastructure)
-class OAuthService { async login() { return null } async logout() {} async getToken() { return null } async refreshToken() { return null } cleanup() {} }
-import { installOAuthTokens } from 'src/cli/handlers/auth.js'
 import { getAPIProvider } from 'src/utils/model/providers.js'
 import type { HookCallbackMatcher } from 'src/types/hooks.js'
 import { AwsAuthStatusManager } from 'src/utils/awsAuthStatusManager.js'
@@ -500,18 +492,6 @@ export async function runHeadless(
     )
     // eslint-disable-next-line custom-rules/no-process-exit
     process.exit(0)
-  }
-
-  // Fire user settings download now so it overlaps with the MCP/tool setup
-  // below. Managed settings already started in main.tsx preAction; this gives
-  // user settings a similar head start. The cached promise is joined in
-  // installPluginsAndApplyMcpInBackground before plugin install reads
-  // enabledPlugins.
-  if (
-    feature('DOWNLOAD_USER_SETTINGS') &&
-    (isEnvTruthy(process.env.MYCODE_REMOTE) || getIsRemoteMode())
-  ) {
-    void downloadUserSettings()
   }
 
   // In headless mode there is no React tree, so the useSettingsChange hook
@@ -1737,21 +1717,6 @@ function runHeadlessStreaming(
   // NOTE: Nested function required - needs closure access to applyMcpServerChanges and updateSdkMcp
   async function installPluginsAndApplyMcpInBackground(): Promise<void> {
     try {
-      // Join point for user settings (fired at runHeadless entry) and managed
-      // settings (fired in main.tsx preAction). downloadUserSettings() caches
-      // its promise so this awaits the same in-flight request.
-      await Promise.all([
-        feature('DOWNLOAD_USER_SETTINGS') &&
-        (isEnvTruthy(process.env.MYCODE_REMOTE) || getIsRemoteMode())
-          ? withDiagnosticsTiming('headless_user_settings_download', () =>
-              downloadUserSettings(),
-            )
-          : Promise.resolve(),
-        withDiagnosticsTiming('headless_managed_settings_wait', () =>
-          waitForRemoteManagedSettingsToLoad(),
-        ),
-      ])
-
       const pluginsInstalled = await installPluginsForHeadless()
 
       if (pluginsInstalled) {
@@ -2848,16 +2813,6 @@ function runHeadlessStreaming(
   // extension via handleAuthDone → mcp_reconnect.
   const oauthAuthPromises = new Map<string, Promise<void>>()
 
-  // In-flight Anthropic OAuth flow (mycode_authenticate). Single-slot: a
-  // second authenticate request cleans up the first. The service holds the
-  // PKCE verifier + localhost listener; the promise settles after
-  // installOAuthTokens — after it resolves, the in-process memoized token
-  // cache is already cleared and the next API call picks up the new creds.
-  let mycodeOAuth: {
-    service: OAuthService
-    flow: Promise<void>
-  } | null = null
-
   // This is essentially spawning a parallel async task- we have two
   // running in parallel- one reading from stdin and adding to the
   // queue to be processed and another reading from the queue,
@@ -3169,18 +3124,6 @@ function runHeadlessStreaming(
           }
         } else if (controlRequest.request.subtype === 'reload_plugins') {
           try {
-            if (
-              feature('DOWNLOAD_USER_SETTINGS') &&
-              (isEnvTruthy(process.env.MYCODE_REMOTE) || getIsRemoteMode())
-            ) {
-              // Re-pull user settings so enabledPlugins pushed from the
-              // user's local CLI take effect before the cache sweep.
-              const applied = await redownloadUserSettings()
-              if (applied) {
-                settingsChangeDetector.notifyChange('userSettings')
-              }
-            }
-
             const r = await refreshActivePlugins(setAppState)
 
             const sdkAgents = currentAgents.filter(
@@ -3664,154 +3607,19 @@ function runHeadlessStreaming(
             )
           }
         } else if (controlRequest.request.subtype === 'mycode_authenticate') {
-          // Anthropic OAuth over the control channel. The SDK client owns
-          // the user's browser (we're headless in -p mode); we hand back
-          // both URLs and wait. Automatic URL → localhost listener catches
-          // the redirect if the browser is on this host; manual URL → the
-          // success page shows "code#state" for mycode_oauth_callback.
-          const loginWithMyCodeAi =
-            (controlRequest.request as { loginWithMyCodeAi?: unknown })
-              .loginWithMyCodeAi
-
-          // Clean up any prior flow. cleanup() closes the localhost listener
-          // and nulls the manual resolver. The prior `flow` promise is left
-          // pending (AuthCodeListener.close() does not reject) but its object
-          // graph becomes unreachable once the server handle is released and
-          // is GC'd — no fd or port is held.
-          mycodeOAuth?.service.cleanup()
-
-          logEvent('tengu_oauth_flow_start', {
-            loginWithMyCodeAi: loginWithMyCodeAi ?? true,
-          })
-
-          const service = new OAuthService()
-          let urlResolver!: (urls: {
-            manualUrl: string
-            automaticUrl: string
-          }) => void
-          const urlPromise = new Promise<{
-            manualUrl: string
-            automaticUrl: string
-          }>(resolve => {
-            urlResolver = resolve
-          })
-
-          const flow = service
-            .startOAuthFlow(
-              async (manualUrl, automaticUrl) => {
-                // automaticUrl is always defined when skipBrowserOpen is set;
-                // the signature is optional only for the existing single-arg callers.
-                urlResolver({ manualUrl, automaticUrl: automaticUrl! })
-              },
-              {
-                loginWithMyCodeAi: loginWithMyCodeAi ?? true,
-                skipBrowserOpen: true,
-              },
-            )
-            .then(async tokens => {
-              // installOAuthTokens: performLogout (clear stale state) →
-              // store profile → saveOAuthTokensIfNeeded → clearOAuthTokenCache
-              // → clearAuthRelatedCaches. After this resolves, the memoized
-              // getMyCodeAIOAuthTokens in this process is invalidated; the
-              // next API call re-reads keychain/file and works. No respawn.
-              await installOAuthTokens(tokens)
-              logEvent('tengu_oauth_success', {
-                loginWithMyCodeAi: loginWithMyCodeAi ?? true,
-              })
-            })
-            .finally(() => {
-              service.cleanup()
-              if (mycodeOAuth?.service === service) {
-                mycodeOAuth = null
-              }
-            })
-
-          mycodeOAuth = { service, flow }
-
-          // Attach the rejection handler before awaiting so a synchronous
-          // startOAuthFlow failure doesn't surface as an unhandled rejection.
-          // The mycode_oauth_callback handler re-awaits flow for the manual
-          // path and surfaces the real error to the client.
-          void flow.catch(err =>
-            logForDebugging(`mycode_authenticate flow ended: ${err}`, {
-              level: 'info',
-            }),
+          // This fork uses API key auth only — Anthropic OAuth is not available.
+          sendControlResponseError(
+            controlRequest,
+            'OAuth authentication is not supported in this fork. Use API key authentication instead.',
           )
-
-          try {
-            // Race against flow: if startOAuthFlow rejects before calling
-            // the authURLHandler (e.g. AuthCodeListener.start() fails with
-            // EACCES or fd exhaustion), urlPromise would pend forever and
-            // wedge the stdin loop. flow resolving first is unreachable in
-            // practice (it's suspended on the same urls we're waiting for).
-            const { manualUrl, automaticUrl } = await Promise.race([
-              urlPromise,
-              flow.then(() => {
-                throw new Error(
-                  'OAuth flow completed without producing auth URLs',
-                )
-              }),
-            ])
-            sendControlResponseSuccess(controlRequest, {
-              manualUrl,
-              automaticUrl,
-            })
-          } catch (error) {
-            sendControlResponseError(controlRequest, errorMessage(error))
-          }
         } else if (
           controlRequest.request.subtype === 'mycode_oauth_callback' ||
           controlRequest.request.subtype === 'mycode_oauth_wait_for_completion'
         ) {
-          if (!mycodeOAuth) {
-            sendControlResponseError(
-              controlRequest,
-              'No active mycode_authenticate flow',
-            )
-          } else {
-            // Inject the manual code synchronously — must happen in stdin
-            // message order so a subsequent mycode_authenticate doesn't
-            // replace the service before this code lands.
-            if (controlRequest.request.subtype === 'mycode_oauth_callback') {
-              const oauthCallbackRequest = controlRequest.request as {
-                authorizationCode?: unknown
-                state?: unknown
-              }
-              mycodeOAuth.service.handleManualAuthCodeInput({
-                authorizationCode:
-                  typeof oauthCallbackRequest.authorizationCode === 'string'
-                    ? oauthCallbackRequest.authorizationCode
-                    : '',
-                state:
-                  typeof oauthCallbackRequest.state === 'string'
-                    ? oauthCallbackRequest.state
-                    : '',
-              })
-            }
-            // Detach the await — the stdin reader is serial and blocking
-            // here deadlocks mycode_oauth_wait_for_completion: flow may
-            // only resolve via a future mycode_oauth_callback on stdin,
-            // which can't be read while we're parked. Capture the binding;
-            // mycodeOAuth is nulled in flow's own .finally.
-            const { flow } = mycodeOAuth
-            void flow.then(
-              () => {
-                const accountInfo = getAccountInformation()
-                sendControlResponseSuccess(message, {
-                  account: {
-                    email: accountInfo?.email,
-                    organization: accountInfo?.organization,
-                    subscriptionType: accountInfo?.subscription,
-                    tokenSource: accountInfo?.tokenSource,
-                    apiKeySource: accountInfo?.apiKeySource,
-                    apiProvider: getAPIProvider(),
-                  },
-                })
-              },
-              (error: unknown) =>
-                sendControlResponseError(message, errorMessage(error)),
-            )
-          }
+          sendControlResponseError(
+            controlRequest,
+            'OAuth authentication is not supported in this fork.',
+          )
         } else if (message.request.subtype === 'mcp_clear_auth') {
           const { serverName } = message.request
           const currentAppState = getAppState()

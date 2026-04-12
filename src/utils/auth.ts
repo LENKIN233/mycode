@@ -15,15 +15,13 @@ import {
   getIsNonInteractiveSession,
   preferThirdPartyAuthentication,
 } from '../bootstrap/state.js'
-// Mock rate limits removed (Anthropic-only)
+// This fork uses API key authentication (Copilot API / third-party providers).
+// OAuth-based MyCode AI auth is not used — shouldUseMyCodeAIAuth returns false,
+// which makes the entire OAuth refresh/profile flow unreachable.
+const shouldUseMyCodeAIAuth = (_s?: string[]) => false
+// Mock rate limits are an Ant-employee-only testing feature, not applicable here.
 const getMockSubscriptionType = () => undefined
 const shouldUseMockSubscription = () => false
-// OAuth client removed (Anthropic infrastructure)
-const isOAuthTokenExpired = (_t: any) => true
-const refreshOAuthToken = async (_t: string, _o?: any) => ({} as any)
-const shouldUseMyCodeAIAuth = (_s?: string[]) => false
-// OAuth profile removed
-const getOauthProfileFromOauthToken = async (_t: string) => null
 type OAuthTokens = { access_token: string; refresh_token: string; expires_at?: number }
 type SubscriptionType = 'free' | 'pro' | 'max' | 'team' | 'enterprise'
 import {
@@ -1451,120 +1449,12 @@ export function checkAndRefreshOAuthTokenIfNeeded(
 }
 
 async function checkAndRefreshOAuthTokenIfNeededImpl(
-  retryCount: number,
-  force: boolean,
+  _retryCount: number,
+  _force: boolean,
 ): Promise<boolean> {
-  const MAX_RETRIES = 5
-
-  await invalidateOAuthCacheIfDiskChanged()
-
-  // First check if token is expired with cached value
-  // Skip this check if force=true (server already told us token is bad)
-  const tokens = getMyCodeAIOAuthTokens()
-  if (!force) {
-    if (!tokens?.refreshToken || !isOAuthTokenExpired(tokens.expiresAt)) {
-      return false
-    }
-  }
-
-  if (!tokens?.refreshToken) {
-    return false
-  }
-
-  if (!shouldUseMyCodeAIAuth(tokens.scopes)) {
-    return false
-  }
-
-  // Re-read tokens async to check if they're still expired
-  // Another process might have refreshed them
-  getMyCodeAIOAuthTokens.cache?.clear?.()
-  clearKeychainCache()
-  const freshTokens = await getMyCodeAIOAuthTokensAsync()
-  if (
-    !freshTokens?.refreshToken ||
-    !isOAuthTokenExpired(freshTokens.expiresAt)
-  ) {
-    return false
-  }
-
-  // Tokens are still expired, try to acquire lock and refresh
-  const mycodeDir = getConfigHomeDir()
-  await mkdir(mycodeDir, { recursive: true })
-
-  let release
-  try {
-    logEvent('tengu_oauth_token_refresh_lock_acquiring', {})
-    release = await lockfile.lock(mycodeDir)
-    logEvent('tengu_oauth_token_refresh_lock_acquired', {})
-  } catch (err) {
-    if ((err as { code?: string }).code === 'ELOCKED') {
-      // Another process has the lock, let's retry if we haven't exceeded max retries
-      if (retryCount < MAX_RETRIES) {
-        logEvent('tengu_oauth_token_refresh_lock_retry', {
-          retryCount: retryCount + 1,
-        })
-        // Wait a bit before retrying
-        await sleep(1000 + Math.random() * 1000)
-        return checkAndRefreshOAuthTokenIfNeededImpl(retryCount + 1, force)
-      }
-      logEvent('tengu_oauth_token_refresh_lock_retry_limit_reached', {
-        maxRetries: MAX_RETRIES,
-      })
-      return false
-    }
-    logError(err)
-    logEvent('tengu_oauth_token_refresh_lock_error', {
-      error: errorMessage(
-        err,
-      ) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-    })
-    return false
-  }
-  try {
-    // Check one more time after acquiring lock
-    getMyCodeAIOAuthTokens.cache?.clear?.()
-    clearKeychainCache()
-    const lockedTokens = await getMyCodeAIOAuthTokensAsync()
-    if (
-      !lockedTokens?.refreshToken ||
-      !isOAuthTokenExpired(lockedTokens.expiresAt)
-    ) {
-      logEvent('tengu_oauth_token_refresh_race_resolved', {})
-      return false
-    }
-
-    logEvent('tengu_oauth_token_refresh_starting', {})
-    const refreshedTokens = await refreshOAuthToken(lockedTokens.refreshToken, {
-      // For MyCode.ai subscribers, omit scopes so the default
-      // MYCODE_AI_OAUTH_SCOPES applies — this allows scope expansion
-      // (e.g. adding user:file_upload) on refresh without re-login.
-      scopes: shouldUseMyCodeAIAuth(lockedTokens.scopes)
-        ? undefined
-        : lockedTokens.scopes,
-    })
-    saveOAuthTokensIfNeeded(refreshedTokens)
-
-    // Clear the cache after refreshing token
-    getMyCodeAIOAuthTokens.cache?.clear?.()
-    clearKeychainCache()
-    return true
-  } catch (error) {
-    logError(error)
-
-    getMyCodeAIOAuthTokens.cache?.clear?.()
-    clearKeychainCache()
-    const currentTokens = await getMyCodeAIOAuthTokensAsync()
-    if (currentTokens && !isOAuthTokenExpired(currentTokens.expiresAt)) {
-      logEvent('tengu_oauth_token_refresh_race_recovered', {})
-      return true
-    }
-
-    return false
-  } finally {
-    logEvent('tengu_oauth_token_refresh_lock_releasing', {})
-    await release()
-    logEvent('tengu_oauth_token_refresh_lock_released', {})
-  }
+  // This fork uses API key auth — no OAuth tokens to refresh.
+  // shouldUseMyCodeAIAuth() returns false, so refreshing never applies.
+  return false
 }
 
 export function isMyCodeAISubscriber(): boolean {
@@ -1958,6 +1848,9 @@ export async function validateForceLoginOrg(): Promise<OrgValidationResult> {
   // Always fetch the authoritative org UUID from the profile endpoint.
   // Even keychain-sourced tokens verify server-side: the cached org UUID
   // in ~/.mycode.json is user-writable and cannot be trusted.
+  // NOTE: This code is unreachable in this fork (no forceLoginOrgUUID),
+  // but kept for structural completeness.
+  const getOauthProfileFromOauthToken = async (_t: string) => null
   const { source } = getAuthTokenSource()
   const isEnvVarToken =
     source === 'MYCODE_OAUTH_TOKEN' ||

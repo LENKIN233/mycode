@@ -4,9 +4,6 @@ import {
   getMyAdminRequests,
 } from '../../services/api/adminRequests.js'
 import { invalidateOverageCreditGrantCache } from '../../services/api/overageCreditGrant.js'
-// Usage API removed (Anthropic rate limits/billing)
-type ExtraUsage = Record<string, any>
-const fetchUtilization = async () => null
 import { getSubscriptionType } from '../../utils/auth.js'
 import { hasMyCodeAiBillingAccess } from '../../utils/billing.js'
 import { openBrowser } from '../../utils/browser.js'
@@ -32,25 +29,6 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
   const hasBillingAccess = hasMyCodeAiBillingAccess()
 
   if (!hasBillingAccess && isTeamOrEnterprise) {
-    // Mirror apps/mycode-ai useHasUnlimitedOverage(): if overage is enabled
-    // with no monthly cap, there is nothing to request. On fetch error, fall
-    // through and let the user ask (matching web's "err toward show" behavior).
-    let extraUsage: ExtraUsage | null | undefined
-    try {
-      const utilization = await fetchUtilization()
-      extraUsage = utilization?.extra_usage
-    } catch (error) {
-      logError(error as Error)
-    }
-
-    if (extraUsage?.is_enabled && extraUsage.monthly_limit === null) {
-      return {
-        type: 'message',
-        value:
-          'Your organization already has unlimited extra usage. No request needed.',
-      }
-    }
-
     try {
       const eligibility = await checkAdminRequestEligibility('limit_increase')
       if (eligibility?.is_allowed === false) {

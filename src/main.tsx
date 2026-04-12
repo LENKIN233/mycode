@@ -146,7 +146,6 @@ import { validateUuid } from './utils/uuid.js';
 
 import { registerMcpAddCommand } from 'src/commands/mcp/addCommand.js';
 import { registerMcpXaaIdpCommand } from 'src/commands/mcp/xaaIdpCommand.js';
-import { logPermissionContextForAnts } from 'src/services/internalLogging.js';
 import { fetchMyCodeAIMcpConfigsIfEligible } from 'src/services/mcp/mycodeai.js';
 import { clearServerCache } from 'src/services/mcp/client.js';
 import { areMcpConfigsAllowedWithEnterpriseMcpConfig, dedupMyCodeAiMcpServers, doesEnterpriseMcpConfigExist, filterMcpServersByPolicy, getMyCodeMcpConfigs, getMcpServerSignature, parseMcpConfig, parseMcpConfigFromFilePath } from 'src/services/mcp/config.js';
@@ -2507,7 +2506,6 @@ async function run(): Promise<CommanderCommand> {
 
     // Log context metrics once at initialization
     void logContextMetrics(regularMcpConfigs, toolPermissionContext);
-    void logPermissionContextForAnts(null, 'initialization');
     logManagedSettings();
 
     // Register PID file for concurrent-session detection (~/.mycode/sessions/)
