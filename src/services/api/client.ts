@@ -2,10 +2,8 @@ import Anthropic, { type ClientOptions } from '@anthropic-ai/sdk'
 import { randomUUID } from 'crypto'
 import type { GoogleAuth } from 'google-auth-library'
 import {
-  checkAndRefreshOAuthTokenIfNeeded,
   getAnthropicApiKey,
   getApiKeyFromApiKeyHelper,
-  getMyCodeAIOAuthTokens,
   isMyCodeAISubscriber,
   refreshAndGetAwsCredentials,
   refreshGcpCredentialsIfNeeded,
@@ -21,7 +19,7 @@ import {
   getIsNonInteractiveSession,
   getSessionId,
 } from '../../bootstrap/state.js'
-import { getOauthConfig } from '../../constants/oauth.js'
+
 import { isDebugToStdErr, logForDebugging } from '../../utils/debug.js'
 import {
   getAWSRegion,
@@ -131,10 +129,6 @@ export async function getAnthropicClient({
   // Skip OAuth/API-key auth for non-firstParty providers (Copilot handles its own auth)
   const provider = getAPIProvider()
   if (provider === 'firstParty') {
-    logForDebugging('[API:auth] OAuth token check starting')
-    await checkAndRefreshOAuthTokenIfNeeded()
-    logForDebugging('[API:auth] OAuth token check complete')
-
     if (!isMyCodeAISubscriber()) {
       await configureApiKeyHeaders(defaultHeaders, getIsNonInteractiveSession())
     }
@@ -318,15 +312,7 @@ export async function getAnthropicClient({
 
   // Determine authentication method based on available tokens
   const clientConfig: ConstructorParameters<typeof Anthropic>[0] = {
-    apiKey: isMyCodeAISubscriber() ? null : apiKey || getAnthropicApiKey(),
-    authToken: isMyCodeAISubscriber()
-      ? getMyCodeAIOAuthTokens()?.accessToken
-      : undefined,
-    // Set baseURL from OAuth config when using staging OAuth
-    ...(process.env.USER_TYPE === 'ant' &&
-    isEnvTruthy(process.env.USE_STAGING_OAUTH)
-      ? { baseURL: getOauthConfig().BASE_API_URL }
-      : {}),
+    apiKey: apiKey || getAnthropicApiKey(),
     ...ARGS,
     ...(isDebugToStdErr() && { logger: createStderrLogger() }),
   }
