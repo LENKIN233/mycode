@@ -7,7 +7,14 @@ import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import type { KeyboardEvent } from '../../ink/events/keyboard-event.js';
 import { setClipboard } from '../../ink/termio/osc.js';
 import { Box, Link, Text } from '../../ink.js';
-import { OAuthService } from '../../services/oauth/index.js';
+// OAuth service deleted — inline stub (this fork uses API key auth only)
+class OAuthService {
+  startOAuthFlow(_onUrl: (url: string) => Promise<void>): Promise<{ accessToken: string; refreshToken: string }> {
+    throw new Error('OAuth not available in this fork')
+  }
+  handleManualAuthCodeInput(_opts: { code: string }): void {}
+  cleanup(): void {}
+}
 import { saveOAuthTokensIfNeeded } from '../../utils/auth.js';
 import { logError } from '../../utils/log.js';
 interface OAuthFlowStepProps {

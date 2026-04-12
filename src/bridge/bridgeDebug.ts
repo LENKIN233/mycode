@@ -1,5 +1,6 @@
 import { logForDebugging } from '../utils/debug.js'
-import { BridgeFatalError } from './bridgeApi.js'
+// bridgeApi.ts deleted — BridgeFatalError inlined
+class BridgeFatalError extends Error { constructor(msg: string) { super(msg); this.name = 'BridgeFatalError' } }
 import type { BridgeApiClient } from './types.js'
 
 /**

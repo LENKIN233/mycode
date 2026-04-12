@@ -1,7 +1,8 @@
 export function getSelfBridgeCompatId() { return undefined }
 import { updateSessionBridgeId } from '../utils/concurrentSessions.js'
 import type { ReplBridgeHandle } from './replBridge.js'
-import { toCompatSessionId } from './sessionIdCompat.js'
+// sessionIdCompat.ts deleted — toCompatSessionId inlined as identity (bridge disabled)
+const toCompatSessionId = (id: string) => `session_${id}`
 
 /**
  * Global pointer to the active REPL bridge handle, so callers outside

@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { getOauthConfig } from 'src/constants/oauth.js'
-import { getOrganizationUUID } from 'src/services/oauth/client.js'
+// OAuth client deleted — org UUID not available in this fork (API key auth only)
+const getOrganizationUUID = async (): Promise<string> => ''
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../../services/analytics/growthbook.js'
 import {
   checkAndRefreshOAuthTokenIfNeeded,

@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { getOauthProfileFromApiKey } from 'src/services/oauth/getOauthProfile.js';
+// OAuth profile deleted — not available in this fork (API key auth only)
+const getOauthProfileFromApiKey = async (): Promise<null> => null;
 import { isMyCodeAISubscriber } from 'src/utils/auth.js';
 import { Text } from '../../ink.js';
 import { logEvent } from '../../services/analytics/index.js';
