@@ -1,11 +1,4 @@
-import axios from 'axios'
-import { getOauthConfig } from '../../constants/oauth.js'
 import { isMyCodeAISubscriber } from '../../utils/auth.js'
-import { logForDebugging } from '../../utils/debug.js'
-// Anthropic platform API is not available in this fork (API-key auth only).
-// Stubs throw so callers degrade via their existing try-catch paths.
-const getOAuthHeaders = (_t: string): Record<string, string> => ({})
-const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('Anthropic platform API not available') }
 
 export type UltrareviewQuotaResponse = {
   reviews_used: number
@@ -21,21 +14,6 @@ export type UltrareviewQuotaResponse = {
  */
 export async function fetchUltrareviewQuota(): Promise<UltrareviewQuotaResponse | null> {
   if (!isMyCodeAISubscriber()) return null
-  try {
-    const { accessToken, orgUUID } = await prepareApiRequest()
-    const response = await axios.get<UltrareviewQuotaResponse>(
-      `${getOauthConfig().BASE_API_URL}/v1/ultrareview/quota`,
-      {
-        headers: {
-          ...getOAuthHeaders(accessToken),
-          'x-organization-uuid': orgUUID,
-        },
-        timeout: 5000,
-      },
-    )
-    return response.data
-  } catch (error) {
-    logForDebugging(`fetchUltrareviewQuota failed: ${error}`)
-    return null
-  }
+  // Anthropic platform API not available in this fork
+  return null
 }

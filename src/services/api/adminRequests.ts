@@ -1,10 +1,3 @@
-import axios from 'axios'
-import { getOauthConfig } from '../../constants/oauth.js'
-// Anthropic platform API is not available in this fork (API-key auth only).
-// Stubs throw so callers degrade via their existing try-catch paths.
-const getOAuthHeaders = (_t: string): Record<string, string> => ({})
-const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('Anthropic platform API not available') }
-
 export type AdminRequestType = 'limit_increase' | 'seat_upgrade'
 
 export type AdminRequestStatus = 'pending' | 'approved' | 'dismissed'
@@ -42,56 +35,23 @@ export type AdminRequest = {
 
 /**
  * Create an admin request (limit increase or seat upgrade).
- *
- * For Team/Enterprise users who don't have billing/admin permissions,
- * this creates a request that their admin can act on.
- *
- * If a pending request of the same type already exists for this user,
- * returns the existing request instead of creating a new one.
+ * Anthropic platform API not available in this fork.
  */
 export async function createAdminRequest(
-  params: AdminRequestCreateParams,
+  _params: AdminRequestCreateParams,
 ): Promise<AdminRequest> {
-  const { accessToken, orgUUID } = await prepareApiRequest()
-
-  const headers = {
-    ...getOAuthHeaders(accessToken),
-    'x-organization-uuid': orgUUID,
-  }
-
-  const url = `${getOauthConfig().BASE_API_URL}/api/oauth/organizations/${orgUUID}/admin_requests`
-
-  const response = await axios.post<AdminRequest>(url, params, { headers })
-
-  return response.data
+  throw new Error('Anthropic platform API not available')
 }
 
 /**
  * Get pending admin request of a specific type for the current user.
- *
- * Returns the pending request if one exists, otherwise null.
+ * Anthropic platform API not available in this fork.
  */
 export async function getMyAdminRequests(
-  requestType: AdminRequestType,
-  statuses: AdminRequestStatus[],
+  _requestType: AdminRequestType,
+  _statuses: AdminRequestStatus[],
 ): Promise<AdminRequest[] | null> {
-  const { accessToken, orgUUID } = await prepareApiRequest()
-
-  const headers = {
-    ...getOAuthHeaders(accessToken),
-    'x-organization-uuid': orgUUID,
-  }
-
-  let url = `${getOauthConfig().BASE_API_URL}/api/oauth/organizations/${orgUUID}/admin_requests/me?request_type=${requestType}`
-  for (const status of statuses) {
-    url += `&statuses=${status}`
-  }
-
-  const response = await axios.get<AdminRequest[] | null>(url, {
-    headers,
-  })
-
-  return response.data
+  throw new Error('Anthropic platform API not available')
 }
 
 type AdminRequestEligibilityResponse = {
@@ -101,22 +61,10 @@ type AdminRequestEligibilityResponse = {
 
 /**
  * Check if a specific admin request type is allowed for this org.
+ * Anthropic platform API not available in this fork.
  */
 export async function checkAdminRequestEligibility(
-  requestType: AdminRequestType,
+  _requestType: AdminRequestType,
 ): Promise<AdminRequestEligibilityResponse | null> {
-  const { accessToken, orgUUID } = await prepareApiRequest()
-
-  const headers = {
-    ...getOAuthHeaders(accessToken),
-    'x-organization-uuid': orgUUID,
-  }
-
-  const url = `${getOauthConfig().BASE_API_URL}/api/oauth/organizations/${orgUUID}/admin_requests/eligibility?request_type=${requestType}`
-
-  const response = await axios.get<AdminRequestEligibilityResponse>(url, {
-    headers,
-  })
-
-  return response.data
+  throw new Error('Anthropic platform API not available')
 }

@@ -1,19 +1,11 @@
-import axios from 'axios'
-import { getOauthConfig } from '../../constants/oauth.js'
 import {
   getOauthAccountInfo,
   getSubscriptionType,
   isMyCodeAISubscriber,
 } from '../../utils/auth.js'
-import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
-import { logForDebugging } from '../../utils/debug.js'
-import { logError } from '../../utils/log.js'
-import { isEssentialTrafficOnly } from '../../utils/privacyLevel.js'
+import { getGlobalConfig } from '../../utils/config.js'
+
 // Anthropic platform API is not available in this fork (API-key auth only).
-// Stubs throw so callers degrade via their existing try-catch paths.
-const getOAuthHeaders = (_t: string): Record<string, string> => ({})
-const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('Anthropic platform API not available') }
-// OAuth types removed (Anthropic infrastructure)
 type ReferralCampaign = string
 type ReferralEligibilityResponse = any
 type ReferrerRewardInfo = any
@@ -21,28 +13,10 @@ type ReferrerRewardInfo = any
 // Cache expiration time: 24 hours (eligibility changes only on subscription/experiment changes)
 const CACHE_EXPIRATION_MS = 24 * 60 * 60 * 1000
 
-// Track in-flight fetch to prevent duplicate API calls
-let fetchInProgress: Promise<ReferralEligibilityResponse | null> | null = null
-
 export async function fetchReferralEligibility(
   campaign: ReferralCampaign = 'mycode_guest_pass',
 ): Promise<ReferralEligibilityResponse> {
-  const { accessToken, orgUUID } = await prepareApiRequest()
-
-  const headers = {
-    ...getOAuthHeaders(accessToken),
-    'x-organization-uuid': orgUUID,
-  }
-
-  const url = `${getOauthConfig().BASE_API_URL}/api/oauth/organizations/${orgUUID}/referral/eligibility`
-
-  const response = await axios.get(url, {
-    headers,
-    params: { campaign },
-    timeout: 5000, // 5 second timeout for background fetch
-  })
-
-  return response.data
+  throw new Error('Anthropic platform API not available')
 }
 
 /**
@@ -149,113 +123,24 @@ export function getCachedRemainingPasses(): number | null {
 
 /**
  * Fetch passes eligibility and store in GlobalConfig
- * Returns the fetched response or null on error
+ * Anthropic platform API not available — always returns null.
  */
 export async function fetchAndStorePassesEligibility(): Promise<ReferralEligibilityResponse | null> {
-  // Return existing promise if fetch is already in progress
-  if (fetchInProgress) {
-    logForDebugging('Passes: Reusing in-flight eligibility fetch')
-    return fetchInProgress
-  }
-
-  const orgId = getOauthAccountInfo()?.organizationUuid
-
-  if (!orgId) {
-    return null
-  }
-
-  // Store the promise to share with concurrent calls
-  fetchInProgress = (async () => {
-    try {
-      const response = await fetchReferralEligibility()
-
-      const cacheEntry = {
-        ...response,
-        timestamp: Date.now(),
-      }
-
-      saveGlobalConfig(current => ({
-        ...current,
-        passesEligibilityCache: {
-          ...current.passesEligibilityCache,
-          [orgId]: cacheEntry,
-        },
-      }))
-
-      logForDebugging(
-        `Passes eligibility cached for org ${orgId}: ${response.eligible}`,
-      )
-
-      return response
-    } catch (error) {
-      logForDebugging('Failed to fetch and cache passes eligibility')
-      logError(error as Error)
-      return null
-    } finally {
-      // Clear the promise when done
-      fetchInProgress = null
-    }
-  })()
-
-  return fetchInProgress
+  return null
 }
 
 /**
  * Get cached passes eligibility data or fetch if needed
- * Main entry point for all eligibility checks
- *
- * This function never blocks on network - it returns cached data immediately
- * and fetches in the background if needed. On cold start (no cache), it returns
- * null and the passes command won't be available until the next session.
+ * Anthropic platform API not available — always returns null.
  */
 export async function getCachedOrFetchPassesEligibility(): Promise<ReferralEligibilityResponse | null> {
-  if (!shouldCheckForPasses()) {
-    return null
-  }
-
-  const orgId = getOauthAccountInfo()?.organizationUuid
-  if (!orgId) {
-    return null
-  }
-
-  const config = getGlobalConfig()
-  const cachedEntry = config.passesEligibilityCache?.[orgId]
-  const now = Date.now()
-
-  // No cache - trigger background fetch and return null (non-blocking)
-  // The passes command won't be available this session, but will be next time
-  if (!cachedEntry) {
-    logForDebugging(
-      'Passes: No cache, fetching eligibility in background (command unavailable this session)',
-    )
-    void fetchAndStorePassesEligibility()
-    return null
-  }
-
-  // Cache exists but is stale - return stale cache and trigger background refresh
-  if (now - cachedEntry.timestamp > CACHE_EXPIRATION_MS) {
-    logForDebugging(
-      'Passes: Cache stale, returning cached data and refreshing in background',
-    )
-    void fetchAndStorePassesEligibility() // Background refresh
-    const { timestamp, ...response } = cachedEntry
-    return response as ReferralEligibilityResponse
-  }
-
-  // Cache is fresh - return it immediately
-  logForDebugging('Passes: Using fresh cached eligibility data')
-  const { timestamp, ...response } = cachedEntry
-  return response as ReferralEligibilityResponse
+  return null
 }
 
 /**
  * Prefetch passes eligibility on startup
+ * Anthropic platform API not available — no-op.
  */
 export async function prefetchPassesEligibility(): Promise<void> {
-  // Skip network requests if nonessential traffic is disabled
-  if (isEssentialTrafficOnly()) {
-    return
-  }
-
-  void getCachedOrFetchPassesEligibility()
+  return
 }
