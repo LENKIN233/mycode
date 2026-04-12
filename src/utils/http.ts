@@ -54,7 +54,7 @@ export function getMCPUserAgent(): string {
 // operators match in robots.txt); the mycode suffix lets them distinguish
 // local CLI traffic from mycode.ai server-side fetches.
 export function getWebFetchUserAgent(): string {
-  return `MyCode-User (${getMyCodeUserAgent()}; +https://support.anthropic.com/)`
+  return `MyCode-User (${getMyCodeUserAgent()})`
 }
 
 export type AuthHeaders = {

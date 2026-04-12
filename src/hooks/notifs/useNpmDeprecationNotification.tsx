@@ -2,7 +2,7 @@ import { isInBundledMode } from 'src/utils/bundledMode.js';
 import { getCurrentInstallationType } from 'src/utils/doctorDiagnostic.js';
 import { isEnvTruthy } from 'src/utils/envUtils.js';
 import { useStartupNotification } from './useStartupNotification.js';
-const NPM_DEPRECATION_MESSAGE = 'MyCode has switched from npm to native installer. Run `mycode install` or see https://docs.anthropic.com/en/docs/mycode/getting-started for more options.';
+const NPM_DEPRECATION_MESSAGE = 'MyCode has switched from npm to native installer. Run `mycode install` or see https://code.mycode.com/docs/en/getting-started for more options.';
 export function useNpmDeprecationNotification() {
   useStartupNotification(_temp);
 }

@@ -82,7 +82,8 @@ type OauthConfig = {
 
 // Production OAuth configuration - Used in normal operation
 const PROD_OAUTH_CONFIG = {
-  BASE_API_URL: 'https://api.anthropic.com',
+  // Localized: read from env var, fall back to Anthropic API only as last resort
+  BASE_API_URL: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com',
   CONSOLE_AUTHORIZE_URL: 'https://platform.mycode.com/oauth/authorize',
   // Bounces through mycode.com/cai/* so CLI sign-ins connect to mycode.com
   // visits for attribution. 307s to mycode.ai/oauth/authorize in two hops.

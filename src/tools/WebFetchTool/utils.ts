@@ -179,6 +179,8 @@ type DomainCheckResult =
 export async function checkDomainBlocklist(
   domain: string,
 ): Promise<DomainCheckResult> {
+  // Domain blocklist check calls api.anthropic.com — disabled in this fork
+  return { status: 'allowed' }
   if (DOMAIN_CHECK_CACHE.has(domain)) {
     return { status: 'allowed' }
   }

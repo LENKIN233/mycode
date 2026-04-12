@@ -521,6 +521,8 @@ async function submitFeedback(data: FeedbackData, signal?: AbortSignal): Promise
   feedbackId?: string;
   isZdrOrg?: boolean;
 }> {
+  // Feedback submission goes to api.anthropic.com — disabled in this fork
+  return { success: false }
   if (isEssentialTrafficOnly()) {
     return {
       success: false

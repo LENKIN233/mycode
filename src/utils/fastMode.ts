@@ -405,6 +405,9 @@ export function resolveFastModeStatusFromCache(): void {
 }
 
 export async function prefetchFastModeStatus(): Promise<void> {
+  // Fast mode status check calls api.anthropic.com — disabled in this fork
+  return
+
   // Skip network requests if nonessential traffic is disabled
   if (isEssentialTrafficOnly()) {
     return

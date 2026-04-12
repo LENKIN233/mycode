@@ -31,6 +31,8 @@ function normalizeUrl(url: string): string | undefined {
  * Populates officialUrls for isOfficialMcpUrl lookups.
  */
 export async function prefetchOfficialMcpUrls(): Promise<void> {
+  // Official MCP registry is an Anthropic service — disabled in this fork
+  return
   if (process.env.MYCODE_DISABLE_NONESSENTIAL_TRAFFIC) {
     return
   }
