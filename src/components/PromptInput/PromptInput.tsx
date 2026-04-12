@@ -94,9 +94,6 @@ import type { TextHighlight } from '../../utils/textHighlighting.js';
 import type { Theme } from '../../utils/theme.js';
 import { findThinkingTriggerPositions, getRainbowColor, isUltrathinkEnabled } from '../../utils/thinking.js';
 import { findTokenBudgetPositions } from '../../utils/tokenBudget.js';
-// Ultraplan keyword detection disabled (Anthropic infrastructure removed)
-const findUltraplanTriggerPositions = (_text: string): any[] => []
-const findUltrareviewTriggerPositions = (_text: string): any[] => []
 import { AutoModeOptInDialog } from '../AutoModeOptInDialog.js';
 import { BridgeDialog } from '../BridgeDialog.js';
 import { ConfigurableShortcutHint } from '../ConfigurableShortcutHint.js';
@@ -521,10 +518,8 @@ function PromptInput({
   });
   const displayedValue = useMemo(() => isSearchingHistory && historyMatch ? getValueFromInput(typeof historyMatch === 'string' ? historyMatch : historyMatch.display) : input, [isSearchingHistory, historyMatch, input]);
   const thinkTriggers = useMemo(() => findThinkingTriggerPositions(displayedValue), [displayedValue]);
-  const ultraplanSessionUrl = useAppState(s => s.ultraplanSessionUrl);
-  const ultraplanLaunching = useAppState(s => s.ultraplanLaunching);
-  const ultraplanTriggers = useMemo(() => feature('ULTRAPLAN') && !ultraplanSessionUrl && !ultraplanLaunching ? findUltraplanTriggerPositions(displayedValue) : [], [displayedValue, ultraplanSessionUrl, ultraplanLaunching]);
-  const ultrareviewTriggers = useMemo(() => isUltrareviewEnabled() ? findUltrareviewTriggerPositions(displayedValue) : [], [displayedValue]);
+  const ultraplanTriggers: any[] = []
+  const ultrareviewTriggers: any[] = []
   const btwTriggers = useMemo(() => findBtwTriggerPositions(displayedValue), [displayedValue]);
   const buddyTriggers = useMemo(() => findBuddyTriggerPositions(displayedValue), [displayedValue]);
   const slashCommandTriggers = useMemo(() => {

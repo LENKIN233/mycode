@@ -206,10 +206,12 @@ import { filterExistingPaths, getKnownPathsForRepo } from './utils/githubRepoPat
 import { clearPluginCache, loadAllPluginsCacheOnly } from './utils/plugins/pluginLoader.js';
 import { migrateChangelogFromConfig } from './utils/releaseNotes.js';
 import { SandboxManager } from './utils/sandbox/sandbox-adapter.js';
-// Teleport API removed — inlined no-ops
+// Teleport (remote session) APIs are not available in this fork.
+// These stubs are retained because their callers are deeply embedded in
+// assistant/teleport code paths that are conditionally reached via feature
+// flags. Removing the stubs would require deleting large code blocks.
 const fetchSession = async (_id: string): Promise<any> => null;
 const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('teleport disabled') };
-// Teleport module removed — inlined no-ops
 const checkOutTeleportedSessionBranch = async (_branch?: string): Promise<void> => {};
 const processMessagesForTeleportResume = (_messages: any[], _error?: any): any[] => [];
 const teleportToRemoteWithErrorHandling = async (_root: any, _desc: string, _signal: AbortSignal, _branch?: string): Promise<any> => null;

@@ -14,17 +14,14 @@ import { logError } from '../utils/log.js';
 import { enqueuePendingNotification } from '../utils/messageQueueManager.js';
 import { ALL_MODEL_CONFIGS } from '../utils/model/configs.js';
 import { updateTaskState } from '../utils/task/framework.js';
-// Teleport module removed — inlined no-ops
+// Teleport/CCR are not available in this fork. These stubs allow the
+// /ultraplan command to compile but fail gracefully at runtime.
 const archiveRemoteSession = async (_id: string): Promise<void> => {};
 const teleportToRemote = async (_options: any): Promise<any> => null;
-// Ultraplan CCR session inlined (Anthropic infrastructure removed)
 class UltraplanPollError extends Error {
   constructor(message: string, public reason: string) { super(message) }
 }
 async function pollForApprovedExitPlanMode(): Promise<never> { throw new UltraplanPollError('disabled', 'teleport_disabled') }
-
-// TODO(prod-hardening): OAuth token may go stale over the 30min poll;
-// consider refresh.
 
 // Multi-agent exploration is slow; 30min timeout.
 const ULTRAPLAN_TIMEOUT_MS = 30 * 60 * 1000;

@@ -6,7 +6,7 @@ import type { TeleportRemoteResponse } from 'src/utils/conversationRecovery.js';
 // Teleport API removed — CodeSession type inlined
 type CodeSession = any;
 import { errorMessage, TeleportOperationError } from '../utils/errors.js';
-// Teleport module removed — inlined no-op
+// Teleport (remote session resume) is not available in this fork — always returns null.
 const teleportResumeCodeSession = async (_id: string, _onProgress?: any): Promise<any> => null;
 export type TeleportResumeError = {
   message: string;

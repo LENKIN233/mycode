@@ -15,11 +15,11 @@ import { deleteRemoteAgentMetadata, listRemoteAgentMetadata, type RemoteAgentMet
 import { jsonStringify } from '../../utils/slowOperations.js';
 import { appendTaskOutput, evictTaskOutput, getTaskOutputPath, initTaskOutput } from '../../utils/task/diskOutput.js';
 import { registerTask, updateTaskState } from '../../utils/task/framework.js';
-// Teleport API removed — inlined no-op
+// Remote session APIs (teleport/CCR) are not available in this fork.
+// Stubs return null/empty so callers degrade gracefully.
 const fetchSession = async (_id: string): Promise<any> => null;
-// Teleport module removed — inlined no-ops
 const archiveRemoteSession = async (_id: string): Promise<void> => {};
-const pollRemoteSessionEvents = async (_id: string, _afterId?: string, _opts?: any): Promise<{ events: any[]; lastId?: string }> => ({ events: [] });
+const pollRemoteSessionEvents = async (_id: string, _afterId?: string, _opts?: any): Promise<{ newEvents: any[]; lastEventId?: string }> => ({ newEvents: [] });
 import type { TodoList } from '../../utils/todo/types.js';
 // Ultraplan phase type inlined (Anthropic infrastructure removed)
 type UltraplanPhase = 'planning' | 'executing' | 'reviewing' | 'done'

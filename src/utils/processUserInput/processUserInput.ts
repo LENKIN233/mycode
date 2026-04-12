@@ -1,4 +1,3 @@
-import { feature } from 'bun:bundle'
 import type {
   Base64ImageSource,
   ContentBlockParam,
@@ -54,9 +53,6 @@ import {
 } from '../messages.js'
 import { queryCheckpoint } from '../queryProfiler.js'
 import { parseSlashCommand } from '../slashCommandParsing.js'
-// Ultraplan keyword detection disabled (Anthropic infrastructure removed)
-const hasUltraplanKeyword = (_text: string): boolean => false
-const replaceUltraplanKeyword = (text: string): string => text
 import { processTextPrompt } from './processTextPrompt.js'
 export type ProcessUserInputContext = ToolUseContext & LocalJSXCommandContext
 
@@ -468,34 +464,6 @@ async function processUserInputBase(
   // Runs before attachment extraction so this path matches the slash-command
   // path below (no await between setUserInputOnProcessing and setAppState —
   // React batches both into one render, no flash).
-  if (
-    feature('ULTRAPLAN') &&
-    mode === 'prompt' &&
-    !context.options.isNonInteractiveSession &&
-    inputString !== null &&
-    !effectiveSkipSlash &&
-    !inputString.startsWith('/') &&
-    !context.getAppState().ultraplanSessionUrl &&
-    !context.getAppState().ultraplanLaunching &&
-    hasUltraplanKeyword(preExpansionInput ?? inputString)
-  ) {
-    logEvent('tengu_ultraplan_keyword', {})
-    const rewritten = replaceUltraplanKeyword(inputString).trim()
-    const { processSlashCommand } = await import('./processSlashCommand.js')
-    const slashResult = await processSlashCommand(
-      `/ultraplan ${rewritten}`,
-      precedingInputBlocks,
-      imageContentBlocks,
-      [],
-      context,
-      setToolJSX,
-      uuid,
-      isAlreadyProcessing,
-      canUseTool,
-    )
-    return addImageMetadataMessage(slashResult, imageMetadataTexts)
-  }
-
   // For slash commands, attachments will be extracted within getMessagesForSlashCommand
   const shouldExtractAttachments =
     !skipAttachments &&
