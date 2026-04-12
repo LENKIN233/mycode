@@ -13,7 +13,6 @@ import { TaskStopTool } from './tools/TaskStopTool/TaskStopTool.js'
 import { BriefTool } from './tools/BriefTool/BriefTool.js'
 // Dead code elimination: ant-only and disabled tools
 /* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
-const REPLTool = null // REPLTool removed (ant-only, disabled)
 
 const cronTools = feature('AGENT_TRIGGERS')
   ? [
@@ -74,11 +73,9 @@ export {
 import { feature } from 'bun:bundle'
 // Dead code elimination: conditional import for OVERFLOW_TEST_TOOL
 /* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
-const CtxInspectTool = null // CtxInspectTool removed (disabled stub)
 const coordinatorModeModule = feature('COORDINATOR_MODE')
   ? (require('./coordinator/coordinatorMode.js') as typeof import('./coordinator/coordinatorMode.js'))
   : null
-const WorkflowTool = null // WorkflowTool removed (WORKFLOW_SCRIPTS disabled)
 /* eslint-enable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
 import type { ToolPermissionContext } from './Tool.js'
 import { getDenyRuleForTool } from './utils/permissions/permissions.js'
@@ -163,15 +160,12 @@ export function getAllBaseTools(): Tools {
     ...(isTodoV2Enabled()
       ? [TaskCreateTool, TaskGetTool, TaskUpdateTool, TaskListTool]
       : []),
-    ...(CtxInspectTool ? [CtxInspectTool] : []),
     ...(isEnvTruthy(process.env.ENABLE_LSP_TOOL) ? [LSPTool] : []),
     ...(isWorktreeModeEnabled() ? [EnterWorktreeTool, ExitWorktreeTool] : []),
     getSendMessageTool(),
     ...(isAgentSwarmsEnabled()
       ? [getTeamCreateTool(), getTeamDeleteTool()]
       : []),
-    ...(process.env.USER_TYPE === 'ant' && REPLTool ? [REPLTool] : []),
-    ...(WorkflowTool ? [WorkflowTool] : []),
     ...cronTools,
     ...(MonitorTool ? [MonitorTool] : []),
     BriefTool,
@@ -205,19 +199,6 @@ export function filterToolsByDenyRules<
 export const getTools = (permissionContext: ToolPermissionContext): Tools => {
   // Simple mode: only Bash, Read, and Edit tools
   if (isEnvTruthy(process.env.MYCODE_SIMPLE)) {
-    // --bare + REPL mode: REPL wraps Bash/Read/Edit/etc inside the VM, so
-    // return REPL instead of the raw primitives. Matches the non-bare path
-    // below which also hides REPL_ONLY_TOOLS when REPL is enabled.
-    if (isReplModeEnabled() && REPLTool) {
-      const replSimple: Tool[] = [REPLTool]
-      if (
-        feature('COORDINATOR_MODE') &&
-        coordinatorModeModule?.isCoordinatorMode()
-      ) {
-        replSimple.push(TaskStopTool, getSendMessageTool())
-      }
-      return filterToolsByDenyRules(replSimple, permissionContext)
-    }
     const simpleTools: Tool[] = [BashTool, FileReadTool, FileEditTool]
     // When coordinator mode is also active, include AgentTool and TaskStopTool
     // so the coordinator gets Task+TaskStop (via useMergedTools filtering) and

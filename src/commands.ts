@@ -42,32 +42,21 @@ import vim from './commands/vim/index.js'
 import { feature } from 'bun:bundle'
 // Dead code elimination: conditional imports
 /* eslint-disable @typescript-eslint/no-require-imports */
-const proactive = null // proactive command removed (disabled stub)
 const briefCommand =
   feature('KAIROS') || feature('KAIROS_BRIEF')
     ? require('./commands/brief.js').default
     : null
-const assistantCommand = null // assistant command removed (disabled stub)
 const bridge = feature('BRIDGE_MODE')
   ? require('./commands/bridge/index.js').default
   : null
-const remoteControlServerCommand = null // remoteControlServer removed (DAEMON+BRIDGE_MODE disabled)
-const voiceCommand = null
-const forceSnip = null // force-snip command removed (disabled stub)
-const workflowsCmd = null // workflows command removed (WORKFLOW_SCRIPTS disabled)
-const webCmd = null
 const clearSkillIndexCache = feature('EXPERIMENTAL_SKILL_SEARCH')
   ? (
       require('./services/skillSearch/localSearch.js') as typeof import('./services/skillSearch/localSearch.js')
     ).clearSkillIndexCache
   : null
-const subscribePr = null // subscribe-pr command removed (KAIROS_GITHUB_WEBHOOKS disabled)
 const ultraplan = feature('ULTRAPLAN')
   ? require('./commands/ultraplan.js').default
   : null
-const torch = null // torch command removed (TORCH disabled)
-const peersCmd = null // peers command removed (UDS_INBOX disabled)
-const forkCmd = null // fork command removed (disabled stub)
 /* eslint-enable @typescript-eslint/no-require-imports */
 import thinkback from './commands/thinkback/index.js'
 import thinkbackPlay from './commands/thinkback-play/index.js'
@@ -183,7 +172,6 @@ export const INTERNAL_ONLY_COMMANDS = [
   bridgeKick,
   version,
   ...(ultraplan ? [ultraplan] : []),
-  ...(subscribePr ? [subscribePr] : []),
   resetLimits,
   resetLimitsNonInteractive,
   ...(!isEnvTruthy(process.env.MYCODE_DISABLE_ANTHROPIC_OFFICIAL)
@@ -262,16 +250,8 @@ const COMMANDS = memoize((): Command[] => [
   usage,
   usageReport,
   vim,
-  ...(webCmd ? [webCmd] : []),
-  ...(forkCmd ? [forkCmd] : []),
-  ...(proactive ? [proactive] : []),
   ...(briefCommand ? [briefCommand] : []),
-  ...(assistantCommand ? [assistantCommand] : []),
   ...(bridge ? [bridge] : []),
-  ...(remoteControlServerCommand ? [remoteControlServerCommand] : []),
-  ...(!isEnvTruthy(process.env.MYCODE_DISABLE_ANTHROPIC_OFFICIAL) && voiceCommand
-    ? [voiceCommand]
-    : []),
   thinkback,
   thinkbackPlay,
   permissions,
@@ -280,10 +260,7 @@ const COMMANDS = memoize((): Command[] => [
   hooks,
   exportCommand,
   sandboxToggle,
-  ...(peersCmd ? [peersCmd] : []),
   tasks,
-  ...(workflowsCmd ? [workflowsCmd] : []),
-  ...(torch ? [torch] : []),
   ...(process.env.USER_TYPE === 'ant' && !process.env.IS_DEMO
     ? INTERNAL_ONLY_COMMANDS
     : []),
