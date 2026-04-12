@@ -437,7 +437,8 @@ const externalTips: Tip[] = [
   {
     id: 'desktop-app',
     content: async () =>
-      'Run MyCode locally or remotely using the MyCode desktop app: clau.de/desktop',
+      'Run MyCode locally or remotely using the MyCode desktop app',
+      // clau.de/desktop not available in this fork
     cooldownSessions: 15,
     isRelevant: async () => getPlatform() !== 'linux',
   },
@@ -453,7 +454,8 @@ const externalTips: Tip[] = [
   {
     id: 'web-app',
     content: async () =>
-      'Run tasks in the cloud while you keep coding locally · clau.de/web',
+      'Run tasks in the cloud while you keep coding locally',
+      // clau.de/web not available in this fork
     cooldownSessions: 15,
     isRelevant: async () => true,
   },

@@ -22,8 +22,8 @@ import { sideQuery } from '../sideQuery.js'
 import { getAllSocketPaths, getSecureSocketPath } from './common.js'
 
 const EXTENSION_DOWNLOAD_URL = 'https://mycode.ai/chrome'
-const BUG_REPORT_URL =
-  'https://github.com/anthropics/mycode/issues/new?labels=bug,mycode-in-chrome'
+// Upstream BUG_REPORT_URL pointed to github.com/anthropics/claude-code — not available in this fork
+const BUG_REPORT_URL = ''
 
 // String metadata keys safe to forward to analytics. Keys like error_message
 // are excluded because they could contain page content or user data.

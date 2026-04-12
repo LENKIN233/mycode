@@ -9,7 +9,8 @@ import { errorMessage } from '../utils/errors.js';
 import { gracefulShutdown } from '../utils/gracefulShutdown.js';
 import { flushSessionStorage } from '../utils/sessionStorage.js';
 import { LoadingState } from './design-system/LoadingState.js';
-const DESKTOP_DOCS_URL = 'https://clau.de/desktop';
+// Upstream uses clau.de/desktop — not available in this fork
+const DESKTOP_DOCS_URL = '';
 export function getDownloadUrl(): string {
   switch (process.platform) {
     case 'win32':

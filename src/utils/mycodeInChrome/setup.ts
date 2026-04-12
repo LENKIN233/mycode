@@ -31,7 +31,8 @@ import {
 import { getChromeSystemPrompt } from './prompt.js'
 import { isChromeExtensionInstalledPortable } from './setupPortable.js'
 
-const CHROME_EXTENSION_RECONNECT_URL = 'https://clau.de/chrome/reconnect'
+// Upstream uses clau.de/chrome/reconnect — not available in this fork
+const CHROME_EXTENSION_RECONNECT_URL = ''
 
 const NATIVE_HOST_IDENTIFIER = 'com.mycode_browser_extension'
 const NATIVE_HOST_MANIFEST_NAME = `${NATIVE_HOST_IDENTIFIER}.json`

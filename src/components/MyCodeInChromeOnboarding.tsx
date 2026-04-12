@@ -7,7 +7,8 @@ import { isChromeExtensionInstalled } from '../utils/mycodeInChrome/setup.js';
 import { saveGlobalConfig } from '../utils/config.js';
 import { Dialog } from './design-system/Dialog.js';
 const CHROME_EXTENSION_URL = 'https://mycode.ai/chrome';
-const CHROME_PERMISSIONS_URL = 'https://clau.de/chrome/permissions';
+// Upstream uses clau.de/chrome/permissions — not available in this fork
+const CHROME_PERMISSIONS_URL = '';
 type Props = {
   onDone(): void;
 };

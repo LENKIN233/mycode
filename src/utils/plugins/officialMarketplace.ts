@@ -11,6 +11,8 @@ import type { MarketplaceSource } from './schemas.js'
 /**
  * Source configuration for the official Anthropic plugins marketplace.
  * Used when auto-installing the marketplace on startup.
+ * NOTE: This repo (anthropics/mycode-plugins-official) does not exist.
+ * Auto-install is disabled in officialMarketplaceStartupCheck.ts.
  */
 export const OFFICIAL_MARKETPLACE_SOURCE = {
   source: 'github',

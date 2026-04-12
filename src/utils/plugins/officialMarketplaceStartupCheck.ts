@@ -145,6 +145,9 @@ export type OfficialMarketplaceCheckResult = {
  * @returns Result indicating whether installation succeeded or was skipped
  */
 export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMarketplaceCheckResult> {
+  // Official marketplace repo (anthropics/mycode-plugins-official) does not exist in this fork
+  return { installed: false, skipped: true, reason: 'auto_install_disabled' }
+
   const config = getGlobalConfig()
 
   // Check if we should retry installation
