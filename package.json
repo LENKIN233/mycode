@@ -24,9 +24,8 @@
   },
   "dependencies": {
     "@alcalzone/ansi-tokenize": "*",
-    "@ant/claude-for-chrome-mcp": "file:./shims/ant-claude-for-chrome-mcp",
     "@ant/computer-use-mcp": "file:./shims/ant-computer-use-mcp",
-    "@ant/mycode-for-chrome-mcp": "file:./shims/ant-claude-for-chrome-mcp",
+    "@ant/mycode-for-chrome-mcp": "file:./shims/ant-mycode-for-chrome-mcp",
     "@anthropic-ai/mcpb": "*",
     "@anthropic-ai/sandbox-runtime": "*",
     "@anthropic-ai/sdk": "^0.87.0",
