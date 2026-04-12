@@ -110,15 +110,6 @@ export const ConfigTool = buildTool({
   renderToolUseRejectedMessage,
   async call({ setting, value }: Input, context): Promise<{ data: Output }> {
     // 1. Check if setting is supported
-    // Voice settings are registered at build-time (feature('VOICE_MODE')), but
-    // must also be gated at runtime. When the kill-switch is on, treat
-    // voiceEnabled as an unknown setting so no voice-specific strings leak.
-    // Voice mode disabled — Anthropic infrastructure removed
-    if (setting === 'voiceEnabled') {
-      return {
-        data: { success: false, error: `Unknown setting: "${setting}"` },
-      }
-    }
     if (!isSupported(setting)) {
       return {
         data: { success: false, error: `Unknown setting: "${setting}"` },
@@ -261,17 +252,7 @@ export const ConfigTool = buildTool({
         }
       }
 
-      // 5a. Voice needs notifyChange so applySettingsChange resyncs
-      // AppState.settings (useVoiceEnabled reads settings.voiceEnabled)
-      // and the settings cache resets for the next /voice read.
-      if (feature('VOICE_MODE') && setting === 'voiceEnabled') {
-        const { settingsChangeDetector } = await import(
-          '../../utils/settings/changeDetector.js'
-        )
-        settingsChangeDetector.notifyChange('userSettings')
-      }
-
-      // 5b. Sync to AppState if needed for immediate UI effect
+      // 5. Sync to AppState if needed for immediate UI effect
       if (config.appStateKey) {
         const appKey = config.appStateKey
         context.setAppState(prev => {
