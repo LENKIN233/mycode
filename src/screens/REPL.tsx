@@ -234,7 +234,7 @@ import { useInstallMessages } from 'src/hooks/notifs/useInstallMessages.js';
 import { useAwaySummary } from 'src/hooks/useAwaySummary.js';
 import { useChromeExtensionNotification } from 'src/hooks/useChromeExtensionNotification.js';
 import { useOfficialMarketplaceNotification } from 'src/hooks/useOfficialMarketplaceNotification.js';
-import { usePromptsFromMyCodeInChrome } from 'src/hooks/usePromptsFromMyCodeInChrome.js';
+// usePromptsFromMyCodeInChrome removed — Chrome extension MCP sync not applicable
 import { getTipToShowOnSpinner, recordShownTip } from 'src/services/tips/tipScheduler.js';
 import type { Theme } from 'src/utils/theme.js';
 import { checkAndDisableBypassPermissionsIfNeeded, checkAndDisableAutoModeIfNeeded, useKickOffCheckAndDisableBypassPermissionsIfNeeded, useKickOffCheckAndDisableAutoModeIfNeeded } from 'src/utils/permissions/bypassPermissionsKillswitch.js';
@@ -252,7 +252,7 @@ import { useLspPluginRecommendation } from 'src/hooks/useLspPluginRecommendation
 import { LspRecommendationMenu } from 'src/components/LspRecommendation/LspRecommendationMenu.js';
 import { useMyCodeHintRecommendation } from 'src/hooks/useMyCodeHintRecommendation.js';
 import { PluginHintMenu } from 'src/components/MyCodeHint/PluginHintMenu.js';
-// DesktopUpsell removed — inlined no-ops\nconst DesktopUpsellStartup = (_props: any) => null;\nconst shouldShowDesktopUpsellStartup = () => false;
+// DesktopUpsell removed — entire feature deleted (Anthropic desktop app, not applicable)
 import { usePluginInstallationStatus } from 'src/hooks/notifs/usePluginInstallationStatus.js';
 import { usePluginAutoupdateNotification } from 'src/hooks/notifs/usePluginAutoupdateNotification.js';
 import { performStartupChecks } from 'src/utils/plugins/performStartupChecks.js';
@@ -777,7 +777,7 @@ export function REPL({
   });
   const [showEffortCallout, setShowEffortCallout] = useState(() => shouldShowEffortCallout(mainLoopModel));
   const showRemoteCallout = useAppState(s => s.showRemoteCallout);
-  const [showDesktopUpsellStartup, setShowDesktopUpsellStartup] = useState(() => shouldShowDesktopUpsellStartup());
+
   // notifications
   useModelMigrationNotifications();
   useCanSwitchToExistingSubscription();
@@ -836,9 +836,7 @@ export function REPL({
     void performStartupChecks(setAppState);
   }, [setAppState, isRemoteSession]);
 
-  // Allow Browser Extension MCP to send prompts through MCP notifications
-  // and sync permission mode changes to the Chrome extension
-  usePromptsFromMyCodeInChrome(isRemoteSession ? EMPTY_MCP_CLIENTS : mcpClients, toolPermissionContext.mode);
+
 
   // Initialize swarm features: teammate hooks and context
   // Handles both fresh spawns and resumed teammate sessions
@@ -2089,8 +2087,7 @@ export function REPL({
     // Plugin hint from CLI/SDK stderr (same priority band as LSP rec)
     if (allowDialogsWithAnimation && hintRecommendation) return 'plugin-hint';
 
-    // Desktop app upsell (max 3 launches, lowest priority)
-    if (allowDialogsWithAnimation && showDesktopUpsellStartup) return 'desktop-upsell';
+
     return undefined;
   }
   const focusedInputDialog = getFocusedInputDialog();
@@ -4876,7 +4873,7 @@ export function REPL({
 
                 {focusedInputDialog === 'lsp-recommendation' && lspRecommendation && <LspRecommendationMenu pluginName={lspRecommendation.pluginName} pluginDescription={lspRecommendation.pluginDescription} fileExtension={lspRecommendation.fileExtension} onResponse={handleLspResponse} />}
 
-                {focusedInputDialog === 'desktop-upsell' && <DesktopUpsellStartup onDone={() => setShowDesktopUpsellStartup(false)} />}
+
 
                 {feature('ULTRAPLAN') ? focusedInputDialog === 'ultraplan-choice' && ultraplanPendingChoice && <UltraplanChoiceDialog plan={ultraplanPendingChoice.plan} sessionId={ultraplanPendingChoice.sessionId} taskId={ultraplanPendingChoice.taskId} setMessages={setMessages} readFileState={readFileState.current} getAppState={() => store.getState()} setConversationId={setConversationId} /> : null}
 

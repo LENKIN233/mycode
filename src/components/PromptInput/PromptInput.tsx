@@ -12,10 +12,9 @@ import type { FooterItem } from 'src/state/AppStateStore.js';
 import { getCwd } from 'src/utils/cwd.js';
 import { isQueuedCommandEditable, popAllEditable } from 'src/utils/messageQueueManager.js';
 import stripAnsi from 'strip-ansi';
-// Buddy feature removed — inlined no-ops
-const companionReservedColumns = () => 0;
-const findBuddyTriggerPositions = () => [] as any[];
-const useBuddyNotification = () => {};
+// Buddy feature removed — stubs eliminated
+// companionReservedColumns always returns 0, findBuddyTriggerPositions always returns []
+// useBuddyNotification was a no-op — all three deleted along with calling code
 import { FastModePicker } from '../../commands/fast/fast.js';
 import { isUltrareviewEnabled } from '../../commands/review/ultrareviewEnabled.js';
 import { getNativeCSIuTerminalDisplayName } from '../../commands/terminalSetup/terminalSetup.js';
@@ -521,7 +520,7 @@ function PromptInput({
   const ultraplanTriggers: any[] = []
   const ultrareviewTriggers: any[] = []
   const btwTriggers = useMemo(() => findBtwTriggerPositions(displayedValue), [displayedValue]);
-  const buddyTriggers = useMemo(() => findBuddyTriggerPositions(displayedValue), [displayedValue]);
+
   const slashCommandTriggers = useMemo(() => {
     const positions = findSlashCommandPositions(displayedValue);
     // Only highlight valid commands
@@ -724,20 +723,9 @@ function PromptInput({
       }
     }
 
-    // Rainbow for /buddy
-    for (const trigger of buddyTriggers) {
-      for (let i = trigger.start; i < trigger.end; i++) {
-        highlights.push({
-          start: i,
-          end: i + 1,
-          color: getRainbowColor(i - trigger.start),
-          shimmerColor: getRainbowColor(i - trigger.start, true),
-          priority: 10
-        });
-      }
-    }
+
     return highlights;
-  }, [isSearchingHistory, historyQuery, historyMatch, historyFailedMatch, cursorOffset, btwTriggers, imageRefPositions, memberMentionHighlights, slashCommandTriggers, tokenBudgetTriggers, slackChannelTriggers, displayedValue, voiceInterimRange, thinkTriggers, ultraplanTriggers, ultrareviewTriggers, buddyTriggers]);
+  }, [isSearchingHistory, historyQuery, historyMatch, historyFailedMatch, cursorOffset, btwTriggers, imageRefPositions, memberMentionHighlights, slashCommandTriggers, tokenBudgetTriggers, slackChannelTriggers, displayedValue, voiceInterimRange, thinkTriggers, ultraplanTriggers, ultrareviewTriggers]);
   const {
     addNotification,
     removeNotification
@@ -1979,15 +1967,12 @@ function PromptInput({
       timeoutMs: 12_000
     });
   }, [effortNotificationText, addNotification, removeNotification]);
-  useBuddyNotification();
-  const companionSpeaking = feature('BUDDY') ?
-  // biome-ignore lint/correctness/useHookAtTopLevel: feature() is a compile-time constant
-  useAppState(s => s.companionReaction !== undefined) : false;
+
   const {
     columns,
     rows
   } = useTerminalSize();
-  const textInputColumns = columns - 3 - companionReservedColumns(columns, companionSpeaking);
+  const textInputColumns = columns - 3;
 
   // POC: click-to-position-cursor. Mouse tracking is only enabled inside
   // <AlternateScreen>, so this is dormant in the normal main-screen REPL.

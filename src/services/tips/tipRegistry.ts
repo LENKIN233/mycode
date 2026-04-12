@@ -7,7 +7,7 @@ import {
   getSettingsForSource,
 } from 'src/utils/settings/settings.js'
 import { shouldOfferTerminalSetup } from '../../commands/terminalSetup/terminalSetup.js'
-// DesktopUpsell removed — inlined no-op\nconst getDesktopUpsellConfig = () => ({ enable_shortcut_tip: false })
+// DesktopUpsell removed — desktop-shortcut tip always disabled
 import { color } from '../../components/design-system/color.js'
 import { shouldShowOverageCreditUpsell } from '../../components/LogoV2/OverageCreditUpsell.js'
 import { getShortcutDisplay } from '../../keybindings/shortcutFormat.js'
@@ -448,13 +448,7 @@ const externalTips: Tip[] = [
       return `Continue your session in MyCode Desktop with ${blue('/desktop')}`
     },
     cooldownSessions: 15,
-    isRelevant: async () => {
-      if (!getDesktopUpsellConfig().enable_shortcut_tip) return false
-      return (
-        process.platform === 'darwin' ||
-        (process.platform === 'win32' && process.arch === 'x64')
-      )
-    },
+    isRelevant: async () => false, // DesktopUpsell removed — shortcut tip permanently disabled
   },
   {
     id: 'web-app',

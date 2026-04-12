@@ -4,9 +4,10 @@ import { getOauthAccountInfo } from '../../utils/auth.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import { logError } from '../../utils/log.js'
 import { isEssentialTrafficOnly } from '../../utils/privacyLevel.js'
-// Teleport API removed — inlined no-ops
+// Anthropic platform API is not available in this fork (API-key auth only).
+// Stubs throw so callers degrade via their existing try-catch paths.
 const getOAuthHeaders = (_t: string): Record<string, string> => ({})
-const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('teleport disabled') }
+const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('Anthropic platform API not available') }
 
 export type OverageCreditGrantInfo = {
   available: boolean

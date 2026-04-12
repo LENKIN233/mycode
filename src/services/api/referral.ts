@@ -9,13 +9,13 @@ import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { logError } from '../../utils/log.js'
 import { isEssentialTrafficOnly } from '../../utils/privacyLevel.js'
-// Teleport API removed — inlined no-ops
+// Anthropic platform API is not available in this fork (API-key auth only).
+// Stubs throw so callers degrade via their existing try-catch paths.
 const getOAuthHeaders = (_t: string): Record<string, string> => ({})
-const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('teleport disabled') }
+const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('Anthropic platform API not available') }
 // OAuth types removed (Anthropic infrastructure)
 type ReferralCampaign = string
 type ReferralEligibilityResponse = any
-type ReferralRedemptionsResponse = any
 type ReferrerRewardInfo = any
 
 // Cache expiration time: 24 hours (eligibility changes only on subscription/experiment changes)
@@ -40,27 +40,6 @@ export async function fetchReferralEligibility(
     headers,
     params: { campaign },
     timeout: 5000, // 5 second timeout for background fetch
-  })
-
-  return response.data
-}
-
-export async function fetchReferralRedemptions(
-  campaign: string = 'mycode_guest_pass',
-): Promise<ReferralRedemptionsResponse> {
-  const { accessToken, orgUUID } = await prepareApiRequest()
-
-  const headers = {
-    ...getOAuthHeaders(accessToken),
-    'x-organization-uuid': orgUUID,
-  }
-
-  const url = `${getOauthConfig().BASE_API_URL}/api/oauth/organizations/${orgUUID}/referral/redemptions`
-
-  const response = await axios.get<ReferralRedemptionsResponse>(url, {
-    headers,
-    params: { campaign },
-    timeout: 10000, // 10 second timeout
   })
 
   return response.data

@@ -19,7 +19,7 @@ import { clearFileSuggestionCaches } from '../../hooks/fileSuggestions.js'
 import { clearAllPendingCallbacks } from '../../hooks/useSwarmPermissionPoller.js'
 import { clearAllDumpState } from '../../services/api/dumpPrompts.js'
 import { resetPromptCacheBreakDetection } from '../../services/api/promptCacheBreakDetection.js'
-// Session ingress removed — inlined no-op\nconst clearAllSessions = () => {}
+// Session ingress removed — clearAllSessions was a no-op, deleted
 import { runPostCompactCleanup } from '../../services/compact/postCompactCleanup.js'
 import { resetAllLSPDiagnosticState } from '../../services/lsp/LSPDiagnosticRegistry.js'
 import { clearTrackedMagicDocs } from '../../services/MagicDocs/magicDocs.js'
@@ -86,8 +86,7 @@ export function clearSessionCaches(
   // Clear stored image paths cache
   clearStoredImagePaths()
 
-  // Clear all session ingress caches (lastUuidMap, sequentialAppendBySession)
-  clearAllSessions()
+
   // Clear swarm permission pending callbacks
   if (!hasPreserved) clearAllPendingCallbacks()
 

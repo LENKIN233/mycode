@@ -1,8 +1,9 @@
 import axios from 'axios'
 import { getOauthConfig } from '../../constants/oauth.js'
-// Teleport API removed — inlined no-ops
+// Anthropic platform API is not available in this fork (API-key auth only).
+// Stubs throw so callers degrade via their existing try-catch paths.
 const getOAuthHeaders = (_t: string): Record<string, string> => ({})
-const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('teleport disabled') }
+const prepareApiRequest = async (): Promise<{ baseUrl: string; headers: Record<string, string> }> => { throw new Error('Anthropic platform API not available') }
 
 export type AdminRequestType = 'limit_increase' | 'seat_upgrade'
 
