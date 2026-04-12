@@ -184,6 +184,9 @@ async function saveInstallCountsCache(
 async function fetchInstallCountsFromGitHub(): Promise<
   Array<{ plugin: string; unique_installs: number }>
 > {
+  // Install counts repo (github.com/anthropics/mycode-plugins-official) not available in this fork
+  return []
+
   logForDebugging(`Fetching install counts from ${INSTALL_COUNTS_URL}`)
 
   const started = performance.now()

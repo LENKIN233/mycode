@@ -80,6 +80,9 @@ export async function migrateChangelogFromConfig(): Promise<void> {
  * This runs in the background and doesn't block the UI
  */
 export async function fetchAndStoreChangelog(): Promise<void> {
+  // Upstream changelog URL (github.com/anthropics/mycode) is not available in this fork
+  return
+
   // Skip in noninteractive mode
   if (getIsNonInteractiveSession()) {
     return
