@@ -287,7 +287,7 @@ import {
   setAllowedChannels,
   type ChannelEntry,
 } from 'src/bootstrap/state.js'
-import { runWithWorkload, WORKLOAD_CRON } from 'src/utils/workloadContext.js'
+import { runWithWorkload } from 'src/utils/workloadContext.js'
 import type { UUID } from 'crypto'
 import { randomUUID } from 'crypto'
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs'
@@ -355,15 +355,6 @@ const proactiveModule =
   feature('PROACTIVE') || feature('KAIROS')
     ? (require('../proactive/index.js') as typeof import('../proactive/index.js'))
     : null
-const cronSchedulerModule = feature('AGENT_TRIGGERS')
-  ? (require('../utils/cronScheduler.js') as typeof import('../utils/cronScheduler.js'))
-  : null
-const cronJitterConfigModule = feature('AGENT_TRIGGERS')
-  ? (require('../utils/cronJitterConfig.js') as typeof import('../utils/cronJitterConfig.js'))
-  : null
-const cronGate = feature('AGENT_TRIGGERS')
-  ? (require('../tools/ScheduleCronTool/prompt.js') as typeof import('../tools/ScheduleCronTool/prompt.js'))
-  : null
 const extractMemoriesModule = feature('EXTRACT_MEMORIES')
   ? (require('../services/extractMemories/extractMemories.js') as typeof import('../services/extractMemories/extractMemories.js'))
   : null
@@ -2713,45 +2704,7 @@ function runHeadlessStreaming(
     })
   }
 
-  // Cron scheduler: runs scheduled_tasks.json tasks in SDK/-p mode.
-  // Mirrors REPL's useScheduledTasks hook. Fired prompts enqueue + kick
-  // off run() directly — unlike REPL, there's no queue subscriber here
-  // that drains on enqueue while idle. The run() mutex makes this safe
-  // during an active turn: the call no-ops and the post-run recheck at
-  // the end of run() picks up the queued command.
-  let cronScheduler: import('../utils/cronScheduler.js').CronScheduler | null =
-    null
-  if (
-    feature('AGENT_TRIGGERS') &&
-    cronSchedulerModule &&
-    cronGate?.isKairosCronEnabled()
-  ) {
-    cronScheduler = cronSchedulerModule.createCronScheduler({
-      onFire: prompt => {
-        if (inputClosed) return
-        enqueue({
-          mode: 'prompt',
-          value: prompt,
-          uuid: randomUUID(),
-          priority: 'later',
-          // System-generated — matches useScheduledTasks.ts REPL equivalent.
-          // Without this, messages.ts metaProp eval is {} → prompt leaks
-          // into visible transcript when cron fires mid-turn in -p mode.
-          isMeta: true,
-          // Threaded to cc_workload= in the billing-header attribution block
-          // so the API can serve cron requests at lower QoS. drainCommandQueue
-          // reads this per-iteration and hoists it into bootstrap state for
-          // the ask() call.
-          workload: WORKLOAD_CRON,
-        })
-        void run()
-      },
-      isLoading: () => running || inputClosed,
-      getJitterConfig: cronJitterConfigModule?.getCronJitterConfig,
-      isKilled: () => !cronGate?.isKairosCronEnabled(),
-    })
-    cronScheduler.start()
-  }
+
 
   const sendControlResponseSuccess = function (
     message: SDKControlRequest,
@@ -4095,7 +4048,7 @@ function runHeadlessStreaming(
       void run()
     }
     inputClosed = true
-    cronScheduler?.stop()
+
     if (!running) {
       // If a push-suggestion is in-flight, wait for it to emit before closing
       // the output stream (5 s safety timeout to prevent hanging).

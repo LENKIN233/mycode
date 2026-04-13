@@ -1,5 +1,4 @@
 import { c as _c } from "react/compiler-runtime";
-import { feature } from 'bun:bundle';
 import { basename } from 'path';
 import React, { useRef } from 'react';
 import { useMinDisplayTime } from '../../hooks/useMinDisplayTime.js';
@@ -19,9 +18,7 @@ import { useSelectedMessageBg } from '../messageActions.js';
 import { PrBadge } from '../PrBadge.js';
 import { ToolUseLoader } from '../ToolUseLoader.js';
 
-/* eslint-disable @typescript-eslint/no-require-imports */
-const teamMemCollapsed = feature('TEAMMEM') ? require('./teamMemCollapsed.js') as typeof import('./teamMemCollapsed.js') : null;
-/* eslint-enable @typescript-eslint/no-require-imports */
+const teamMemCollapsed = null;
 
 // Hold each ⤿ hint for a minimum duration so fast-completing tool calls
 // (bash commands, file reads, search patterns) are actually readable instead
@@ -163,7 +160,7 @@ export function CollapsedReadSearchContent({
   const toolUseIds = getToolUseIdsFromCollapsedGroup(message);
   const anyError = toolUseIds.some(id => lookups.erroredToolUseIDs.has(id));
   const hasMemoryOps = memorySearchCount > 0 || memoryReadCount > 0 || memoryWriteCount > 0;
-  const hasTeamMemoryOps = feature('TEAMMEM') ? teamMemCollapsed!.checkHasTeamMemOps(message) : false;
+  const hasTeamMemoryOps = false;
 
   // Track the max seen counts so they only ever increase. The debounce timer
   // causes extra re-renders at arbitrary times; during a brief "invisible window"
@@ -451,11 +448,7 @@ export function CollapsedReadSearchContent({
         <Text dimColor={!isActiveGroup}>
           {nonMemParts}
           {memParts}
-          {feature('TEAMMEM') ? teamMemCollapsed!.TeamMemCountParts({
-          message,
-          isActiveGroup,
-          hasPrecedingParts: hasPrecedingNonMem || memParts.length > 0
-        }) : null}
+          {null}
           {isActiveGroup && <Text key="ellipsis">…</Text>} <CtrlOToExpand />
         </Text>
       </Box>

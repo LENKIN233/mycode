@@ -1,5 +1,4 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
-import { feature } from 'bun:bundle'
 import { TASK_OUTPUT_TOOL_NAME } from '../tools/TaskOutputTool/constants.js'
 import { EXIT_PLAN_MODE_V2_TOOL_NAME } from '../tools/ExitPlanModeTool/constants.js'
 import { ENTER_PLAN_MODE_TOOL_NAME } from '../tools/EnterPlanModeTool/constants.js'
@@ -27,11 +26,7 @@ import { SYNTHETIC_OUTPUT_TOOL_NAME } from '../tools/SyntheticOutputTool/Synthet
 import { ENTER_WORKTREE_TOOL_NAME } from '../tools/EnterWorktreeTool/constants.js'
 import { EXIT_WORKTREE_TOOL_NAME } from '../tools/ExitWorktreeTool/constants.js'
 const WORKFLOW_TOOL_NAME = 'workflow'
-import {
-  CRON_CREATE_TOOL_NAME,
-  CRON_DELETE_TOOL_NAME,
-  CRON_LIST_TOOL_NAME,
-} from '../tools/ScheduleCronTool/prompt.js'
+
 
 export const ALL_AGENT_DISALLOWED_TOOLS = new Set([
   TASK_OUTPUT_TOOL_NAME,
@@ -78,11 +73,7 @@ export const IN_PROCESS_TEAMMATE_ALLOWED_TOOLS = new Set([
   TASK_LIST_TOOL_NAME,
   TASK_UPDATE_TOOL_NAME,
   SEND_MESSAGE_TOOL_NAME,
-  // Teammate-created crons are tagged with the creating agentId and routed to
-  // that teammate's pendingUserMessages queue (see useScheduledTasks.ts).
-  ...(feature('AGENT_TRIGGERS')
-    ? [CRON_CREATE_TOOL_NAME, CRON_DELETE_TOOL_NAME, CRON_LIST_TOOL_NAME]
-    : []),
+
 ])
 
 /*

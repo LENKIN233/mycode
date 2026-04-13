@@ -13,7 +13,6 @@
  * initExtractMemories() in beforeEach to get a fresh closure.
  */
 
-import { feature } from 'bun:bundle'
 import { basename } from 'path'
 import { getIsRemoteMode } from '../../bootstrap/state.js'
 import type { CanUseToolFn } from '../../hooks/useCanUseTool.js'
@@ -58,14 +57,9 @@ import { logEvent } from '../analytics/index.js'
 import { sanitizeToolNameForAnalytics } from '../analytics/metadata.js'
 import {
   buildExtractAutoOnlyPrompt,
-  buildExtractCombinedPrompt,
 } from './prompts.js'
 
-/* eslint-disable @typescript-eslint/no-require-imports */
-const teamMemPaths = feature('TEAMMEM')
-  ? (require('../../memdir/teamMemPaths.js') as typeof import('../../memdir/teamMemPaths.js'))
-  : null
-/* eslint-enable @typescript-eslint/no-require-imports */
+const teamMemPaths = null
 
 // ============================================================================
 // Helpers
@@ -359,9 +353,7 @@ export function initExtractMemories(): void {
       return
     }
 
-    const teamMemoryEnabled = feature('TEAMMEM')
-      ? teamMemPaths!.isTeamMemoryEnabled()
-      : false
+    const teamMemoryEnabled = false
 
     const skipIndex = getFeatureValue_CACHED_MAY_BE_STALE(
       'tengu_moth_copse',
@@ -399,14 +391,7 @@ export function initExtractMemories(): void {
         await scanMemoryFiles(memoryDir, createAbortController().signal),
       )
 
-      const userPrompt =
-        feature('TEAMMEM') && teamMemoryEnabled
-          ? buildExtractCombinedPrompt(
-              newMessageCount,
-              existingMemories,
-              skipIndex,
-            )
-          : buildExtractAutoOnlyPrompt(
+      const userPrompt = buildExtractAutoOnlyPrompt(
               newMessageCount,
               existingMemories,
               skipIndex,
@@ -465,9 +450,7 @@ export function initExtractMemories(): void {
       const memoryPaths = writtenPaths.filter(
         p => basename(p) !== ENTRYPOINT_NAME,
       )
-      const teamCount = feature('TEAMMEM')
-        ? count(memoryPaths, teamMemPaths!.isTeamMemPath)
-        : 0
+      const teamCount = 0
 
       // Log extraction event with usage from the forked agent
       logEvent('tengu_extract_memories_extraction', {
@@ -489,9 +472,6 @@ export function initExtractMemories(): void {
       )
       if (memoryPaths.length > 0) {
         const msg = createMemorySavedMessage(memoryPaths)
-        if (feature('TEAMMEM')) {
-          msg.teamCount = teamCount
-        }
         appendSystemMessage?.(msg)
       }
     } catch (error) {

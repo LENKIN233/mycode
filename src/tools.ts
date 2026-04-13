@@ -14,13 +14,7 @@ import { BriefTool } from './tools/BriefTool/BriefTool.js'
 // Dead code elimination: ant-only and disabled tools
 /* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
 
-const cronTools = feature('AGENT_TRIGGERS')
-  ? [
-      require('./tools/ScheduleCronTool/CronCreateTool.js').CronCreateTool,
-      require('./tools/ScheduleCronTool/CronDeleteTool.js').CronDeleteTool,
-      require('./tools/ScheduleCronTool/CronListTool.js').CronListTool,
-    ]
-  : []
+const cronTools: never[] = []
 
 const MonitorTool = null
 

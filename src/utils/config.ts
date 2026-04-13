@@ -32,9 +32,7 @@ import { getManagedFilePath } from './settings/managedPath.js'
 import type { ThemeSetting } from './theme.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const teamMemPaths = feature('TEAMMEM')
-  ? (require('../memdir/teamMemPaths.js') as typeof import('../memdir/teamMemPaths.js'))
-  : null
+const teamMemPaths = null
 const ccrAutoConnect = feature('CCR_AUTO_CONNECT')
   ? (require('../bridge/bridgeEnabled.js') as typeof import('../bridge/bridgeEnabled.js'))
   : null
@@ -1814,10 +1812,6 @@ export function getMemoryPath(memoryType: MemoryType): string {
       return join(getManagedFilePath(), 'MYCODE.md')
     case 'AutoMem':
       return getAutoMemEntrypoint()
-  }
-  // TeamMem is only a valid MemoryType when feature('TEAMMEM') is true
-  if (feature('TEAMMEM')) {
-    return teamMemPaths!.getTeamMemEntrypoint()
   }
   return '' // unreachable in external builds where TeamMem is not in MemoryType
 }

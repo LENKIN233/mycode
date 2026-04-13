@@ -182,7 +182,6 @@ const PROACTIVE_NO_OP_SUBSCRIBE = (_cb: () => void) => () => {};
 const PROACTIVE_FALSE = () => false;
 const SUGGEST_BG_PR_NOOP = (_p: string, _n: string): boolean => false;
 const useProactive = feature('PROACTIVE') || feature('KAIROS') ? require('../proactive/useProactive.js').useProactive : null;
-const useScheduledTasks = feature('AGENT_TRIGGERS') ? require('../hooks/useScheduledTasks.js').useScheduledTasks : null;
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { isAgentSwarmsEnabled } from '../utils/agentSwarmsEnabled.js';
 import { useTaskListWatcher } from '../hooks/useTaskListWatcher.js';
@@ -257,7 +256,7 @@ const WebBrowserPanelModule = feature('WEB_BROWSER_TOOL') ? require('../tools/We
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { IssueFlagBanner } from '../components/PromptInput/IssueFlagBanner.js';
 import { useIssueFlagBanner } from '../hooks/useIssueFlagBanner.js';
-import { CompanionSprite, CompanionFloatingBubble, MIN_COLS_FOR_FULL_SPRITE, type RemoteMessageContent } from '../compat/disabled.js';
+import { type RemoteMessageContent } from '../compat/disabled.js';
 import { DevBar } from '../components/DevBar.js';
 import type { RemoteSessionConfig } from '../remote/RemoteSessionManager.js';
 import { REMOTE_SAFE_COMMANDS } from '../commands.js';
@@ -1308,15 +1307,7 @@ export function REPL({
     } else {
       onScrollAway(handle);
       if (feature('KAIROS')) maybeLoadOlder(handle);
-      // Dismiss the companion bubble on scroll — it's absolute-positioned
-      // at bottom-right and covers transcript content. Scrolling = user is
-      // trying to read something under it.
-      if (feature('BUDDY')) {
-        setAppState(prev => prev.companionReaction === undefined ? prev : {
-          ...prev,
-          companionReaction: undefined
-        });
-      }
+
     }
   }, [onRepin, onScrollAway, maybeLoadOlder, setAppState]);
   // Deferred SessionStart hook messages — REPL renders immediately and
@@ -2793,12 +2784,6 @@ export function REPL({
     })) {
       onQueryEvent(event);
     }
-    if (feature('BUDDY')) {
-      void fireCompanionObserver(messagesRef.current, reaction => setAppState(prev => prev.companionReaction === reaction ? prev : {
-        ...prev,
-        companionReaction: reaction
-      }));
-    }
     queryCheckpoint('query_end');
 
     // Capture ant-only API metrics before resetLoadingState clears the ref.
@@ -4037,22 +4022,7 @@ export function REPL({
     onSubmitMessage: handleIncomingPrompt
   });
 
-  // Scheduled tasks from .mycode/scheduled_tasks.json (CronCreate/Delete/List)
-  if (feature('AGENT_TRIGGERS')) {
-    // Assistant mode bypasses the isLoading gate (the proactive tick →
-    // Sleep → tick loop would otherwise starve the scheduler).
-    // kairosEnabled is set once in initialState (main.tsx) and never mutated — no
-    // subscription needed. The tengu_kairos_cron runtime gate is checked inside
-    // useScheduledTasks's effect (not here) since wrapping a hook call in a dynamic
-    // condition would break rules-of-hooks.
-    const assistantMode = store.getState().kairosEnabled;
-    // biome-ignore lint/correctness/useHookAtTopLevel: feature() is a compile-time constant
-    useScheduledTasks!({
-      isLoading,
-      assistantMode,
-      setMessages
-    });
-  }
+
 
   // Note: Permission polling is now handled by useInboxPoller
   // - Workers receive permission responses via mailbox messages
@@ -4518,17 +4488,7 @@ export function REPL({
   const placeholderText = userInputOnProcessing && !viewedAgentTask && displayedMessages.length <= userInputBaselineRef.current ? userInputOnProcessing : undefined;
   const toolPermissionOverlay = focusedInputDialog === 'tool-permission' ? <PermissionRequest key={toolUseConfirmQueue[0]?.toolUseID} onDone={() => setToolUseConfirmQueue(([_, ...tail]) => tail)} onReject={handleQueuedCommandOnCancel} toolUseConfirm={toolUseConfirmQueue[0]!} toolUseContext={getToolUseContext(messages, messages, abortController ?? createAbortController(), mainLoopModel)} verbose={verbose} workerBadge={toolUseConfirmQueue[0]?.workerBadge} setStickyFooter={isFullscreenEnvEnabled() ? setPermissionStickyFooter : undefined} /> : null;
 
-  // Narrow terminals: companion collapses to a one-liner that REPL stacks
-  // on its own row (above input in fullscreen, below in scrollback) instead
-  // of row-beside. Wide terminals keep the row layout with sprite on the right.
-  const companionNarrow = transcriptCols < MIN_COLS_FOR_FULL_SPRITE;
-  // Hide the sprite when PromptInput early-returns BackgroundTasksDialog.
-  // The sprite sits as a row sibling of PromptInput, so the dialog's Pane
-  // divider draws at useTerminalSize() width but only gets terminalWidth -
-  // spriteWidth — divider stops short and dialog text wraps early. Don't
-  // check footerSelection: pill FOCUS (arrow-down to tasks pill) must keep
-  // the sprite visible so arrow-right can navigate to it.
-  const companionVisible = !toolJSX?.shouldHidePromptInput && !focusedInputDialog && !showBashesDialog;
+
 
   // In fullscreen, ALL local-jsx slash commands float in the modal slot —
   // FullscreenLayout wraps them in an absolute-positioned bottom-anchored
@@ -4561,7 +4521,7 @@ export function REPL({
       {feature('MESSAGE_ACTIONS') && isFullscreenEnvEnabled() && !disableMessageActions ? <MessageActionsKeybindings handlers={messageActionHandlers} isActive={cursor !== null} /> : null}
       <CancelRequestHandler {...cancelRequestProps} />
       <MCPConnectionManager key={remountKey} dynamicMcpConfig={dynamicMcpConfig} isStrictMcpConfig={strictMcpConfig}>
-        <FullscreenLayout scrollRef={scrollRef} overlay={toolPermissionOverlay} bottomFloat={feature('BUDDY') && companionVisible && !companionNarrow ? <CompanionFloatingBubble /> : undefined} modal={centeredModal} modalScrollRef={modalScrollRef} dividerYRef={dividerYRef} hidePill={!!viewedAgentTask} hideSticky={!!viewedTeammateTask} newMessageCount={unseenDivider?.count ?? 0} onPillClick={() => {
+        <FullscreenLayout scrollRef={scrollRef} overlay={toolPermissionOverlay} bottomFloat={undefined} modal={centeredModal} modalScrollRef={modalScrollRef} dividerYRef={dividerYRef} hidePill={!!viewedAgentTask} hideSticky={!!viewedTeammateTask} newMessageCount={unseenDivider?.count ?? 0} onPillClick={() => {
         setCursor(null);
         jumpToNew(scrollRef.current);
       }} scrollable={<>
@@ -4586,8 +4546,7 @@ export function REPL({
               {showSpinner && <SpinnerWithVerb mode={streamMode} spinnerTip={spinnerTip} responseLengthRef={responseLengthRef} apiMetricsRef={apiMetricsRef} overrideMessage={spinnerMessage} spinnerSuffix={stopHookSpinnerSuffix} verbose={verbose} loadingStartTimeRef={loadingStartTimeRef} totalPausedMsRef={totalPausedMsRef} pauseStartTimeRef={pauseStartTimeRef} overrideColor={spinnerColor} overrideShimmerColor={spinnerShimmerColor} hasActiveTools={inProgressToolUseIDs.size > 0} leaderIsIdle={!isLoading} />}
               {!showSpinner && !isLoading && !userInputOnProcessing && !hasRunningTeammates && isBriefOnly && !viewedAgentTask && <BriefIdleStatus />}
               {isFullscreenEnvEnabled() && <PromptInputQueuedCommands />}
-            </>} bottom={<Box flexDirection={feature('BUDDY') && companionNarrow ? 'column' : 'row'} width="100%" alignItems={feature('BUDDY') && companionNarrow ? undefined : 'flex-end'}>
-              {feature('BUDDY') && companionNarrow && isFullscreenEnvEnabled() && companionVisible ? <CompanionSprite /> : null}
+            </>} bottom={<Box flexDirection="row" width="100%" alignItems="flex-end">
               <Box flexDirection="column" flexGrow={1}>
                 {permissionStickyFooter}
                 {/* Immediate local-jsx commands (/btw, /sandbox, /assistant,
@@ -4982,7 +4941,6 @@ export function REPL({
           }} />}
                 {"external" === 'ant' && <DevBar />}
               </Box>
-              {feature('BUDDY') && !(companionNarrow && isFullscreenEnvEnabled()) && companionVisible ? <CompanionSprite /> : null}
             </Box>} />
       </MCPConnectionManager>
     </KeybindingSetup>;

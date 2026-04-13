@@ -249,8 +249,7 @@ import {
 import { isInProcessTeammate } from './teammateContext.js'
 import { removeTeammateFromTeamFile } from './swarm/teamHelpers.js'
 import { unassignTeammateTasks } from './tasks.js'
-// Buddy feature removed — inlined no-op
-const getCompanionIntroAttachment = () => undefined
+
 
 export const TODO_REMINDER_CONFIG = {
   TURNS_SINCE_WRITE: 10,
@@ -862,13 +861,6 @@ export async function getAttachments(
         ),
       ),
     ),
-    ...(feature('BUDDY')
-      ? [
-          maybe('companion_intro', () =>
-            Promise.resolve(getCompanionIntroAttachment(messages)),
-          ),
-        ]
-      : []),
     maybe('changed_files', () => getChangedFiles(context)),
     maybe('nested_memory', () => getNestedMemoryAttachments(context)),
     // relevant_memories moved to async prefetch (startRelevantMemoryPrefetch)

@@ -309,7 +309,7 @@ function PromptInput({
   const {
     companion: _companion,
     companionMuted
-  } = feature('BUDDY') ? getGlobalConfig() : {
+  } = {
     companion: undefined,
     companionMuted: undefined
   };
@@ -1773,10 +1773,6 @@ function PromptInput({
       }
       switch (footerItemSelected) {
         case 'companion':
-          if (feature('BUDDY')) {
-            selectFooterItem(null);
-            void onSubmit('/buddy');
-          }
           break;
         case 'tasks':
           if (isTeammateMode) {
