@@ -30,7 +30,7 @@ export const SUPPORTED_SETTINGS: Record<string, SettingConfig> = {
     source: 'global',
     type: 'string',
     description: 'Color theme for the UI',
-    options: feature('AUTO_THEME') ? THEME_SETTINGS : THEME_NAMES,
+    options: THEME_NAMES,
   },
   editorMode: {
     source: 'global',
