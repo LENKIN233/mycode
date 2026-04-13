@@ -1678,65 +1678,17 @@ export async function bashToolHasPermission(
   const injectionCheckDisabled = isEnvTruthy(
     process.env.MYCODE_DISABLE_COMMAND_INJECTION_CHECK,
   )
-  // GrowthBook killswitch for shadow mode — when off, skip the native parse
-  // entirely. Computed once; feature() must stay inline in the ternary below.
-  const shadowEnabled = feature('TREE_SITTER_BASH_SHADOW')
-    ? getFeatureValue_CACHED_MAY_BE_STALE('tengu_birch_trellis', true)
-    : false
   // Parse once here; the resulting AST feeds both parseForSecurityFromAst
   // and bashToolCheckCommandOperatorPermissions.
   let astRoot = injectionCheckDisabled
     ? null
-    : feature('TREE_SITTER_BASH_SHADOW') && !shadowEnabled
-      ? null
-      : await parseCommandRaw(input.command)
+    : await parseCommandRaw(input.command)
   let astResult: ParseForSecurityResult = astRoot
     ? parseForSecurityFromAst(input.command, astRoot)
     : { kind: 'parse-unavailable' }
   let astSubcommands: string[] | null = null
   let astRedirects: Redirect[] | undefined
   let astCommands: SimpleCommand[] | undefined
-  let shadowLegacySubs: string[] | undefined
-
-  // Shadow-test tree-sitter: record its verdict, then force parse-unavailable
-  // so the legacy path stays authoritative. parseCommand stays gated on
-  // TREE_SITTER_BASH (not SHADOW) so legacy internals remain pure regex.
-  // One event per bash call captures both divergence AND unavailability
-  // reasons; module-load failures are separately covered by the
-  // session-scoped tengu_tree_sitter_load event.
-  if (feature('TREE_SITTER_BASH_SHADOW')) {
-    const available = astResult.kind !== 'parse-unavailable'
-    let tooComplex = false
-    let semanticFail = false
-    let subsDiffer = false
-    if (available) {
-      tooComplex = astResult.kind === 'too-complex'
-      semanticFail =
-        astResult.kind === 'simple' && !checkSemantics(astResult.commands).ok
-      const tsSubs =
-        astResult.kind === 'simple'
-          ? astResult.commands.map(c => c.text)
-          : undefined
-      const legacySubs = splitCommand(input.command)
-      shadowLegacySubs = legacySubs
-      subsDiffer =
-        tsSubs !== undefined &&
-        (tsSubs.length !== legacySubs.length ||
-          tsSubs.some((s, i) => s !== legacySubs[i]))
-    }
-    logEvent('tengu_tree_sitter_shadow', {
-      available,
-      astTooComplex: tooComplex,
-      astSemanticFail: semanticFail,
-      subsDiffer,
-      injectionCheckDisabled,
-      killswitchOff: !shadowEnabled,
-      cmdOverLength: input.command.length > 10000,
-    })
-    // Always force legacy — shadow mode is observational only.
-    astResult = { kind: 'parse-unavailable' }
-    astRoot = null
-  }
 
   if (astResult.kind === 'too-complex') {
     // Parse succeeded but found structure we can't statically analyze
@@ -2148,7 +2100,7 @@ export async function bashToolHasPermission(
   const cwdMingw =
     getPlatform() === 'windows' ? windowsPathToPosixPath(cwd) : cwd
   const rawSubcommands =
-    astSubcommands ?? shadowLegacySubs ?? splitCommand(input.command)
+    astSubcommands ?? splitCommand(input.command)
   const { subcommands, astCommandsByIdx } = filterCdCwdSubcommands(
     rawSubcommands,
     astCommands,

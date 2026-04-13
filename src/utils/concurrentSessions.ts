@@ -1,4 +1,3 @@
-import { feature } from 'bun:bundle'
 import { chmod, mkdir, readdir, readFile, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import {
@@ -29,10 +28,6 @@ function getSessionsDir(): string {
  * Gated so the env-var string is DCE'd from external builds.
  */
 function envSessionKind(): SessionKind | undefined {
-  if (feature('BG_SESSIONS')) {
-    const k = process.env.MYCODE_SESSION_KIND
-    if (k === 'bg' || k === 'daemon' || k === 'daemon-worker') return k
-  }
   return undefined
 }
 
@@ -83,13 +78,6 @@ export async function registerSession(): Promise<boolean> {
         startedAt: Date.now(),
         kind,
         entrypoint: process.env.MYCODE_ENTRYPOINT,
-        ...(feature('BG_SESSIONS')
-          ? {
-              name: process.env.MYCODE_SESSION_NAME,
-              logPath: process.env.MYCODE_SESSION_LOG,
-              agent: process.env.MYCODE_AGENT,
-            }
-          : {}),
       }),
     )
     // --resume / /resume mutates getSessionId() via switchSession. Without
@@ -153,8 +141,7 @@ export async function updateSessionActivity(patch: {
   status?: SessionStatus
   waitingFor?: string
 }): Promise<void> {
-  if (!feature('BG_SESSIONS')) return
-  await updatePidFile({ ...patch, updatedAt: Date.now() })
+  return
 }
 
 /**

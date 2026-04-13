@@ -42,9 +42,7 @@ import { getAgentName, getTeamName, isTeammate } from '../utils/teammate.js'
 const extractMemoriesModule = feature('EXTRACT_MEMORIES')
   ? (require('../services/extractMemories/extractMemories.js') as typeof import('../services/extractMemories/extractMemories.js'))
   : null
-const jobClassifierModule = feature('TEMPLATES')
-  ? (require('../jobs/classifier.js') as typeof import('../jobs/classifier.js'))
-  : null
+const jobClassifierModule = null
 
 /* eslint-enable @typescript-eslint/no-require-imports */
 
@@ -105,31 +103,7 @@ export async function* handleStopHooks(
   // Env key hardcoded (vs importing JOB_ENV_KEY from jobs/state) to match the
   // require()-gated jobs/ import pattern above; spawn.test.ts asserts the
   // string matches.
-  if (
-    feature('TEMPLATES') &&
-    process.env.MYCODE_JOB_DIR &&
-    querySource.startsWith('repl_main_thread') &&
-    !toolUseContext.agentId
-  ) {
-    // Full turn history — assistantMessages resets each queryLoop iteration,
-    // so tool calls from earlier iterations (Agent spawn, then summary) need
-    // messagesForQuery to be visible in the tool-call summary.
-    const turnAssistantMessages = stopHookContext.messages.filter(
-      (m): m is AssistantMessage => m.type === 'assistant',
-    )
-    const p = jobClassifierModule!
-      .classifyAndWriteState(process.env.MYCODE_JOB_DIR, turnAssistantMessages)
-      .catch(err => {
-        logForDebugging(`[job] classifier error: ${errorMessage(err)}`, {
-          level: 'error',
-        })
-      })
-    await Promise.race([
-      p,
-      // eslint-disable-next-line no-restricted-syntax -- sleep() has no .unref(); timer must not block exit
-      new Promise<void>(r => setTimeout(r, 60_000).unref()),
-    ])
-  }
+
   // --bare / SIMPLE: skip background bookkeeping (prompt suggestion,
   // memory extraction, auto-dream). Scripted -p calls don't want auto-memory
   // or forked agents contending for resources during shutdown.
@@ -161,17 +135,6 @@ export async function* handleStopHooks(
   // so a subagent's stopHooks releasing it leaves the main thread's cleanup
   // seeing isLockHeldLocally()===false → no exit notification, and unhides
   // mid-turn. Subagents don't start CU sessions so this is a pure skip.
-  if (feature('CHICAGO_MCP') && !toolUseContext.agentId) {
-    try {
-      const { cleanupComputerUseAfterTurn } = await import(
-        '../utils/computerUse/cleanup.js'
-      )
-      await cleanupComputerUseAfterTurn(toolUseContext)
-    } catch {
-      // Failures are silent — this is dogfooding cleanup, not critical path
-    }
-  }
-
   try {
     const blockingErrors = []
     const appState = toolUseContext.getAppState()

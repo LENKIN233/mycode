@@ -119,48 +119,6 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Fast-path for `mycode ps|logs|attach|kill` and `--bg`/`--background`.
-  // Session management against the ~/.mycode/sessions/ registry. Flag
-  // literals are inlined so bg.js only loads when actually dispatching.
-  if (feature('BG_SESSIONS') && (args[0] === 'ps' || args[0] === 'logs' || args[0] === 'attach' || args[0] === 'kill' || args.includes('--bg') || args.includes('--background'))) {
-    profileCheckpoint('cli_bg_path');
-    const {
-      enableConfigs
-    } = await import('../utils/config.js');
-    enableConfigs();
-    const bg = await import('../cli/bg.js');
-    switch (args[0]) {
-      case 'ps':
-        await bg.psHandler(args.slice(1));
-        break;
-      case 'logs':
-        await bg.logsHandler(args[1]);
-        break;
-      case 'attach':
-        await bg.attachHandler(args[1]);
-        break;
-      case 'kill':
-        await bg.killHandler(args[1]);
-        break;
-      default:
-        await bg.handleBgFlag(args);
-    }
-    return;
-  }
-
-  // Fast-path for template job commands.
-  if (feature('TEMPLATES') && (args[0] === 'new' || args[0] === 'list' || args[0] === 'reply')) {
-    profileCheckpoint('cli_templates_path');
-    const {
-      templatesMain
-    } = await import('../cli/handlers/templateJobs.js');
-    await templatesMain(args);
-    // process.exit (not return) — mountFleetView's Ink TUI can leave event
-    // loop handles that prevent natural exit.
-    // eslint-disable-next-line custom-rules/no-process-exit
-    process.exit(0);
-  }
-
   // Fast-path for `mycode environment-runner`: headless BYOC runner.
   // feature() must stay inline for build-time dead code elimination.
   if (feature('BYOC_ENVIRONMENT_RUNNER') && args[0] === 'environment-runner') {

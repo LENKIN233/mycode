@@ -1,7 +1,7 @@
 import { c as _c } from "react/compiler-runtime";
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
 import { feature } from 'bun:bundle';
-import { spawnSync } from 'child_process';
+
 import { snapshotOutputTokensForTurn, getCurrentTurnTokenBudget, getTurnOutputTokens, getBudgetContinuationCount, getTotalInputTokens } from '../bootstrap/state.js';
 import { parseTokenBudget } from '../utils/tokenBudget.js';
 import { count } from '../utils/array.js';
@@ -170,7 +170,7 @@ import type { AgentColorName } from '../tools/AgentTool/agentColorManager.js';
 import { fileHistoryMakeSnapshot, type FileHistoryState, fileHistoryRewind, type FileHistorySnapshot, copyFileHistoryForResume, fileHistoryEnabled, fileHistoryHasAnyChanges } from '../utils/fileHistory.js';
 import { type AttributionState } from '../utils/commitAttribution.js';
 import { computeStandaloneAgentContext, restoreAgentFromSession, restoreSessionStateFromLog, restoreWorktreeForResume, exitRestoredWorktree } from '../utils/sessionRestore.js';
-import { isBgSession, updateSessionName, updateSessionActivity } from '../utils/concurrentSessions.js';
+import { updateSessionName } from '../utils/concurrentSessions.js';
 import { isInProcessTeammateTask, type InProcessTeammateTaskState } from '../tasks/InProcessTeammateTask/types.js';
 import { restoreRemoteAgentTasks } from '../tasks/RemoteAgentTask/RemoteAgentTask.js';
 import { useInboxPoller } from '../hooks/useInboxPoller.js';
@@ -615,9 +615,7 @@ export function REPL({
   const titleDisabled = useMemo(() => isEnvTruthy(process.env.MYCODE_DISABLE_TERMINAL_TITLE), []);
   const moreRightEnabled = useMemo(() => "external" === 'ant' && isEnvTruthy(process.env.MYCODE_MORERIGHT), []);
   const disableVirtualScroll = useMemo(() => isEnvTruthy(process.env.MYCODE_DISABLE_VIRTUAL_SCROLL), []);
-  const disableMessageActions = feature('MESSAGE_ACTIONS') ?
-  // biome-ignore lint/correctness/useHookAtTopLevel: feature() is a compile-time constant
-  useMemo(() => isEnvTruthy(process.env.MYCODE_DISABLE_MESSAGE_ACTIONS), []) : false;
+  const disableMessageActions = false;
 
   // Log REPL mount/unmount lifecycle
   useEffect(() => {
@@ -1168,12 +1166,6 @@ export function REPL({
   // Push status to the PID file for `mycode ps`. Fire-and-forget; ps falls
   // back to transcript-tail derivation when this is missing/stale.
   useEffect(() => {
-    if (feature('BG_SESSIONS')) {
-      void updateSessionActivity({
-        status: sessionStatus,
-        waitingFor
-      });
-    }
   }, [sessionStatus, waitingFor]);
 
   // 3P default: off — OSC 21337 is ant-only while the spec stabilizes.
@@ -3542,16 +3534,6 @@ export function REPL({
   }, []);
   const handleExit = useCallback(async () => {
     setIsExiting(true);
-    // In bg sessions, always detach instead of kill — even when a worktree is
-    // active. Without this guard, the worktree branch below short-circuits into
-    // ExitFlow (which calls gracefulShutdown) before exit.tsx is ever loaded.
-    if (feature('BG_SESSIONS') && isBgSession()) {
-      spawnSync('tmux', ['detach-client'], {
-        stdio: 'ignore'
-      });
-      setIsExiting(false);
-      return;
-    }
     const showWorktree = getCurrentWorktreeSession() !== null;
     if (showWorktree) {
       setExitFlow(<ExitFlow showWorktree onDone={() => {}} onCancel={() => {
@@ -4462,7 +4444,7 @@ export function REPL({
           stays suppressed while a modal is showing so scroll doesn't
           stamp divider/pill state. */}
       <ScrollKeybindingHandler scrollRef={scrollRef} isActive={isFullscreenEnvEnabled() && (centeredModal != null || !focusedInputDialog || focusedInputDialog === 'tool-permission')} onScroll={centeredModal || toolPermissionOverlay || viewedAgentTask ? undefined : composedOnScroll} />
-      {feature('MESSAGE_ACTIONS') && isFullscreenEnvEnabled() && !disableMessageActions ? <MessageActionsKeybindings handlers={messageActionHandlers} isActive={cursor !== null} /> : null}
+      {null}
       <CancelRequestHandler {...cancelRequestProps} />
       <MCPConnectionManager key={remountKey} dynamicMcpConfig={dynamicMcpConfig} isStrictMcpConfig={strictMcpConfig}>
         <FullscreenLayout scrollRef={scrollRef} overlay={toolPermissionOverlay} bottomFloat={undefined} modal={centeredModal} modalScrollRef={modalScrollRef} dividerYRef={dividerYRef} hidePill={!!viewedAgentTask} hideSticky={!!viewedTeammateTask} newMessageCount={unseenDivider?.count ?? 0} onPillClick={() => {
@@ -4795,7 +4777,7 @@ export function REPL({
                       {}
                       <PromptInput debug={debug} ideSelection={ideSelection} hasSuppressedDialogs={!!hasSuppressedDialogs} isLocalJSXCommandActive={isShowingLocalJSXCommand} getToolUseContext={getToolUseContext} toolPermissionContext={toolPermissionContext} setToolPermissionContext={setToolPermissionContext} apiKeyStatus={apiKeyStatus} commands={commands} agents={agentDefinitions.activeAgents} isLoading={isLoading} onExit={handleExit} verbose={verbose} messages={messages} onAutoUpdaterResult={setAutoUpdaterResult} autoUpdaterResult={autoUpdaterResult} input={inputValue} onInputChange={setInputValue} mode={inputMode} onModeChange={setInputMode} stashedPrompt={stashedPrompt} setStashedPrompt={setStashedPrompt} submitCount={submitCount} onShowMessageSelector={handleShowMessageSelector} onMessageActionsEnter={
             // Works during isLoading — edit cancels first; uuid selection survives appends.
-            feature('MESSAGE_ACTIONS') && isFullscreenEnvEnabled() && !disableMessageActions ? enterMessageActions : undefined} mcpClients={mcpClients} pastedContents={pastedContents} setPastedContents={setPastedContents} vimMode={vimMode} setVimMode={setVimMode} showBashesDialog={showBashesDialog} setShowBashesDialog={setShowBashesDialog} onSubmit={onSubmit} onAgentSubmit={onAgentSubmit} isSearchingHistory={isSearchingHistory} setIsSearchingHistory={setIsSearchingHistory} helpOpen={isHelpOpen} setHelpOpen={setIsHelpOpen} insertTextRef={undefined} voiceInterimRange={null} />
+            undefined} mcpClients={mcpClients} pastedContents={pastedContents} setPastedContents={setPastedContents} vimMode={vimMode} setVimMode={setVimMode} showBashesDialog={showBashesDialog} setShowBashesDialog={setShowBashesDialog} onSubmit={onSubmit} onAgentSubmit={onAgentSubmit} isSearchingHistory={isSearchingHistory} setIsSearchingHistory={setIsSearchingHistory} helpOpen={isHelpOpen} setHelpOpen={setIsHelpOpen} insertTextRef={undefined} voiceInterimRange={null} />
                       <SessionBackgroundHint onBackgroundSession={handleBackgroundSession} isLoading={isLoading} />
                     </>}
                 {cursor &&

@@ -66,9 +66,7 @@ import {
 const skillPrefetch = feature('EXPERIMENTAL_SKILL_SEARCH')
   ? (require('./services/skillSearch/prefetch.js') as typeof import('./services/skillSearch/prefetch.js'))
   : null
-const jobClassifier = feature('TEMPLATES')
-  ? (require('./jobs/classifier.js') as typeof import('./jobs/classifier.js'))
-  : null
+const jobClassifier = null
 /* eslint-enable @typescript-eslint/no-require-imports */
 import {
   remove as removeFromQueue,
@@ -115,9 +113,7 @@ import { count } from './utils/array.js'
 const snipModule = feature('HISTORY_SNIP')
   ? (require('./services/compact/snipCompact.js') as typeof import('./services/compact/snipCompact.js'))
   : null
-const taskSummaryModule = feature('BG_SESSIONS')
-  ? (require('./utils/taskSummary.js') as typeof import('./utils/taskSummary.js'))
-  : null
+const taskSummaryModule = null
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 function* yieldMissingToolResultBlocks(
@@ -1027,20 +1023,6 @@ async function* queryLoop(
           'Interrupted by user',
         )
       }
-      // chicago MCP: auto-unhide + lock release on interrupt. Same cleanup
-      // as the natural turn-end path in stopHooks.ts. Main thread only —
-      // see stopHooks.ts for the subagent-releasing-main's-lock rationale.
-      if (feature('CHICAGO_MCP') && !toolUseContext.agentId) {
-        try {
-          const { cleanupComputerUseAfterTurn } = await import(
-            './utils/computerUse/cleanup.js'
-          )
-          await cleanupComputerUseAfterTurn(toolUseContext)
-        } catch {
-          // Failures are silent — this is dogfooding cleanup, not critical path
-        }
-      }
-
       // Skip the interruption message for submit-interrupts — the queued
       // user message that follows provides sufficient context.
       if (toolUseContext.abortController.signal.reason !== 'interrupt') {
@@ -1486,16 +1468,7 @@ async function* queryLoop(
       // chicago MCP: auto-unhide + lock release when aborted mid-tool-call.
       // This is the most likely Ctrl+C path for CU (e.g. slow screenshot).
       // Main thread only — see stopHooks.ts for the subagent rationale.
-      if (feature('CHICAGO_MCP') && !toolUseContext.agentId) {
-        try {
-          const { cleanupComputerUseAfterTurn } = await import(
-            './utils/computerUse/cleanup.js'
-          )
-          await cleanupComputerUseAfterTurn(toolUseContext)
-        } catch {
-          // Failures are silent — this is dogfooding cleanup, not critical path
-        }
-      }
+
       // Skip the interruption message for submit-interrupts — the queued
       // user message that follows provides sufficient context.
       if (toolUseContext.abortController.signal.reason !== 'interrupt') {
@@ -1677,29 +1650,6 @@ async function* queryLoop(
 
     // Each time we have tool results and are about to recurse, that's a turn
     const nextTurnCount = turnCount + 1
-
-    // Periodic task summary for `mycode ps` — fires mid-turn so a
-    // long-running agent still refreshes what it's working on. Gated
-    // only on !agentId so every top-level conversation (REPL, SDK, HFI,
-    // remote) generates summaries; subagents/forks don't.
-    if (feature('BG_SESSIONS')) {
-      if (
-        !toolUseContext.agentId &&
-        taskSummaryModule!.shouldGenerateTaskSummary()
-      ) {
-        taskSummaryModule!.maybeGenerateTaskSummary({
-          systemPrompt,
-          userContext,
-          systemContext,
-          toolUseContext,
-          forkContextMessages: [
-            ...messagesForQuery,
-            ...assistantMessages,
-            ...toolResults,
-          ],
-        })
-      }
-    }
 
     // Check if we've reached the max turns limit
     if (maxTurns && nextTurnCount > maxTurns) {

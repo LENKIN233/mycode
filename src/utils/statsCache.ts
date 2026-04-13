@@ -1,4 +1,3 @@
-import { feature } from 'bun:bundle'
 import { randomBytes } from 'crypto'
 import { open } from 'fs/promises'
 import { join } from 'path'
@@ -169,12 +168,6 @@ export async function loadStatsCache(): Promise<PersistedStatsCache> {
       // already current, so without this the on-disk file stays at the old
       // version indefinitely.
       await saveStatsCache(migrated)
-      if (feature('SHOT_STATS') && !migrated.shotDistribution) {
-        logForDebugging(
-          'Migrated stats cache missing shotDistribution, forcing recomputation',
-        )
-        return getEmptyCache()
-      }
       return migrated
     }
 
@@ -187,15 +180,6 @@ export async function loadStatsCache(): Promise<PersistedStatsCache> {
     ) {
       logForDebugging(
         'Stats cache has invalid structure, returning empty cache',
-      )
-      return getEmptyCache()
-    }
-
-    // If SHOT_STATS is enabled but cache doesn't have shotDistribution,
-    // force full recomputation to get historical shot data
-    if (feature('SHOT_STATS') && !parsed.shotDistribution) {
-      logForDebugging(
-        'Stats cache missing shotDistribution, forcing recomputation',
       )
       return getEmptyCache()
     }
@@ -379,19 +363,6 @@ export function mergeCacheWithNewStats(
     totalSpeculationTimeSavedMs:
       existingCache.totalSpeculationTimeSavedMs +
       newStats.totalSpeculationTimeSavedMs,
-  }
-
-  if (feature('SHOT_STATS')) {
-    const shotDistribution: { [shotCount: number]: number } = {
-      ...(existingCache.shotDistribution || {}),
-    }
-    for (const [count, sessions] of Object.entries(
-      newStats.shotDistribution || {},
-    )) {
-      const key = parseInt(count, 10)
-      shotDistribution[key] = (shotDistribution[key] || 0) + sessions
-    }
-    result.shotDistribution = shotDistribution
   }
 
   return result

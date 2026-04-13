@@ -1685,33 +1685,21 @@ function PromptInput({
   // Quick Open / Global Search. Hook calls are unconditional (Rules of Hooks);
   // the handler body is feature()-gated so the setState calls and component
   // references get tree-shaken in external builds.
-  const quickSearchActive = feature('QUICK_SEARCH') ? !isModalOverlayActive : false;
+  const quickSearchActive = false;
   useKeybinding('app:quickOpen', () => {
-    if (feature('QUICK_SEARCH')) {
-      setShowQuickOpen(true);
-      setHelpOpen(false);
-    }
   }, {
     context: 'Global',
     isActive: quickSearchActive
   });
   useKeybinding('app:globalSearch', () => {
-    if (feature('QUICK_SEARCH')) {
-      setShowGlobalSearch(true);
-      setHelpOpen(false);
-    }
   }, {
     context: 'Global',
     isActive: quickSearchActive
   });
   useKeybinding('history:search', () => {
-    if (feature('HISTORY_PICKER')) {
-      setShowHistoryPicker(true);
-      setHelpOpen(false);
-    }
   }, {
     context: 'Global',
-    isActive: feature('HISTORY_PICKER') ? !isModalOverlayActive : false
+    isActive: false
   });
 
   // Handle Ctrl+C to abort speculation when idle (not loading)
@@ -2109,30 +2097,6 @@ function PromptInput({
       setShowTeamsDialog(false);
     }} />;
   }
-  if (feature('QUICK_SEARCH')) {
-    const insertWithSpacing = (text: string) => {
-      const cursorChar = input[cursorOffset - 1] ?? ' ';
-      insertTextAtCursor(/\s/.test(cursorChar) ? text : ` ${text}`);
-    };
-    if (showQuickOpen) {
-      return <QuickOpenDialog onDone={() => setShowQuickOpen(false)} onInsert={insertWithSpacing} />;
-    }
-    if (showGlobalSearch) {
-      return <GlobalSearchDialog onDone={() => setShowGlobalSearch(false)} onInsert={insertWithSpacing} />;
-    }
-  }
-  if (feature('HISTORY_PICKER') && showHistoryPicker) {
-    return <HistorySearchDialog initialQuery={input} onSelect={entry => {
-      const entryMode = getModeFromInput(entry.display);
-      const value = getValueFromInput(entry.display);
-      onModeChange(entryMode);
-      trackAndSetInput(value);
-      setPastedContents(entry.pastedContents);
-      setCursorOffset(value.length);
-      setShowHistoryPicker(false);
-    }} onCancel={() => setShowHistoryPicker(false)} />;
-  }
-
   // Show loop mode menu when requested (ant-only, eliminated from external builds)
   if (modelPickerElement) {
     return modelPickerElement;
