@@ -201,13 +201,11 @@ import {
   resetSessionFilePointer,
   doesMessageExistInSession,
   findUnresolvedToolUse,
-  recordAttributionSnapshot,
   saveAgentSetting,
   saveMode,
   saveAiGeneratedTitle,
   restoreSessionMetadata,
 } from 'src/utils/sessionStorage.js'
-import { incrementPromptCount } from 'src/utils/commitAttribution.js'
 import {
   setupSdkMcpClients,
   connectToServer,
@@ -778,15 +776,6 @@ export async function runHeadless(
 
   // Callback for when a permission prompt is shown
   const onPermissionPrompt = (details: RequiresActionDetails) => {
-    if (feature('COMMIT_ATTRIBUTION')) {
-      setAppState(prev => ({
-        ...prev,
-        attribution: {
-          ...prev.attribution,
-          permissionPromptCount: prev.attribution.permissionPromptCount + 1,
-        },
-      }))
-    }
     notifySessionStateChanged('requires_action', details)
   }
 
@@ -2691,19 +2680,6 @@ function runHeadlessStreaming(
     }
   }
 
-  // Set up UDS inbox callback so the query loop is kicked off
-  // when a message arrives via the UDS socket in headless mode.
-  if (feature('UDS_INBOX')) {
-    /* eslint-disable @typescript-eslint/no-require-imports */
-    const { setOnEnqueue } = require('../utils/udsMessaging.js')
-    /* eslint-enable @typescript-eslint/no-require-imports */
-    setOnEnqueue(() => {
-      if (!inputClosed) {
-        void run()
-      }
-    })
-  }
-
 
 
   const sendControlResponseSuccess = function (
@@ -2793,16 +2769,6 @@ function runHeadlessStreaming(
       if (message.type === 'control_request') {
         const controlRequest = message as SDKControlRequest
         if (controlRequest.request.subtype === 'interrupt') {
-          // Track escapes for attribution (ant-only feature)
-          if (feature('COMMIT_ATTRIBUTION')) {
-            setAppState(prev => ({
-              ...prev,
-              attribution: {
-                ...prev.attribution,
-                escapeCount: prev.attribution.escapeCount + 1,
-              },
-            }))
-          }
           if (abortController) {
             abortController.abort()
           }
@@ -4033,18 +3999,6 @@ function runHeadlessStreaming(
         uuid: message.uuid,
         priority: message.priority,
       })
-      // Increment prompt count for attribution tracking and save snapshot
-      // The snapshot persists promptCount so it survives compaction
-      if (feature('COMMIT_ATTRIBUTION')) {
-        setAppState(prev => ({
-          ...prev,
-          attribution: incrementPromptCount(prev.attribution, snapshot => {
-            void recordAttributionSnapshot(snapshot).catch(error => {
-              logForDebugging(`Attribution: Failed to save snapshot: ${error}`)
-            })
-          }),
-        }))
-      }
       void run()
     }
     inputClosed = true

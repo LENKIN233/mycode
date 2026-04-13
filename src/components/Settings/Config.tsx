@@ -926,54 +926,7 @@ export function Config({
       onChange() {}
     }];
   })() : []),
-  // Remote at startup toggle — gated on build flag + GrowthBook + policy
-  ...(feature('BRIDGE_MODE') && isBridgeEnabled() ? [{
-    id: 'remoteControlAtStartup',
-    label: 'Enable Remote Control for all sessions',
-    value: globalConfig.remoteControlAtStartup === undefined ? 'default' : String(globalConfig.remoteControlAtStartup),
-    options: ['true', 'false', 'default'],
-    type: 'enum' as const,
-    onChange(selected_0: string) {
-      if (selected_0 === 'default') {
-        // Unset the config key so it falls back to the platform default
-        saveGlobalConfig(current_20 => {
-          if (current_20.remoteControlAtStartup === undefined) return current_20;
-          const next_0 = {
-            ...current_20
-          };
-          delete next_0.remoteControlAtStartup;
-          return next_0;
-        });
-        setGlobalConfig({
-          ...getGlobalConfig(),
-          remoteControlAtStartup: undefined
-        });
-      } else {
-        const enabled_6 = selected_0 === 'true';
-        saveGlobalConfig(current_21 => {
-          if (current_21.remoteControlAtStartup === enabled_6) return current_21;
-          return {
-            ...current_21,
-            remoteControlAtStartup: enabled_6
-          };
-        });
-        setGlobalConfig({
-          ...getGlobalConfig(),
-          remoteControlAtStartup: enabled_6
-        });
-      }
-      // Sync to AppState so useReplBridge reacts immediately
-      const resolved = getRemoteControlAtStartup();
-      setAppState(prev_20 => {
-        if (prev_20.replBridgeEnabled === resolved && !prev_20.replBridgeOutboundOnly) return prev_20;
-        return {
-          ...prev_20,
-          replBridgeEnabled: resolved,
-          replBridgeOutboundOnly: false
-        };
-      });
-    }
-  }] : []), ...(shouldShowExternalIncludesToggle ? [{
+  ...(shouldShowExternalIncludesToggle ? [{
     id: 'showExternalIncludesDialog',
     label: 'External MYCODE.md includes',
     value: (() => {

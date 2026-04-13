@@ -168,8 +168,7 @@ import { partialCompactConversation } from '../services/compact/compact.js';
 import type { LogOption } from '../types/logs.js';
 import type { AgentColorName } from '../tools/AgentTool/agentColorManager.js';
 import { fileHistoryMakeSnapshot, type FileHistoryState, fileHistoryRewind, type FileHistorySnapshot, copyFileHistoryForResume, fileHistoryEnabled, fileHistoryHasAnyChanges } from '../utils/fileHistory.js';
-import { type AttributionState, incrementPromptCount } from '../utils/commitAttribution.js';
-import { recordAttributionSnapshot } from '../utils/sessionStorage.js';
+import { type AttributionState } from '../utils/commitAttribution.js';
 import { computeStandaloneAgentContext, restoreAgentFromSession, restoreSessionStateFromLog, restoreWorktreeForResume, exitRestoredWorktree } from '../utils/sessionRestore.js';
 import { isBgSession, updateSessionName, updateSessionActivity } from '../utils/concurrentSessions.js';
 import { isInProcessTeammateTask, type InProcessTeammateTaskState } from '../tasks/InProcessTeammateTask/types.js';
@@ -2246,49 +2245,6 @@ export function REPL({
         hostPattern,
         resolvePromise: resolveOnce
       }]);
-
-      // When the REPL bridge is connected, also forward the sandbox
-      // permission request as a can_use_tool control_request so the
-      // remote user (e.g. on mycode.ai) can approve it too.
-      if (feature('BRIDGE_MODE')) {
-        const bridgeCallbacks = store.getState().replBridgePermissionCallbacks;
-        if (bridgeCallbacks) {
-          const bridgeRequestId = randomUUID();
-          bridgeCallbacks.sendRequest(bridgeRequestId, SANDBOX_NETWORK_ACCESS_TOOL_NAME, {
-            host: hostPattern.host
-          }, randomUUID(), `Allow network connection to ${hostPattern.host}?`);
-          const unsubscribe = bridgeCallbacks.onResponse(bridgeRequestId, response => {
-            unsubscribe();
-            const allow = response.behavior === 'allow';
-            // Resolve ALL pending requests for the same host, not just
-            // this one — mirrors the local dialog handler pattern.
-            setSandboxPermissionRequestQueue(queue => {
-              queue.filter(item => item.hostPattern.host === hostPattern.host).forEach(item => item.resolvePromise(allow));
-              return queue.filter(item => item.hostPattern.host !== hostPattern.host);
-            });
-            // Clean up all sibling bridge subscriptions for this host
-            // (other concurrent same-host requests) before deleting.
-            const siblingCleanups = sandboxBridgeCleanupRef.current.get(hostPattern.host);
-            if (siblingCleanups) {
-              for (const fn of siblingCleanups) {
-                fn();
-              }
-              sandboxBridgeCleanupRef.current.delete(hostPattern.host);
-            }
-          });
-
-          // Register cleanup so the local dialog handler can cancel
-          // the remote prompt and unsubscribe when the local user
-          // responds first.
-          const cleanup = () => {
-            unsubscribe();
-            bridgeCallbacks.cancelRequest(bridgeRequestId);
-          };
-          const existing = sandboxBridgeCleanupRef.current.get(hostPattern.host) ?? [];
-          existing.push(cleanup);
-          sandboxBridgeCleanupRef.current.set(hostPattern.host, existing);
-        }
-      }
     });
   }, [setAppState, store]);
 
@@ -3351,18 +3307,6 @@ export function REPL({
         resetTimingRefs();
       }
 
-      // Increment prompt count for attribution tracking and save snapshot
-      // The snapshot persists promptCount so it survives compaction
-      if (feature('COMMIT_ATTRIBUTION')) {
-        setAppState(prev => ({
-          ...prev,
-          attribution: incrementPromptCount(prev.attribution, snapshot => {
-            void recordAttributionSnapshot(snapshot).catch(error => {
-              logForDebugging(`Attribution: Failed to save snapshot: ${error}`);
-            });
-          })
-        }));
-      }
     }
 
     // Handle speculation acceptance

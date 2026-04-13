@@ -5,13 +5,12 @@
  * (axios, crypto, auth utils) remains tree-shakeable from non-bridge builds.
  */
 
-import { feature } from 'bun:bundle'
+
 import { stat } from 'fs/promises'
 
 import type { ValidationResult } from '../../Tool.js'
 
 import { getCwd } from '../../utils/cwd.js'
-import { isEnvTruthy } from '../../utils/envUtils.js'
 import { getErrnoCode } from '../../utils/errors.js'
 import { IMAGE_EXTENSION_REGEX } from '../../utils/imagePaste.js'
 import { expandPath } from '../../utils/path.js'
@@ -79,32 +78,6 @@ export async function resolveAttachments(
       size: stats.size,
       isImage: IMAGE_EXTENSION_REGEX.test(fullPath),
     })
-  }
-  // Dynamic import inside the feature() guard so upload.ts (axios, crypto,
-  // zod, auth utils, MIME map) is fully eliminated from non-BRIDGE_MODE
-  // builds. A static import would force module-scope evaluation regardless
-  // of the guard inside uploadBriefAttachment — MYCODE.md: "helpers defined
-  // outside remain in the build even if never called".
-  if (feature('BRIDGE_MODE')) {
-    // Headless/SDK callers never set appState.replBridgeEnabled (only the TTY
-    // REPL does, at main.tsx init). MYCODE_BRIEF_UPLOAD lets a host that
-    // runs the CLI as a subprocess opt in — e.g. the cowork desktop bridge,
-    // which already passes MYCODE_OAUTH_TOKEN for auth.
-    const shouldUpload =
-      uploadCtx.replBridgeEnabled ||
-      isEnvTruthy(process.env.MYCODE_BRIEF_UPLOAD)
-    const { uploadBriefAttachment } = await import('./upload.js')
-    const uuids = await Promise.all(
-      stated.map(a =>
-        uploadBriefAttachment(a.path, a.size, {
-          replBridgeEnabled: shouldUpload,
-          signal: uploadCtx.signal,
-        }),
-      ),
-    )
-    return stated.map((a, i) =>
-      uuids[i] === undefined ? a : { ...a, file_uuid: uuids[i] },
-    )
   }
   return stated
 }

@@ -83,24 +83,6 @@ export async function setup(
     switchSession(asSessionId(customSessionId))
   }
 
-  // --bare / SIMPLE: skip UDS messaging server and teammate snapshot.
-  // Scripted calls don't receive injected messages and don't use swarm teammates.
-  // Explicit --messaging-socket-path is the escape hatch (per #23222 gate pattern).
-  if (!isBareMode() || messagingSocketPath !== undefined) {
-    // Start UDS messaging server (Mac/Linux only).
-    // Enabled by default for ants — creates a socket in tmpdir if no
-    // --messaging-socket-path is passed. Awaited so the server is bound
-    // and $MYCODE_MESSAGING_SOCKET is exported before any hook
-    // (SessionStart in particular) can spawn and snapshot process.env.
-    if (feature('UDS_INBOX')) {
-      const m = await import('./utils/udsMessaging.js')
-      await m.startUdsMessaging(
-        messagingSocketPath ?? m.getDefaultUdsSocketPath(),
-        { isExplicit: messagingSocketPath !== undefined },
-      )
-    }
-  }
-
   // Teammate snapshot — SIMPLE-only gate (no escape hatch, swarm not used in bare)
   if (!isBareMode() && isAgentSwarmsEnabled()) {
     const { captureTeammateModeSnapshot } = await import(
@@ -345,18 +327,6 @@ export async function setup(
           )
           clearSystemPromptSections()
         }
-      })
-    }
-    if (feature('COMMIT_ATTRIBUTION')) {
-      // Dynamic import to enable dead code elimination (module contains excluded strings).
-      // Defer to next tick so the git subprocess spawn runs after first render
-      // rather than during the setup() microtask window.
-      setImmediate(() => {
-        void import('./utils/attributionHooks.js').then(
-          ({ registerAttributionHooks }) => {
-            registerAttributionHooks() // Register attribution tracking hooks (ant-only feature)
-          },
-        )
       })
     }
     void import('./utils/sessionFileAccessHooks.js').then(m =>

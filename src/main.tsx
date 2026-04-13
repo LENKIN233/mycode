@@ -1880,9 +1880,7 @@ async function run(): Promise<CommanderCommand> {
     const {
       setup
     } = await import('./setup.js');
-    const messagingSocketPath = feature('UDS_INBOX') ? (options as {
-      messagingSocketPath?: string;
-    }).messagingSocketPath : undefined;
+    const messagingSocketPath = undefined;
     // Parallelize setup() with commands+agents loading. setup()'s ~28ms is
     // mostly startUdsMessaging (socket bind, ~20ms) — not disk-bound, so it
     // doesn't contend with getCommands' file reads. Gated on !worktreeEnabled
@@ -1915,13 +1913,6 @@ async function run(): Promise<CommanderCommand> {
     // Callers who inject and also want those injections visible in the
     // stream pass --messaging-socket-path explicitly (or --replay-user-messages).
     let effectiveReplayUserMessages = !!options.replayUserMessages;
-    if (feature('UDS_INBOX')) {
-      if (!effectiveReplayUserMessages && outputFormat === 'stream-json') {
-        effectiveReplayUserMessages = !!(options as {
-          messagingSocketPath?: string;
-        }).messagingSocketPath;
-      }
-    }
     if (getIsNonInteractiveSession()) {
       // Apply full merged settings env now (including project-scoped
       // .mycode/settings.json PATH/GIT_DIR/GIT_WORK_TREE) so gitExe() and
@@ -2213,19 +2204,6 @@ async function run(): Promise<CommanderCommand> {
       const setupScreensStart = Date.now();
       const onboardingShown = await showSetupScreens(root, permissionMode, allowDangerouslySkipPermissions, commands, enableMyCodeInChrome, devChannels);
       logForDebugging(`[STARTUP] showSetupScreens() completed in ${Date.now() - setupScreensStart}ms`);
-
-      // Now that trust is established and GrowthBook has auth headers,
-      // resolve the --remote-control / --rc entitlement gate.
-      if (feature('BRIDGE_MODE') && remoteControlOption !== undefined) {
-        const {
-          getBridgeDisabledReason
-        } = await import('./bridge/bridgeEnabled.js');
-        const disabledReason = await getBridgeDisabledReason();
-        remoteControl = disabledReason === null;
-        if (disabledReason) {
-          process.stderr.write(chalk.yellow(`${disabledReason}\n--rc flag ignored.\n`));
-        }
-      }
 
       // Check for pending agent memory snapshot updates (only for --agent mode, ant-only)
       if (feature('AGENT_MEMORY_SNAPSHOT') && mainThreadAgentDefinition && isCustomAgent(mainThreadAgentDefinition) && mainThreadAgentDefinition.memory && mainThreadAgentDefinition.pendingSnapshotUpdate) {
@@ -3806,9 +3784,6 @@ async function run(): Promise<CommanderCommand> {
   if (feature('PROACTIVE') || feature('KAIROS')) {
     program.addOption(new Option('--proactive', 'Start in proactive autonomous mode'));
   }
-  if (feature('UDS_INBOX')) {
-    program.addOption(new Option('--messaging-socket-path <path>', 'Unix domain socket path for the UDS messaging server (defaults to a tmp path)'));
-  }
   if (feature('KAIROS') || feature('KAIROS_BRIEF')) {
     program.addOption(new Option('--brief', 'Enable SendUserMessage tool for agent-to-user communication'));
   }
@@ -3837,10 +3812,6 @@ async function run(): Promise<CommanderCommand> {
   // Enable teleport/remote flags for all builds but keep them undocumented until GA
   program.addOption(new Option('--teleport [session]', 'Resume a teleport session, optionally specify session ID').hideHelp());
   program.addOption(new Option('--remote [description]', 'Create a remote session with the given description').hideHelp());
-  if (feature('BRIDGE_MODE')) {
-    program.addOption(new Option('--remote-control [name]', 'Start an interactive session with Remote Control enabled (optionally named)').argParser(value => value || true).hideHelp());
-    program.addOption(new Option('--rc [name]', 'Alias for --remote-control').argParser(value => value || true).hideHelp());
-  }
   if (feature('HARD_FAIL')) {
     program.addOption(new Option('--hard-fail', 'Crash on logError calls instead of silently logging').hideHelp());
   }
@@ -4293,18 +4264,6 @@ async function run(): Promise<CommanderCommand> {
   // false via the try/catch — but not before paying ~65ms of side effects
   // (25ms settings Zod parse + 40ms sync `security` keychain subprocess).
   // The dynamic visibility never worked; the command was always hidden.
-  if (feature('BRIDGE_MODE')) {
-    program.command('remote-control', {
-      hidden: true
-    }).alias('rc').description('Connect your local environment for remote-control sessions via mycode.ai/code').action(async () => {
-      // Unreachable — cli.tsx fast-path handles this command before main.tsx loads.
-      // If somehow reached, delegate to bridgeMain.
-      const {
-        bridgeMain
-      } = await import('./bridge/bridgeMain.js');
-      await bridgeMain(process.argv.slice(3));
-    });
-  }
   if (feature('KAIROS')) {
     program.command('assistant [sessionId]').description('Attach the REPL as a client to a running bridge session. Discovers sessions via API if no sessionId given.').action(() => {
       // Argv rewriting above should have consumed `assistant [id]`
