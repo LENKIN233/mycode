@@ -173,14 +173,7 @@ Output <updates>[]</updates> if no updates are needed.`,
   return createApiQueryHook(config)
 }
 
-export function initSkillImprovement(): void {
-  if (
-    feature('SKILL_IMPROVEMENT') &&
-    getFeatureValue_CACHED_MAY_BE_STALE('tengu_copper_panda', false)
-  ) {
-    registerPostSamplingHook(createSkillImprovementHook())
-  }
-}
+export function initSkillImprovement(): void {}
 
 /**
  * Apply skill improvements by calling a side-channel LLM to rewrite the skill file.

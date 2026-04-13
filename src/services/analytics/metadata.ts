@@ -592,11 +592,9 @@ const buildEnvContext = memoize(async (): Promise<EnvContext> => {
       remoteEnvironmentType: process.env.MYCODE_REMOTE_ENVIRONMENT_TYPE,
     }),
     // Gated by feature flag to prevent leaking "coworkerType" string in external builds
-    ...(feature('COWORKER_TYPE_TELEMETRY')
-      ? process.env.MYCODE_COWORKER_TYPE
+    ...(process.env.MYCODE_COWORKER_TYPE
         ? { coworkerType: process.env.MYCODE_COWORKER_TYPE }
-        : {}
-      : {}),
+        : {}),
     ...(process.env.MYCODE_CONTAINER_ID && {
       myCodeContainerId: process.env.MYCODE_CONTAINER_ID,
     }),
@@ -835,7 +833,7 @@ export function to1PEventFormat(
   if (envContext.remoteEnvironmentType) {
     env.remote_environment_type = envContext.remoteEnvironmentType
   }
-  if (feature('COWORKER_TYPE_TELEMETRY') && envContext.coworkerType) {
+  if (envContext.coworkerType) {
     env.coworker_type = envContext.coworkerType
   }
   if (envContext.myCodeContainerId) {

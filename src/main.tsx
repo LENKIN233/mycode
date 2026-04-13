@@ -606,23 +606,6 @@ export async function main() {
   });
   profileCheckpoint('main_warning_handler_initialized');
 
-  // Check for cc:// or cc+unix:// URL in argv — rewrite so the main command
-  // handles it, giving the full interactive TUI instead of a stripped-down subcommand.
-  // For headless (-p), we rewrite to the internal `open` subcommand.
-  // Handle deep link URIs early — deep link feature removed (Anthropic infrastructure)
-  if (feature('LODESTONE')) {
-    const handleUriIdx = process.argv.indexOf('--handle-uri');
-    if (handleUriIdx !== -1 && process.argv[handleUriIdx + 1]) {
-      process.exit(1);
-    }
-
-    // macOS URL handler: when LaunchServices launches our .app bundle, the
-    // URL arrives via Apple Event (not argv).
-    if (process.platform === 'darwin' && process.env.__CFBundleIdentifier === 'com.mycode-url-handler') {
-      process.exit(1);
-    }
-  }
-
   // `mycode assistant [sessionId]` — stash and strip so the main
   // command handles it, giving the full interactive TUI. Position-0 only
   // (matching the ssh pattern below) — indexOf would false-positive on
@@ -2064,23 +2047,7 @@ async function run(): Promise<CommanderCommand> {
       const onboardingShown = await showSetupScreens(root, permissionMode, allowDangerouslySkipPermissions, commands, enableMyCodeInChrome, devChannels);
       logForDebugging(`[STARTUP] showSetupScreens() completed in ${Date.now() - setupScreensStart}ms`);
 
-      // Check for pending agent memory snapshot updates (only for --agent mode, ant-only)
-      if (feature('AGENT_MEMORY_SNAPSHOT') && mainThreadAgentDefinition && isCustomAgent(mainThreadAgentDefinition) && mainThreadAgentDefinition.memory && mainThreadAgentDefinition.pendingSnapshotUpdate) {
-        const agentDef = mainThreadAgentDefinition;
-        const choice = await launchSnapshotUpdateDialog(root, {
-          agentType: agentDef.agentType,
-          scope: agentDef.memory!,
-          snapshotTimestamp: agentDef.pendingSnapshotUpdate!.snapshotTimestamp
-        });
-        if (choice === 'merge') {
-          const {
-            buildMergePrompt
-          } = await loadDynamicModule('./components/agents/SnapshotUpdateDialog.js');
-          const mergePrompt = buildMergePrompt(agentDef.agentType, agentDef.memory!);
-          inputPrompt = inputPrompt ? `${mergePrompt}\n\n${inputPrompt}` : mergePrompt;
-        }
-        agentDef.pendingSnapshotUpdate = undefined;
-      }
+
 
       // Skip executing /login if we just completed onboarding for it
       if (onboardingShown && prompt?.trim().toLowerCase() === '/login') {
@@ -2732,14 +2699,6 @@ async function run(): Promise<CommanderCommand> {
     const initialIsBriefOnly = feature('KAIROS') || feature('KAIROS_BRIEF') ? getUserMsgOptIn() : false;
     const fullRemoteControl = remoteControl || getRemoteControlAtStartup() || kairosEnabled;
     let ccrMirrorEnabled = false;
-    if (feature('CCR_MIRROR') && !fullRemoteControl) {
-      /* eslint-disable @typescript-eslint/no-require-imports */
-      const {
-        isCcrMirrorEnabled
-      } = require('./bridge/bridgeEnabled.js') as typeof import('./bridge/bridgeEnabled.js');
-      /* eslint-enable @typescript-eslint/no-require-imports */
-      ccrMirrorEnabled = isCcrMirrorEnabled();
-    }
     const initialState: AppState = {
       settings: getInitialSettings(),
       tasks: {},
@@ -3492,16 +3451,8 @@ async function run(): Promise<CommanderCommand> {
       // prompt — and the working directory / MYCODE.md it implies — came
       // from an external source rather than something they typed.
       let deepLinkBanner: ReturnType<typeof createSystemMessage> | null = null;
-      if (feature('LODESTONE')) {
-        if (options.deepLinkOrigin) {
-          logEvent('tengu_deep_link_opened', {
-            has_prefill: Boolean(options.prefill),
-            has_repo: Boolean(options.deepLinkRepo)
-          });
-          // Deep link banner removed (Anthropic infrastructure)
-        } else if (options.prefill) {
-          deepLinkBanner = createSystemMessage('Launched with a pre-filled prompt — review it before pressing Enter.', 'warning');
-        }
+      if (options.prefill) {
+        deepLinkBanner = createSystemMessage('Launched with a pre-filled prompt — review it before pressing Enter.', 'warning');
       }
       const initialMessages = deepLinkBanner ? [deepLinkBanner, ...hookMessages] : hookMessages.length > 0 ? hookMessages : undefined;
       await launchRepl(root, {
@@ -3569,9 +3520,7 @@ async function run(): Promise<CommanderCommand> {
   // Enable teleport/remote flags for all builds but keep them undocumented until GA
   program.addOption(new Option('--teleport [session]', 'Resume a teleport session, optionally specify session ID').hideHelp());
   program.addOption(new Option('--remote [description]', 'Create a remote session with the given description').hideHelp());
-  if (feature('HARD_FAIL')) {
-    program.addOption(new Option('--hard-fail', 'Crash on logError calls instead of silently logging').hideHelp());
-  }
+
   profileCheckpoint('run_main_options_built');
 
   // -p/--print mode: skip subcommand registration. The 52 subcommands

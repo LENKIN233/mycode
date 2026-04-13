@@ -496,9 +496,7 @@ export async function buildYoloSystemPrompt(
   const includeBashPromptRules = feature('BASH_CLASSIFIER')
     ? !usingExternal
     : false
-  const includePowerShellGuidance = feature('POWERSHELL_AUTO_MODE')
-    ? !usingExternal
-    : false
+  const includePowerShellGuidance = false
   const allowDescriptions = [
     ...(includeBashPromptRules ? getBashPromptAllowDescriptions(context) : []),
     ...(autoMode?.allow ?? []),

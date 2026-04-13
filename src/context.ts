@@ -128,9 +128,7 @@ export const getSystemContext = memoize(
         : await getGitStatus()
 
     // Include system prompt injection if set (for cache breaking, ant-only)
-    const injection = feature('BREAK_CACHE_COMMAND')
-      ? getSystemPromptInjection()
-      : null
+    const injection = null
 
     logForDiagnosticsNoPII('info', 'system_context_completed', {
       duration_ms: Date.now() - startTime,
@@ -140,7 +138,7 @@ export const getSystemContext = memoize(
 
     return {
       ...(gitStatus && { gitStatus }),
-      ...(feature('BREAK_CACHE_COMMAND') && injection
+      ...(injection
         ? {
             cacheBreaker: `[CACHE_BREAKER: ${injection}]`,
           }

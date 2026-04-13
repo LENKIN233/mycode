@@ -227,11 +227,7 @@ const command = {
   type: 'prompt',
   name: 'init',
   get description() {
-    return feature('NEW_INIT') &&
-      (process.env.USER_TYPE === 'ant' ||
-        isEnvTruthy(process.env.MYCODE_NEW_INIT))
-      ? 'Initialize new MYCODE.md file(s) and optional skills/hooks with codebase documentation'
-      : 'Initialize a new MYCODE.md file with codebase documentation'
+    return 'Initialize a new MYCODE.md file with codebase documentation'
   },
   contentLength: 0, // Dynamic content
   progressMessage: 'analyzing your codebase',
@@ -242,12 +238,7 @@ const command = {
     return [
       {
         type: 'text',
-        text:
-          feature('NEW_INIT') &&
-          (process.env.USER_TYPE === 'ant' ||
-            isEnvTruthy(process.env.MYCODE_NEW_INIT))
-            ? NEW_INIT_PROMPT
-            : OLD_INIT_PROMPT,
+        text: OLD_INIT_PROMPT,
       },
     ]
   },

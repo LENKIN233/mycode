@@ -814,12 +814,7 @@ export async function runHeadless(
   let lastMessage: SDKMessage | undefined
   // Streamlined mode transforms messages when MYCODE_STREAMLINED_OUTPUT=true and using stream-json
   // Build flag gates this out of external builds; env var is the runtime opt-in for ant builds
-  const transformToStreamlined =
-    feature('STREAMLINED_OUTPUT') &&
-    isEnvTruthy(process.env.MYCODE_STREAMLINED_OUTPUT) &&
-    options.outputFormat === 'stream-json'
-      ? createStreamlinedTransformer()
-      : null
+  const transformToStreamlined = null
 
   headlessProfilerCheckpoint('before_runHeadlessStreaming')
   for await (const message of runHeadlessStreaming(
@@ -2117,9 +2112,7 @@ function runHeadlessStreaming(
           }
 
           abortController = createAbortController()
-          const turnStartTime = feature('FILE_PERSISTENCE')
-            ? Date.now()
-            : undefined
+          const turnStartTime = undefined
 
           headlessProfilerCheckpoint('before_ask')
           startQueryProfile()
@@ -2239,37 +2232,6 @@ function runHeadlessStreaming(
           forwardMessagesToBridge()
           bridgeHandle?.sendResult()
 
-          if (feature('FILE_PERSISTENCE') && turnStartTime !== undefined) {
-            void executeFilePersistence(
-              turnStartTime,
-              abortController.signal,
-              result => {
-                const files =
-                  'files' in result && Array.isArray(result.files)
-                    ? result.files
-                    : 'persistedFiles' in result &&
-                        Array.isArray(result.persistedFiles)
-                      ? result.persistedFiles
-                      : []
-                const failed =
-                  'failed' in result && Array.isArray(result.failed)
-                    ? result.failed
-                    : 'failedFiles' in result &&
-                        Array.isArray(result.failedFiles)
-                      ? result.failedFiles
-                      : []
-                output.enqueue({
-                  type: 'system' as const,
-                  subtype: 'files_persisted' as const,
-                  files,
-                  failed,
-                  processed_at: new Date().toISOString(),
-                  uuid: randomUUID(),
-                  session_id: getSessionId(),
-                })
-              },
-            )
-          }
 
           // Generate and emit prompt suggestion for SDK consumers
           if (

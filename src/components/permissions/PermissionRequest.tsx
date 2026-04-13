@@ -133,9 +133,7 @@ function getNotificationMessage(toolUseConfirm: ToolUseConfirm): string {
   if (toolUseConfirm.tool === EnterPlanModeTool) {
     return 'MyCode wants to enter plan mode';
   }
-  if (feature('REVIEW_ARTIFACT') && toolUseConfirm.tool === ReviewArtifactTool) {
-    return 'MyCode needs your approval for a review artifact';
-  }
+
   if (!toolName || toolName.trim() === '') {
     return 'MyCode needs your attention';
   }

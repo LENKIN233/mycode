@@ -570,8 +570,7 @@ export const hasPermissionsToUseTool: CanUseToolFn = async (
       // and isDangerousPowerShellPermission strips iex/pwsh/Start-Process
       // prefix rules for ant users and auto mode entry.
       if (
-        tool.name === POWERSHELL_TOOL_NAME &&
-        !feature('POWERSHELL_AUTO_MODE')
+        tool.name === POWERSHELL_TOOL_NAME
       ) {
         if (appState.toolPermissionContext.shouldAvoidPermissionPrompts) {
           return {

@@ -104,9 +104,7 @@ export function checkBridgeMinVersion(): string | null {
  * config.ts → growthbook.ts import cycle (growthbook.ts → user.ts → config.ts).
  */
 export function getCcrAutoConnectDefault(): boolean {
-  return feature('CCR_AUTO_CONNECT')
-    ? getFeatureValue_CACHED_MAY_BE_STALE('tengu_cobalt_harbor', false)
-    : false
+  return false
 }
 
 /**
@@ -116,8 +114,5 @@ export function getCcrAutoConnectDefault(): boolean {
  * local opt-in; GrowthBook controls rollout.
  */
 export function isCcrMirrorEnabled(): boolean {
-  return feature('CCR_MIRROR')
-    ? isEnvTruthy(process.env.MYCODE_CCR_MIRROR) ||
-        getFeatureValue_CACHED_MAY_BE_STALE('tengu_ccr_mirror', false)
-    : false
+  return false
 }

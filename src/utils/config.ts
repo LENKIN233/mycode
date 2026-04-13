@@ -33,9 +33,7 @@ import type { ThemeSetting } from './theme.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const teamMemPaths = null
-const ccrAutoConnect = feature('CCR_AUTO_CONNECT')
-  ? (require('../bridge/bridgeEnabled.js') as typeof import('../bridge/bridgeEnabled.js'))
-  : null
+const ccrAutoConnect = null
 
 /* eslint-enable @typescript-eslint/no-require-imports */
 import type { ImageDimensions } from './imageResizer.js'
@@ -1116,9 +1114,6 @@ export function getGlobalConfig(): GlobalConfig {
 export function getRemoteControlAtStartup(): boolean {
   const explicit = getGlobalConfig().remoteControlAtStartup
   if (explicit !== undefined) return explicit
-  if (feature('CCR_AUTO_CONNECT')) {
-    if (ccrAutoConnect?.getCcrAutoConnectDefault()) return true
-  }
   return false
 }
 

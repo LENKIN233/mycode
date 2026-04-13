@@ -49,7 +49,6 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       'ctrl+r': 'history:search',
       // File navigation. cmd+ bindings only fire on kitty-protocol terminals;
       // ctrl+shift is the portable fallback.
-      ...(feature('TERMINAL_PANEL') ? { 'meta+j': 'app:toggleTerminal' } : {}),
     },
   },
   {

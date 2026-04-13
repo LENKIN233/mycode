@@ -275,12 +275,5 @@ export async function executeFilePersistence(
  * not normal MyCode CLI users.
  */
 export function isFilePersistenceEnabled(): boolean {
-  if (feature('FILE_PERSISTENCE')) {
-    return (
-      getEnvironmentKind() === 'byoc' &&
-      !!getSessionIngressAuthToken() &&
-      !!process.env.MYCODE_REMOTE_SESSION_ID
-    )
-  }
   return false
 }

@@ -62,21 +62,19 @@ export function ThemeProvider({
   // Positive feature() pattern so the watcher import is dead-code-eliminated
   // in external builds.
   useEffect(() => {
-    if (feature('AUTO_THEME')) {
-      if (activeSetting !== 'auto' || !internal_querier) return;
-      let cleanup: (() => void) | undefined;
-      let cancelled = false;
-      void import('../../utils/systemThemeWatcher.js').then(({
-        watchSystemTheme
-      }) => {
-        if (cancelled) return;
-        cleanup = watchSystemTheme(internal_querier, setSystemTheme);
-      });
-      return () => {
-        cancelled = true;
-        cleanup?.();
-      };
-    }
+    if (activeSetting !== 'auto' || !internal_querier) return;
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+    void import('../../utils/systemThemeWatcher.js').then(({
+      watchSystemTheme
+    }) => {
+      if (cancelled) return;
+      cleanup = watchSystemTheme(internal_querier, setSystemTheme);
+    });
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
   }, [activeSetting, internal_querier]);
   const currentTheme: ThemeName = activeSetting === 'auto' ? systemTheme : activeSetting;
   const value = useMemo<ThemeContextValue>(() => ({
