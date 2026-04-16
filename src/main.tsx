@@ -799,7 +799,7 @@ async function run(): Promise<CommanderCommand> {
   // `mcp` and `add` as paths, then choked on --transport as an unknown
   // top-level option. Single-value + collect accumulator means each
   // --plugin-dir takes exactly one arg; repeat the flag for multiple dirs.
-  .option('--plugin-dir <path>', 'Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B)', (val: string, prev: string[]) => [...prev, val], [] as string[]).option('--disable-slash-commands', 'Disable all skills', () => true).option('--chrome', 'Enable Browser Extension integration').option('--no-chrome', 'Disable Browser Extension integration').option('--copilot-login', 'Login to GitHub Copilot via device code flow', () => true).option('--provider <name>', 'Set API provider (copilot, anthropic, bedrock, vertex, foundry)').option('--file <specs...>', 'File resources to download at startup. Format: file_id:relative_path (e.g., --file file_abc:doc.txt file_def:img.png)').action(async (prompt, options) => {
+  .option('--plugin-dir <path>', 'Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B)', (val: string, prev: string[]) => [...prev, val], [] as string[]).option('--disable-slash-commands', 'Disable all skills', () => true).option('--chrome', 'Enable Browser Extension integration').option('--no-chrome', 'Disable Browser Extension integration').option('--copilot-login', 'Login to GitHub Copilot via device code flow', () => true).option('--provider <name>', 'Set API provider (only "copilot" is supported)').option('--file <specs...>', 'File resources to download at startup. Format: file_id:relative_path (e.g., --file file_abc:doc.txt file_def:img.png)').action(async (prompt, options) => {
     profileCheckpoint('action_handler_start');
 
     // Handle --copilot-login: run the device code flow and exit
@@ -809,20 +809,15 @@ async function run(): Promise<CommanderCommand> {
       process.exit(0)
     }
 
-    // Handle --provider: set the API provider override before anything else
+    // Handle --provider: only copilot is supported
     const providerOpt = (options as { provider?: string }).provider
     if (providerOpt) {
-      const PROVIDER_ALIASES: Record<string, import('./utils/model/providers.js').APIProvider> = {
-        copilot: 'copilot', 'github-copilot': 'copilot', github: 'copilot',
-        anthropic: 'firstParty', 'first-party': 'firstParty', default: 'firstParty',
-        bedrock: 'bedrock', aws: 'bedrock',
-        vertex: 'vertex', gcp: 'vertex', google: 'vertex',
-        foundry: 'foundry', azure: 'foundry',
-      }
-      const resolved = PROVIDER_ALIASES[providerOpt.toLowerCase()]
-      if (resolved) {
-        const { setAPIProviderOverride } = await import('./utils/model/providers.js')
-        setAPIProviderOverride(resolved)
+      const COPILOT_ALIASES = new Set(['copilot', 'github-copilot', 'github'])
+      if (!COPILOT_ALIASES.has(providerOpt.toLowerCase())) {
+        process.stderr.write(
+          `Error: Provider "${providerOpt}" is not supported. Only "copilot" is available.\n`,
+        )
+        process.exit(1)
       }
     }
 

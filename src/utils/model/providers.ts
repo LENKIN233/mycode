@@ -1,48 +1,26 @@
 import type { AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from '../../services/analytics/index.js'
-import { isEnvTruthy } from '../envUtils.js'
 
 export type APIProvider = 'firstParty' | 'bedrock' | 'vertex' | 'foundry' | 'copilot'
-
-function isAnthropicOfficialDisabled(): boolean {
-  return isEnvTruthy(process.env.MYCODE_DISABLE_ANTHROPIC_OFFICIAL)
-}
 
 // Runtime override — set by /provider command or --copilot-login
 let runtimeProviderOverride: APIProvider | null = null
 
 export function setAPIProviderOverride(provider: APIProvider | null): void {
+  // Only copilot is supported
+  if (provider !== null && provider !== 'copilot') {
+    throw new Error(`Provider "${provider}" is not supported. Only "copilot" is available.`)
+  }
   runtimeProviderOverride = provider
-  if (provider === 'copilot') {
+  if (provider === 'copilot' || provider === null) {
     process.env.MYCODE_USE_COPILOT = '1'
-  } else if (provider === null && process.env.MYCODE_USE_COPILOT) {
-    delete process.env.MYCODE_USE_COPILOT
   }
   // Re-initialize model strings for the new provider (lazy import to avoid circular dep)
   import('./modelStrings.js').then(m => m.reinitModelStrings()).catch(() => {})
 }
 
 export function getAPIProvider(): APIProvider {
-  if (runtimeProviderOverride) return runtimeProviderOverride
-  if (isAnthropicOfficialDisabled()) {
-    // Personal/forked setups can hard-disable Anthropic first-party mode.
-    // Keep explicit 3P providers if configured, otherwise default to copilot.
-    return isEnvTruthy(process.env.MYCODE_USE_BEDROCK)
-      ? 'bedrock'
-      : isEnvTruthy(process.env.MYCODE_USE_VERTEX)
-        ? 'vertex'
-        : isEnvTruthy(process.env.MYCODE_USE_FOUNDRY)
-          ? 'foundry'
-          : 'copilot'
-  }
-  return isEnvTruthy(process.env.MYCODE_USE_COPILOT)
-    ? 'copilot'
-    : isEnvTruthy(process.env.MYCODE_USE_BEDROCK)
-      ? 'bedrock'
-      : isEnvTruthy(process.env.MYCODE_USE_VERTEX)
-        ? 'vertex'
-        : isEnvTruthy(process.env.MYCODE_USE_FOUNDRY)
-          ? 'foundry'
-          : 'firstParty'
+  // Only GitHub Copilot is supported
+  return 'copilot'
 }
 
 export function getAPIProviderForStatsig(): AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS {
