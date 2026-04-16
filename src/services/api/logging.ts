@@ -1,8 +1,8 @@
-import { APIError } from '@anthropic-ai/sdk'
+import { APIError } from '@ai/sdk'
 import type {
   BetaStopReason,
   BetaUsage as Usage,
-} from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
+} from '@ai/sdk/resources/beta/messages/messages.mjs'
 import {
   addToTotalDurationState,
   consumePostCompaction,
@@ -135,7 +135,7 @@ function detectGateway({
   return undefined
 }
 
-function getAnthropicEnvMetadata() {
+function getEnvMetadata() {
   return {
     ...(process.env.ANTHROPIC_BASE_URL
       ? {
@@ -225,7 +225,7 @@ export function logAPIQuery({
             previousRequestId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         }
       : {}),
-    ...getAnthropicEnvMetadata(),
+    ...getEnvMetadata(),
   })
 }
 
@@ -358,7 +358,7 @@ export function logAPIError({
             previousRequestId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         }
       : {}),
-    ...getAnthropicEnvMetadata(),
+    ...getEnvMetadata(),
   })
 
   // Log API error event for OTLP
@@ -555,7 +555,7 @@ function logAPISuccess({
         }
       : {}),
     ...(isPostCompaction ? { isPostCompaction } : {}),
-    ...getAnthropicEnvMetadata(),
+    ...getEnvMetadata(),
     timeSinceLastApiCallMs,
   })
 

@@ -11,7 +11,7 @@ import {
   initializePolicyLimitsLoadingPromise,
   isPolicyLimitsEligible,
 } from '../services/policyLimits/index.js'
-import { preconnectAnthropicApi } from '../utils/apiPreconnect.js'
+import { preconnectApi } from '../utils/apiPreconnect.js'
 import { applyExtraCACertsFromConfig } from '../utils/caCertsConfig.js'
 import { registerCleanup } from '../utils/cleanupRegistry.js'
 import { enableConfigs, recordFirstStartTime } from '../utils/config.js'
@@ -137,7 +137,7 @@ export const init = memoize(async (): Promise<void> => {
     // connection uses the right transport. Fire-and-forget; skipped for
     // proxy/mTLS/unix/cloud-provider where the SDK's dispatcher wouldn't
     // reuse the global pool.
-    preconnectAnthropicApi()
+    preconnectApi()
 
     // CCR upstreamproxy: start the local CONNECT relay so agent subprocesses
     // can reach org-configured upstreams with credential injection. Gated on

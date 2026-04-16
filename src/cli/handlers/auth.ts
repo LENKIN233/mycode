@@ -13,7 +13,7 @@ import { fetchAndStoreMyCodeFirstTokenDate } from '../../services/api/firstToken
 import {
   type OAuthTokens,
   clearOAuthTokenCache,
-  getAnthropicApiKeyWithSource,
+  getApiKeyWithSource,
   getAuthTokenSource,
   getOauthAccountInfo,
   getSubscriptionType,
@@ -298,7 +298,7 @@ export async function authStatus(opts: {
   text?: boolean
 }): Promise<void> {
   const { source: authTokenSource, hasToken } = getAuthTokenSource()
-  const { source: apiKeySource } = getAnthropicApiKeyWithSource()
+  const { source: apiKeySource } = getApiKeyWithSource()
   const hasApiKeyEnvVar =
     !!process.env.ANTHROPIC_API_KEY && !isRunningOnHomespace()
   const oauthAccount = getOauthAccountInfo()

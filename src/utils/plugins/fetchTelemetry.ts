@@ -68,12 +68,12 @@ function extractHost(urlOrSpec: string): string {
 }
 
 /**
- * True if the URL/spec points at anthropics/mycode-plugins-official — the
+ * True if the URL/spec points at LENKIN233/mycode-plugins-official — the
  * repo GitHub complained about. Lets the dashboard separate "our problem"
  * traffic from user-configured marketplaces.
  */
 function isOfficialRepo(urlOrSpec: string): boolean {
-  return urlOrSpec.includes(`anthropics/${OFFICIAL_MARKETPLACE_NAME}`)
+  return urlOrSpec.includes(`LENKIN233/${OFFICIAL_MARKETPLACE_NAME}`)
 }
 
 export function logPluginFetch(

@@ -69,7 +69,7 @@ import type {
   ContentBlockParam,
   ImageBlockParam,
   Base64ImageSource,
-} from '@anthropic-ai/sdk/resources/messages.mjs'
+} from '@ai/sdk/resources/messages.mjs'
 import { maybeResizeAndDownsampleImageBlock } from './imageResizer.js'
 import type { PastedContent } from './config.js'
 import { getGlobalConfig } from './config.js'

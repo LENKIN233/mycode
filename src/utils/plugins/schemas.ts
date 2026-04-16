@@ -58,7 +58,7 @@ export function isMarketplaceAutoUpdate(
 }
 
 /**
- * Pattern to detect names that impersonate official Anthropic/MyCode marketplaces.
+ * Pattern to detect names that impersonate official marketplaces.
  *
  * Matches names containing variations like:
  * - "official" combined with "anthropic" or "mycode" (e.g., "official-mycode-plugins")
@@ -79,7 +79,7 @@ export const BLOCKED_OFFICIAL_NAME_PATTERN =
 const NON_ASCII_PATTERN = /[^\u0020-\u007E]/
 
 /**
- * Check if a marketplace name impersonates an official Anthropic/MyCode marketplace.
+ * Check if a marketplace name impersonates an official marketplace.
  *
  * @param name - The marketplace name to check
  * @returns true if the name is blocked (impersonates official), false if allowed
@@ -104,7 +104,7 @@ export function isBlockedOfficialName(name: string): boolean {
  * The official GitHub organization for Anthropic marketplaces.
  * Reserved names must come from this org.
  */
-export const OFFICIAL_GITHUB_ORG = 'anthropics'
+export const OFFICIAL_GITHUB_ORG = 'LENKIN233'
 
 /**
  * Validate that a marketplace with a reserved name comes from the official source.
@@ -132,7 +132,7 @@ export function validateOfficialNameSource(
     // Verify the repo is from the official org
     const repo = source.repo || ''
     if (!repo.toLowerCase().startsWith(`${OFFICIAL_GITHUB_ORG}/`)) {
-      return `The name '${name}' is reserved for official Anthropic marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`
+      return `The name '${name}' is reserved for official marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`
     }
     return null // Valid: reserved name from official GitHub source
   }
@@ -140,20 +140,20 @@ export function validateOfficialNameSource(
   // Check for git URL source type
   if (source.source === 'git' && source.url) {
     const url = source.url.toLowerCase()
-    // Check for HTTPS URL format: https://github.com/anthropics/...
-    // or SSH format: git@github.com:anthropics/...
-    const isHttpsAnthropics = url.includes('github.com/anthropics/')
-    const isSshAnthropics = url.includes('git@github.com:anthropics/')
+    // Check for HTTPS URL format: https://github.com/LENKIN233/...
+    // or SSH format: git@github.com:LENKIN233/...
+    const isHttpsAnthropics = url.includes('github.com/LENKIN233/')
+    const isSshAnthropics = url.includes('git@github.com:LENKIN233/')
 
     if (isHttpsAnthropics || isSshAnthropics) {
       return null // Valid: reserved name from official git URL
     }
 
-    return `The name '${name}' is reserved for official Anthropic marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`
+    return `The name '${name}' is reserved for official marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`
   }
 
   // Reserved names must come from GitHub (either 'github' or 'git' source)
-  return `The name '${name}' is reserved for official Anthropic marketplaces and can only be used with GitHub sources from the '${OFFICIAL_GITHUB_ORG}' organization.`
+  return `The name '${name}' is reserved for official marketplaces and can only be used with GitHub sources from the '${OFFICIAL_GITHUB_ORG}' organization.`
 }
 
 /**
@@ -234,7 +234,7 @@ const MarketplaceNameSchema = lazySchema(() =>
     )
     .refine(name => !isBlockedOfficialName(name), {
       message:
-        'Marketplace name impersonates an official Anthropic/MyCode marketplace',
+        'Marketplace name impersonates an official marketplace',
     })
     .refine(name => name.toLowerCase() !== 'inline', {
       message:
@@ -1018,7 +1018,7 @@ export const MarketplaceSourceSchema = lazySchema(() =>
             {
               message:
                 'Reserved official marketplace names cannot be used with settings sources. ' +
-                'validateOfficialNameSource only accepts github/git sources from anthropics/* ' +
+                'validateOfficialNameSource only accepts github/git sources from LENKIN233/* ' +
                 'for these names; a settings source would be rejected after ' +
                 'loadAndCacheMarketplace has already written to disk with cleanupNeeded=false.',
             },

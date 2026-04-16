@@ -1,5 +1,5 @@
-import { APIError } from '@anthropic-ai/sdk'
-import type { MessageParam } from '@anthropic-ai/sdk/resources/index.mjs'
+import { APIError } from '@ai/sdk'
+import type { MessageParam } from '@ai/sdk/resources/index.mjs'
 import isEqual from 'lodash-es/isEqual.js'
 import { getIsNonInteractiveSession } from '../bootstrap/state.js'
 import { isMyCodeAISubscriber } from '../utils/auth.js'
@@ -13,7 +13,7 @@ import { isEssentialTrafficOnly } from '../utils/privacyLevel.js'
 import type { AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from './analytics/index.js'
 import { logEvent } from './analytics/index.js'
 import { getAPIMetadata } from './api/mycode.js'
-import { getAnthropicClient } from './api/client.js'
+import { getAiClient } from './api/client.js'
 import {
   processRateLimitHeaders,
   shouldProcessRateLimits,
@@ -200,7 +200,7 @@ export function emitStatusChange(limits: MyCodeAILimits) {
 
 async function makeTestQuery() {
   const model = getModelForTask('quotaCheck')
-  const anthropic = await getAnthropicClient({
+  const anthropic = await getAiClient({
     maxRetries: 0,
     model,
     source: 'quota_check',

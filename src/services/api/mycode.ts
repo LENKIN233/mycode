@@ -16,9 +16,9 @@ import type {
   BetaToolUnion,
   BetaUsage,
   BetaMessageParam as MessageParam,
-} from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-import type { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import type { Stream } from '@anthropic-ai/sdk/core/streaming.mjs'
+} from '@ai/sdk/resources/beta/messages/messages.mjs'
+import type { TextBlockParam } from '@ai/sdk/resources/index.mjs'
+import type { Stream } from '@ai/sdk/core/streaming.mjs'
 import {
   ensureToolResultPairing,
   normalizeContentFromAPI,
@@ -55,12 +55,12 @@ const autoModeStateModule = feature('TRANSCRIPT_CLASSIFIER')
   : null
 
 import { feature } from 'bun:bundle'
-import type { ClientOptions } from '@anthropic-ai/sdk'
+import type { ClientOptions } from '@ai/sdk'
 import {
   APIConnectionTimeoutError,
   APIError,
   APIUserAbortError,
-} from '@anthropic-ai/sdk/error'
+} from '@ai/sdk/error'
 import {
   addToTotalModelRequests,
   getAfkModeHeaderLatched,
@@ -203,7 +203,7 @@ import {
 import { getInitializationStatus } from '../lsp/manager.js'
 import { isToolFromMcpServer } from '../mcp/utils.js'
 import { withStreamingVCR, withVCR } from '../vcr.js'
-import { CLIENT_REQUEST_ID_HEADER, getAnthropicClient } from './client.js'
+import { CLIENT_REQUEST_ID_HEADER, getAiClient } from './client.js'
 import {
   API_ERROR_MESSAGE_PREFIX,
   CUSTOM_OFF_SWITCH_MESSAGE,
@@ -477,7 +477,7 @@ export async function verifyApiKey(
     return await returnValue(
       withRetry(
         () =>
-          getAnthropicClient({
+          getAiClient({
             apiKey,
             maxRetries: 3,
             model,
@@ -776,7 +776,7 @@ export async function* executeNonStreamingRequest(
   const fallbackTimeoutMs = getNonstreamingFallbackTimeoutMs()
   const generator = withRetry(
     () =>
-      getAnthropicClient({
+      getAiClient({
         maxRetries: 0,
         model: clientOptions.model,
         fetchOverride: clientOptions.fetchOverride,
@@ -1636,7 +1636,7 @@ async function* queryModel(
     queryCheckpoint('query_client_creation_start')
     const generator = withRetry(
       () =>
-        getAnthropicClient({
+        getAiClient({
           maxRetries: 0, // Disabled auto-retry in favor of manual implementation
           model: options.model,
           fetchOverride: options.fetchOverride,

@@ -16,7 +16,7 @@ export const PREAPPROVED_HOSTS = new Set([
   'platform.mycode.com',
   'code.mycode.com',
   'modelcontextprotocol.io',
-  'github.com/anthropics',
+  'github.com/LENKIN233',
   'agentskills.io',
 
   // Top Programming Languages

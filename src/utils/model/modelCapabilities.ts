@@ -5,7 +5,7 @@ import memoize from 'lodash-es/memoize.js'
 import { join } from 'path'
 import { z } from 'zod/v4'
 import { OAUTH_BETA_HEADER } from '../../constants/oauth.js'
-import { getAnthropicClient } from '../../services/api/client.js'
+import { getAiClient } from '../../services/api/client.js'
 import { isMyCodeAISubscriber } from '../auth.js'
 import { logForDebugging } from '../debug.js'
 import { getConfigHomeDir } from '../envUtils.js'
@@ -13,7 +13,7 @@ import { safeParseJSON } from '../json.js'
 import { lazySchema } from '../lazySchema.js'
 import { isEssentialTrafficOnly } from '../privacyLevel.js'
 import { jsonStringify } from '../slowOperations.js'
-import { getAPIProvider, isFirstPartyAnthropicBaseUrl } from './providers.js'
+import { getAPIProvider, isFirstPartyBaseUrl } from './providers.js'
 
 // .strip() — don't persist internal-only fields (mycro_deployments etc.) to disk
 const ModelCapabilitySchema = lazySchema(() =>
@@ -46,7 +46,7 @@ function getCachePath(): string {
 function isModelCapabilitiesEligible(): boolean {
   if (process.env.USER_TYPE !== 'ant') return false
   if (getAPIProvider() !== 'firstParty') return false
-  if (!isFirstPartyAnthropicBaseUrl()) return false
+  if (!isFirstPartyBaseUrl()) return false
   return true
 }
 
@@ -87,7 +87,7 @@ export async function refreshModelCapabilities(): Promise<void> {
   if (isEssentialTrafficOnly()) return
 
   try {
-    const anthropic = await getAnthropicClient({ maxRetries: 1 })
+    const anthropic = await getAiClient({ maxRetries: 1 })
     const betas = isMyCodeAISubscriber() ? [OAUTH_BETA_HEADER] : undefined
     const parsed: ModelCapability[] = []
     for await (const entry of anthropic.models.list({ betas })) {

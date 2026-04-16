@@ -2,11 +2,11 @@ import {
   APIConnectionError,
   APIConnectionTimeoutError,
   APIError,
-} from '@anthropic-ai/sdk'
+} from '@ai/sdk'
 import type {
   BetaMessage,
   BetaStopReason,
-} from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
+} from '@ai/sdk/resources/beta/messages/messages.mjs'
 import { AFK_MODE_BETA_HEADER } from 'src/constants/betas.js'
 import type { SDKAssistantMessageError } from 'src/entrypoints/agentSdkTypes.js'
 import type {
@@ -15,7 +15,7 @@ import type {
   UserMessage,
 } from 'src/types/message.js'
 import {
-  getAnthropicApiKeyWithSource,
+  getApiKeyWithSource,
   getMyCodeAIOAuthTokens,
   getOauthAccountInfo,
   isMyCodeAISubscriber,
@@ -787,8 +787,8 @@ export function getAssistantMessageFromError(
     error.status === 400 &&
     error.message.toLowerCase().includes('organization has been disabled')
   ) {
-    const { source } = getAnthropicApiKeyWithSource()
-    // getAnthropicApiKeyWithSource conflates the env var with FD-passed keys
+    const { source } = getApiKeyWithSource()
+    // getApiKeyWithSource conflates the env var with FD-passed keys
     // under the same source value, and in CCR mode OAuth stays active despite
     // the env var. The three guards ensure we only blame the env var when it's
     // actually set and actually on the wire.
@@ -823,7 +823,7 @@ export function getAssistantMessageFromError(
     }
 
     // Check if the API key is from an external source
-    const { source } = getAnthropicApiKeyWithSource()
+    const { source } = getApiKeyWithSource()
     const isExternalSource =
       source === 'ANTHROPIC_API_KEY' || source === 'apiKeyHelper'
 

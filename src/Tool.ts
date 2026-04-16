@@ -1,7 +1,7 @@
 import type {
   ToolResultBlockParam,
   ToolUseBlockParam,
-} from '@anthropic-ai/sdk/resources/index.mjs'
+} from '@ai/sdk/resources/index.mjs'
 import type {
   ElicitRequestURLParams,
   ElicitResult,

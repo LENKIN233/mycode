@@ -33,7 +33,7 @@ export function getAPIProviderForStatsig(): AnalyticsMetadata_I_VERIFIED_THIS_IS
  * Returns true if not set (default API) or points to api.anthropic.com
  * (or api-staging.anthropic.com for ant users).
  */
-export function isFirstPartyAnthropicBaseUrl(): boolean {
+export function isFirstPartyBaseUrl(): boolean {
   const baseUrl = process.env.ANTHROPIC_BASE_URL
   if (!baseUrl) {
     return true

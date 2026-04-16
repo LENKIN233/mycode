@@ -3,7 +3,7 @@ import uniqBy from 'lodash-es/uniqBy.js'
 
 const sessionTranscriptModule = null
 
-import { APIUserAbortError } from '@anthropic-ai/sdk'
+import { APIUserAbortError } from '@ai/sdk'
 import { markPostCompaction } from 'src/bootstrap/state.js'
 import { getInvokedSkillsForAgent } from '../../bootstrap/state.js'
 import type { QuerySource } from '../../constants/querySource.js'

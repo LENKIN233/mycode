@@ -1,4 +1,4 @@
-import Anthropic, { type ClientOptions } from '@anthropic-ai/sdk'
+import Anthropic, { type ClientOptions } from '@ai/sdk'
 import { getUserAgent } from 'src/utils/http.js'
 import { getProxyFetchOptions } from 'src/utils/proxy.js'
 import {
@@ -24,7 +24,7 @@ function createStderrLogger(): ClientOptions['logger'] {
   }
 }
 
-export async function getAnthropicClient({
+export async function getAiClient({
   maxRetries,
   fetchOverride,
   source,

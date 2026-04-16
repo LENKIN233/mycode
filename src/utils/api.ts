@@ -1,8 +1,8 @@
-import type Anthropic from '@anthropic-ai/sdk'
+import type Anthropic from '@ai/sdk'
 import type {
   BetaTool,
   BetaToolUnion,
-} from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
+} from '@ai/sdk/resources/beta/messages/messages.mjs'
 import { createHash } from 'crypto'
 import { SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from 'src/constants/prompts.js'
 import { getSystemContext, getUserContext } from 'src/context.js'
@@ -46,7 +46,7 @@ import { isEnvTruthy } from './envUtils.js'
 import { createUserMessage } from './messages.js'
 import {
   getAPIProvider,
-  isFirstPartyAnthropicBaseUrl,
+  isFirstPartyBaseUrl,
 } from './model/providers.js'
 import {
   getFileReadIgnorePatterns,
@@ -198,7 +198,7 @@ export async function toolToAPISchema(
     // with Claude 4.5 reject this field with 400. See GH#32742, PR #21729.
     if (
       getAPIProvider() === 'firstParty' &&
-      isFirstPartyAnthropicBaseUrl() &&
+      isFirstPartyBaseUrl() &&
       (getFeatureValue_CACHED_MAY_BE_STALE('tengu_fgts', false) ||
         isEnvTruthy(process.env.MYCODE_ENABLE_FINE_GRAINED_TOOL_STREAMING))
     ) {

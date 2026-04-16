@@ -22,6 +22,11 @@
     "dev:vanilla": "bun run ./src/bootstrap-entry.ts",
     "postinstall": "node ./scripts/postinstall-fixes.mjs"
   },
+  "alias": {
+    "@ai/sdk": "@anthropic-ai/sdk",
+    "@ai/mcpb": "@anthropic-ai/mcpb",
+    "@ai/sandbox-runtime": "@anthropic-ai/sandbox-runtime"
+  },
   "dependencies": {
     "@alcalzone/ansi-tokenize": "*",
     "@anthropic-ai/mcpb": "*",

@@ -162,13 +162,13 @@ export function createChromeContext(
     //
     // Types inlined: AnthropicMessagesRequest/Response live in
     // @ant/mycode-for-chrome-mcp@0.4.0 which isn't published yet. CI installs
-    // 0.3.0. The callAnthropicMessages field is also 0.4.0-only, but spreading
+    // 0.3.0. The callAiMessages field is also 0.4.0-only, but spreading
     // an extra property into MyCodeForChromeContext is fine against either
     // version — 0.3.0 sees an unknown field (allowed in spread), 0.4.0 sees a
     // structurally-matching one. Once 0.4.0 is published, this can switch to
     // the package's exported types and the dep can be bumped.
     ...(process.env.USER_TYPE === 'ant' && {
-      callAnthropicMessages: async (req: {
+      callAiMessages: async (req: {
         model: string
         max_tokens: number
         system: string

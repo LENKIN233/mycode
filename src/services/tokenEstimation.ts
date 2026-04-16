@@ -1,5 +1,5 @@
-import type { Anthropic } from '@anthropic-ai/sdk'
-import type { BetaMessageParam as MessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
+import type { Anthropic } from '@ai/sdk'
+import type { BetaMessageParam as MessageParam } from '@ai/sdk/resources/beta/messages/messages.mjs'
 // @aws-sdk/client-bedrock-runtime is imported dynamically in countTokensWithBedrock()
 // to defer ~279KB of AWS SDK code until a Bedrock call is actually made
 import type { CountTokensCommandInput } from '@aws-sdk/client-bedrock-runtime'
@@ -23,7 +23,7 @@ import { getModelForTask } from '../utils/model/taskModels.js'
 import { jsonStringify } from '../utils/slowOperations.js'
 import { isToolReferenceBlock } from '../utils/toolSearch.js'
 import { getAPIMetadata, getExtraBodyParams } from './api/mycode.js'
-import { getAnthropicClient } from './api/client.js'
+import { getAiClient } from './api/client.js'
 import { withTokenCountVCR } from './vcr.js'
 
 // Minimal values for token counting with thinking enabled
@@ -157,7 +157,7 @@ export async function countMessagesTokensWithAPI(
         })
       }
 
-      const anthropic = await getAnthropicClient({
+      const anthropic = await getAiClient({
         maxRetries: 1,
         model,
         source: 'count_tokens',
@@ -285,7 +285,7 @@ export async function countTokensViaHaikuFallback(
     isVertexGlobalEndpoint || isBedrockWithThinking || isVertexWithThinking
       ? getDefaultSonnetModel()
       : getModelForTask('tokenCountFallback')
-  const anthropic = await getAnthropicClient({
+  const anthropic = await getAiClient({
     maxRetries: 1,
     model,
     source: 'count_tokens',

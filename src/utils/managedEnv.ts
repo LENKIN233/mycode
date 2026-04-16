@@ -17,7 +17,7 @@ import {
  * `mycode ssh` remote: ANTHROPIC_UNIX_SOCKET routes auth through a -R forwarded
  * socket to a local proxy, and the launcher sets a handful of placeholder auth
  * env vars that the remote's ~/.mycode settings.env MUST NOT clobber (see
- * isAnthropicAuthEnabled). Strip them from any settings-sourced env object.
+ * isNativeAuthEnabled). Strip them from any settings-sourced env object.
  */
 function withoutSSHTunnelVars(
   env: Record<string, string> | undefined,

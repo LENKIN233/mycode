@@ -1,4 +1,4 @@
-import type { McpbManifest } from '@anthropic-ai/mcpb'
+import type { McpbManifest } from '@ai/mcpb'
 import { errorMessage } from '../errors.js'
 import { jsonParse } from '../slowOperations.js'
 
@@ -13,7 +13,7 @@ import { jsonParse } from '../slowOperations.js'
 export async function validateManifest(
   manifestJson: unknown,
 ): Promise<McpbManifest> {
-  const { McpbManifestSchema } = await import('@anthropic-ai/mcpb')
+  const { McpbManifestSchema } = await import('@ai/mcpb')
   const parseResult = McpbManifestSchema.safeParse(manifestJson)
 
   if (!parseResult.success) {

@@ -7,7 +7,7 @@ import { getCwd } from './cwd.js';
 import { relative } from 'path';
 import { formatNumber } from './format.js';
 import type { getGlobalConfig } from './config.js';
-import { getAnthropicApiKeyWithSource, getApiKeyFromConfigOrMacOSKeychain, getAuthTokenSource, isMyCodeAISubscriber } from './auth.js';
+import { getApiKeyWithSource, getApiKeyFromConfigOrMacOSKeychain, getAuthTokenSource, isMyCodeAISubscriber } from './auth.js';
 import type { AgentDefinitionsResult } from '../tools/AgentTool/loadAgentsDir.js';
 import { getAgentDescriptionsTotalTokens, AGENT_DESCRIPTIONS_THRESHOLD } from './statusNoticeHelpers.js';
 import { isSupportedJetBrainsTerminal, toIDEDisplayName, getTerminalIdeType } from './ide.js';
@@ -75,7 +75,7 @@ const apiKeyConflictNotice: StatusNoticeDefinition = {
   isActive: () => {
     const {
       source: apiKeySource
-    } = getAnthropicApiKeyWithSource({
+    } = getApiKeyWithSource({
       skipRetrievingKeyFromApiKeyHelper: true
     });
     return !!getApiKeyFromConfigOrMacOSKeychain() && (apiKeySource === 'ANTHROPIC_API_KEY' || apiKeySource === 'apiKeyHelper');
@@ -83,13 +83,13 @@ const apiKeyConflictNotice: StatusNoticeDefinition = {
   render: () => {
     const {
       source: apiKeySource
-    } = getAnthropicApiKeyWithSource({
+    } = getApiKeyWithSource({
       skipRetrievingKeyFromApiKeyHelper: true
     });
     return <Box flexDirection="row" marginTop={1}>
         <Text color="warning">{figures.warning}</Text>
         <Text color="warning">
-          Auth conflict: Using {apiKeySource} instead of Anthropic Console key.
+          Auth conflict: Using {apiKeySource} instead of Console key.
           Either unset {apiKeySource}, or run `mycode /logout`.
         </Text>
       </Box>;
@@ -101,7 +101,7 @@ const bothAuthMethodsNotice: StatusNoticeDefinition = {
   isActive: () => {
     const {
       source: apiKeySource
-    } = getAnthropicApiKeyWithSource({
+    } = getApiKeyWithSource({
       skipRetrievingKeyFromApiKeyHelper: true
     });
     const authTokenInfo = getAuthTokenSource();
@@ -110,7 +110,7 @@ const bothAuthMethodsNotice: StatusNoticeDefinition = {
   render: () => {
     const {
       source: apiKeySource
-    } = getAnthropicApiKeyWithSource({
+    } = getApiKeyWithSource({
       skipRetrievingKeyFromApiKeyHelper: true
     });
     const authTokenInfo = getAuthTokenSource();

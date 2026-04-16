@@ -28,7 +28,7 @@ import { isEnvTruthy } from './envUtils.js'
 
 let fired = false
 
-export function preconnectAnthropicApi(): void {
+export function preconnectApi(): void {
   if (fired) return
   fired = true
 

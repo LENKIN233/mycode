@@ -6,7 +6,7 @@
  * from the Anthropic SDK and translates them to/from OpenAI format.
  */
 
-import type { ClientOptions } from '@anthropic-ai/sdk'
+import type { ClientOptions } from '@ai/sdk'
 import { getCopilotToken, requestCopilotReauth } from './auth.js'
 import { getCopilotModelMaxOutput, warmModelCache } from './models.js'
 import { addToTotalModelRequests } from '../../bootstrap/state.js'

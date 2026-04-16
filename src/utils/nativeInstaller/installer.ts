@@ -331,7 +331,7 @@ async function installVersionFromPackage(
 ) {
   try {
     // Extract binary from npm package structure in staging
-    const nodeModulesDir = join(stagingPath, 'node_modules', '@anthropic-ai')
+    const nodeModulesDir = join(stagingPath, 'node_modules', '@ai')
     const entries = await readdir(nodeModulesDir)
     const nativePackage = entries.find((entry: string) =>
       entry.startsWith('mycode-cli-native-'),

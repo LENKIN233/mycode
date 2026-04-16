@@ -5,7 +5,7 @@
  * or return inert values.
  */
 
-import { APIError } from '@anthropic-ai/sdk'
+import { APIError } from '@ai/sdk'
 
 export function processRateLimitHeaders(
   headers: globalThis.Headers,

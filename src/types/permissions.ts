@@ -6,7 +6,7 @@
  * to avoid circular dependencies.
  */
 
-import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs'
+import type { ContentBlockParam } from '@ai/sdk/resources/messages.mjs'
 
 // ============================================================================
 // Permission Modes

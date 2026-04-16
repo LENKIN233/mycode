@@ -16,7 +16,7 @@ import type { MarketplaceSource } from './schemas.js'
  */
 export const OFFICIAL_MARKETPLACE_SOURCE = {
   source: 'github',
-  repo: 'anthropics/mycode-plugins-official',
+  repo: 'LENKIN233/mycode-plugins-official',
 } as const satisfies MarketplaceSource
 
 /**

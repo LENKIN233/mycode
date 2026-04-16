@@ -40,7 +40,7 @@ import { PermissionRuleExplanation } from '../PermissionRuleExplanation.js';
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const autoModeStateModule = null;
-import type { Base64ImageSource, ImageBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs';
+import type { Base64ImageSource, ImageBlockParam } from '@ai/sdk/resources/messages.mjs';
 /* eslint-enable @typescript-eslint/no-require-imports */
 import type { PastedContent } from '../../../utils/config.js';
 import type { ImageDimensions } from '../../../utils/imageResizer.js';

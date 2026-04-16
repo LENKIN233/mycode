@@ -11,7 +11,7 @@ import {
   logEvent,
 } from '../services/analytics/index.js'
 import {
-  getAnthropicApiKey,
+  getApiKey,
   getMyCodeAIOAuthTokens,
   handleOAuth401Error,
   hasProfileScope,

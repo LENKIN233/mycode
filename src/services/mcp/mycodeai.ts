@@ -61,7 +61,7 @@ export const fetchMyCodeAIMcpConfigsIfEligible = memoize(
       // Check for user:mcp_servers scope directly instead of isMyCodeAISubscriber().
       // In non-interactive mode, isMyCodeAISubscriber() returns false when ANTHROPIC_API_KEY
       // is set (even with valid OAuth tokens) because preferThirdPartyAuthentication() causes
-      // isAnthropicAuthEnabled() to return false. Checking the scope directly allows users
+      // isNativeAuthEnabled() to return false. Checking the scope directly allows users
       // with both API keys and OAuth tokens to access mycode.ai MCPs in print mode.
       if (!tokens.scopes?.includes('user:mcp_servers')) {
         logForDebugging(
