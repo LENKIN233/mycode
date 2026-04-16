@@ -10,7 +10,7 @@ export interface CachedMCState {
 
 export interface CacheEditsBlock {
   type: 'cache_edits'
-  edits: unknown[]
+  edits: { type: 'delete'; cache_reference: string }[]
 }
 
 export interface PinnedCacheEdits {

@@ -26,12 +26,7 @@ import { YOLO_CLASSIFIER_TOOL_NAME } from './yoloClassifier.js'
 /* eslint-disable @typescript-eslint/no-require-imports */
 const TERMINAL_CAPTURE_TOOL_NAME = null
 const OVERFLOW_TEST_TOOL_NAME = null
-const VERIFY_PLAN_EXECUTION_TOOL_NAME =
-  process.env.USER_TYPE === 'ant'
-    ? (
-        require('../../tools/VerifyPlanExecutionTool/constants.js') as typeof import('../../tools/VerifyPlanExecutionTool/constants.js')
-      ).VERIFY_PLAN_EXECUTION_TOOL_NAME
-    : null
+const VERIFY_PLAN_EXECUTION_TOOL_NAME = null
 const WORKFLOW_TOOL_NAME = null
 /* eslint-enable @typescript-eslint/no-require-imports */
 
