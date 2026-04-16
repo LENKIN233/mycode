@@ -1,8 +1,7 @@
 import { ensureBootstrapMacro } from './bootstrapMacro'
 
-if (!process.env.MYCODE_DISABLE_ANTHROPIC_OFFICIAL) {
-	process.env.MYCODE_DISABLE_ANTHROPIC_OFFICIAL = '1'
-}
+// Only GitHub Copilot is supported; disable all Anthropic first-party paths
+process.env.MYCODE_DISABLE_ANTHROPIC_OFFICIAL = '1'
 
 ensureBootstrapMacro()
 

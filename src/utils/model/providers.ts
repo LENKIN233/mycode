@@ -1,5 +1,6 @@
 import type { AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from '../../services/analytics/index.js'
 
+// Other provider types are kept for type compatibility with imported SDK code
 export type APIProvider = 'firstParty' | 'bedrock' | 'vertex' | 'foundry' | 'copilot'
 
 // Runtime override — set by /provider command or --copilot-login

@@ -107,7 +107,6 @@ import { getOauthAccountInfo, isMyCodeAISubscriber } from 'src/utils/auth.js'
 import {
   getMergedBetas,
   getModelBetas,
-  getBedrockExtraBodyParamsBetas,
   getToolSearchBetaHeader,
   modelSupportsStructuredOutputs,
   shouldIncludeFirstPartyOnlyBetas,
@@ -134,7 +133,6 @@ import { returnValue } from 'src/utils/generators.js'
 import { headlessProfilerCheckpoint } from 'src/utils/headlessProfiler.js'
 import { isMcpInstructionsDeltaEnabled } from 'src/utils/mcpInstructionsDelta.js'
 import { resolveAppliedEffort } from 'src/utils/effort.js'
-import { getAPIProvider, isFirstPartyAnthropicBaseUrl } from 'src/utils/model/providers.js'
 import {
   logAPIPrefix,
   splitSysPromptPrefix,
@@ -172,7 +170,6 @@ import { insertBlockAfterToolResults } from '../../utils/contentArray.js'
 import { computeFingerprintFromMessages } from 'src/utils/fingerprint.js'
 import { validateBoundedIntEnvVar } from '../../utils/envValidation.js'
 import { safeParseJSON } from '../../utils/json.js'
-import { getInferenceProfileBackingModel } from '../../utils/model/bedrock.js'
 import {
   normalizeModelStringForAPI,
   parseUserSpecifiedModel,
@@ -292,32 +289,9 @@ export function getExtraBodyParams(betaHeaders?: string[]): JsonObject {
   return result
 }
 
-export function getPromptCachingEnabled(model: string): boolean {
-  // Global disable takes precedence
-  if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING)) return false
-
-  // Copilot proxy strips cache_control — skip computation entirely
-  if (getAPIProvider() === 'copilot') return false
-
-  // Check if we should disable for small/fast model
-  if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_HAIKU)) {
-    const smallFastModel = getSmallFastModel()
-    if (model === smallFastModel) return false
-  }
-
-  // Check if we should disable for default Sonnet
-  if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_SONNET)) {
-    const defaultSonnet = getDefaultSonnetModel()
-    if (model === defaultSonnet) return false
-  }
-
-  // Check if we should disable for default Opus
-  if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_OPUS)) {
-    const defaultOpus = getDefaultOpusModel()
-    if (model === defaultOpus) return false
-  }
-
-  return true
+export function getPromptCachingEnabled(_model: string): boolean {
+  // Copilot proxy strips cache_control — prompt caching is not supported
+  return false
 }
 
 export function getCacheControl({
@@ -356,15 +330,6 @@ export function getCacheControl({
  * TTLs when GrowthBook's disk cache updates mid-request.
  */
 function should1hCacheTTL(querySource?: QuerySource): boolean {
-  // 3P Bedrock users get 1h TTL when opted in via env var — they manage their own billing
-  // No GrowthBook gating needed since 3P users don't have GrowthBook configured
-  if (
-    getAPIProvider() === 'bedrock' &&
-    isEnvTruthy(process.env.ENABLE_PROMPT_CACHING_1H_BEDROCK)
-  ) {
-    return true
-  }
-
   // Latch eligibility in bootstrap state for session stability — prevents
   // mid-session overage flips from changing the cache_control TTL, which
   // would bust the server-side prompt cache (~20K tokens per flip).
@@ -825,11 +790,6 @@ export async function* executeNonStreamingRequest(
       )
 
       try {
-        // biome-ignore lint/plugin: non-streaming API call
-        if (getAPIProvider() !== 'copilot') {
-          addToTotalModelRequests(1, retryOptions.querySource, clientOptions.model)
-          saveSessionUsageSnapshot()
-        }
         return await anthropic.beta.messages.create(
           {
             ...adjustedParams,
@@ -1029,12 +989,7 @@ async function* queryModel(
   let clientRequestId: string | undefined = undefined
   let llmSpan: Span | undefined = undefined
 
-  const resolvedModel =
-    getAPIProvider() === 'bedrock' &&
-    options.model.includes('application-inference-profile')
-      ? ((await getInferenceProfileBackingModel(options.model)) ??
-        options.model)
-      : options.model
+  const resolvedModel = options.model
 
   queryCheckpoint('query_tool_schema_build_start')
   const isAgenticQuery =
@@ -1150,7 +1105,7 @@ async function* queryModel(
   // Header differs by provider: 1P/Foundry use advanced-tool-use, Vertex/Bedrock use tool-search-tool
   // For Bedrock, this header must go in extraBodyParams, not the betas array
   const toolSearchHeader = useToolSearch ? getToolSearchBetaHeader() : null
-  if (toolSearchHeader && getAPIProvider() !== 'bedrock') {
+  if (toolSearchHeader) {
     if (!betas.includes(toolSearchHeader)) {
       betas.push(toolSearchHeader)
     }
@@ -1385,16 +1340,7 @@ async function* queryModel(
     setFastModeHeaderLatched(true)
   }
 
-  let cacheEditingHeaderLatched = getCacheEditingHeaderLatched() === true
-  if (
-    !cacheEditingHeaderLatched &&
-    cachedMCEnabled &&
-    getAPIProvider() === 'firstParty' &&
-    options.querySource === 'repl_main_thread'
-  ) {
-    cacheEditingHeaderLatched = true
-    setCacheEditingHeaderLatched(true)
-  }
+  const cacheEditingHeaderLatched = false
 
   // Only latch from agentic queries so a classifier call doesn't flip the
   // main thread's context_management mid-turn.
@@ -1443,15 +1389,7 @@ async function* queryModel(
       betasParams.push(CONTEXT_1M_BETA_HEADER)
     }
 
-    // For Bedrock, include both model-based betas and dynamically-added tool search header
-    const bedrockBetas =
-      getAPIProvider() === 'bedrock'
-        ? [
-            ...getBedrockExtraBodyParamsBetas(retryContext.model),
-            ...(toolSearchHeader ? [toolSearchHeader] : []),
-          ]
-        : []
-    const extraBodyParams = getExtraBodyParams(bedrockBetas)
+    const extraBodyParams = getExtraBodyParams([])
 
     const outputConfig: BetaOutputConfig = {
       ...((extraBodyParams.output_config as BetaOutputConfig) ?? {}),
@@ -1567,14 +1505,10 @@ async function* queryModel(
     // Cache editing beta: header is latched session-stable; useCachedMC
     // (controls cache_edits body behavior) stays live so edits stop when
     // the feature disables but the header doesn't flip.
-    const useCachedMC =
-      cachedMCEnabled &&
-      getAPIProvider() === 'firstParty' &&
-      options.querySource === 'repl_main_thread'
+    const useCachedMC = false
     if (
       cacheEditingHeaderLatched &&
-      getAPIProvider() === 'firstParty' &&
-      options.querySource === 'repl_main_thread' &&
+      false &&
       !betasParams.includes(cacheEditingBetaHeader)
     ) {
       betasParams.push(cacheEditingBetaHeader)
@@ -1728,22 +1662,12 @@ async function* queryModel(
           headlessProfilerCheckpoint('api_request_sent')
         }
 
-        // Generate and track client request ID so timeouts (which return no
-        // server request ID) can still be correlated with server logs.
-        // First-party only — 3P providers don't log it (inc-4029 class).
-        clientRequestId =
-          getAPIProvider() === 'firstParty' && isFirstPartyAnthropicBaseUrl()
-            ? randomUUID()
-            : undefined
+        clientRequestId = undefined
 
         // Use raw stream instead of BetaMessageStream to avoid O(n²) partial JSON parsing
         // BetaMessageStream calls partialParse() on every input_json_delta, which we don't need
         // since we handle tool input accumulation ourselves
         // biome-ignore lint/plugin: main conversation loop handles attribution separately
-        if (getAPIProvider() !== 'copilot') {
-          addToTotalModelRequests(1, options.querySource, options.model)
-          saveSessionUsageSnapshot()
-        }
         const result = await anthropic.beta.messages
           .create(
             { ...params, stream: true },
