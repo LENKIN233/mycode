@@ -18,69 +18,16 @@ import type {
   BetaMessageParam as MessageParam,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import type { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import type { Stream } from '@anthropic-ai/sdk/streaming.mjs'
-import { randomUUID } from 'crypto'
+import type { Stream } from '@anthropic-ai/sdk/core/streaming.mjs'
 import {
-  getAPIProvider,
-  isFirstPartyAnthropicBaseUrl,
-} from 'src/utils/model/providers.js'
-import {
-  getAttributionHeader,
-  getCLISyspromptPrefix,
-} from '../../constants/system.js'
-import {
-  getEmptyToolPermissionContext,
-  type QueryChainTracking,
-  type Tool,
-  type ToolPermissionContext,
-  type Tools,
-  toolMatchesName,
-} from '../../Tool.js'
-import type { AgentDefinition } from '../../tools/AgentTool/loadAgentsDir.js'
-import {
-  type ConnectorTextBlock,
-  type ConnectorTextDelta,
-  isConnectorTextBlock,
-} from '../../types/connectorText.js'
-import type {
-  AssistantMessage,
-  Message,
-  StreamEvent,
-  SystemAPIErrorMessage,
-  UserMessage,
-} from '../../types/message.js'
-import {
-  type CacheScope,
-  logAPIPrefix,
-  splitSysPromptPrefix,
-  toolToAPISchema,
-} from '../../utils/api.js'
-import { getOauthAccountInfo } from '../../utils/auth.js'
-import {
-  getBedrockExtraBodyParamsBetas,
-  getMergedBetas,
-  getModelBetas,
-} from '../../utils/betas.js'
-import { getOrCreateUserID } from '../../utils/config.js'
-import {
-  CAPPED_DEFAULT_MAX_TOKENS,
-  getModelMaxOutputTokens,
-  getSonnet1mExpTreatmentEnabled,
-} from '../../utils/context.js'
-import { resolveAppliedEffort } from '../../utils/effort.js'
-import { isEnvTruthy } from '../../utils/envUtils.js'
-import { errorMessage } from '../../utils/errors.js'
-import { computeFingerprintFromMessages } from '../../utils/fingerprint.js'
-import { captureAPIRequest, logError } from '../../utils/log.js'
-import {
-  createAssistantAPIErrorMessage,
-  createUserMessage,
   ensureToolResultPairing,
   normalizeContentFromAPI,
   normalizeMessagesForAPI,
   stripAdvisorBlocks,
   stripCallerFieldFromAssistantMessage,
   stripToolReferenceBlocksFromUserMessage,
+  createUserMessage,
+  createAssistantAPIErrorMessage,
 } from '../../utils/messages.js'
 import {
   getDefaultOpusModel,
@@ -102,12 +49,8 @@ import {
 } from '../mycodeAiLimits.js'
 import { getAPIContextManagement } from '../compact/apiMicrocompact.js'
 
-/* eslint-disable @typescript-eslint/no-require-imports */
-const autoModeStateModule = feature('TRANSCRIPT_CLASSIFIER')
-  ? (require('../../utils/permissions/autoModeState.js') as typeof import('../../utils/permissions/autoModeState.js'))
-  : null
+const autoModeStateModule = null
 
-import { feature } from 'bun:bundle'
 import type { ClientOptions } from '@anthropic-ai/sdk'
 import {
   APIConnectionTimeoutError,
@@ -146,7 +89,9 @@ import {
 import type { QuerySource } from 'src/constants/querySource.js'
 import type { Notification } from 'src/context/notifications.js'
 import { addToTotalSessionUsage, saveSessionUsageSnapshot } from 'src/usage-tracker.js'
+import { logError } from 'src/utils/log.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js'
+import { isEnvTruthy } from '../../utils/envUtils.js'
 import type { AgentId } from 'src/types/ids.js'
 import {
   ADVISOR_TOOL_INSTRUCTIONS,
@@ -156,8 +101,13 @@ import {
   modelSupportsAdvisor,
 } from 'src/utils/advisor.js'
 import { getAgentContext } from 'src/utils/agentContext.js'
-import { isMyCodeAISubscriber } from 'src/utils/auth.js'
+import { getOrCreateUserID } from 'src/utils/config.js'
+import { randomUUID } from 'src/utils/crypto.js'
+import { getOauthAccountInfo, isMyCodeAISubscriber } from 'src/utils/auth.js'
 import {
+  getMergedBetas,
+  getModelBetas,
+  getBedrockExtraBodyParamsBetas,
   getToolSearchBetaHeader,
   modelSupportsStructuredOutputs,
   shouldIncludeFirstPartyOnlyBetas,
@@ -165,7 +115,12 @@ import {
 } from 'src/utils/betas.js'
 import { MYCODE_IN_CHROME_MCP_SERVER_NAME } from 'src/utils/mycodeInChrome/common.js'
 import { CHROME_TOOL_SEARCH_INSTRUCTIONS } from 'src/utils/mycodeInChrome/prompt.js'
-import { getMaxThinkingTokensForModel } from 'src/utils/context.js'
+import {
+  getMaxThinkingTokensForModel,
+  getModelMaxOutputTokens,
+  getSonnet1mExpTreatmentEnabled,
+  CAPPED_DEFAULT_MAX_TOKENS,
+} from 'src/utils/context.js'
 import { logForDebugging } from 'src/utils/debug.js'
 import { logForDiagnosticsNoPII } from 'src/utils/diagLogs.js'
 import { type EffortValue, modelSupportsEffort } from 'src/utils/effort.js'
@@ -178,13 +133,28 @@ import {
 import { returnValue } from 'src/utils/generators.js'
 import { headlessProfilerCheckpoint } from 'src/utils/headlessProfiler.js'
 import { isMcpInstructionsDeltaEnabled } from 'src/utils/mcpInstructionsDelta.js'
+import { resolveAppliedEffort } from 'src/utils/effort.js'
+import { getAPIProvider, isFirstPartyAnthropicBaseUrl } from 'src/utils/model/providers.js'
+import {
+  logAPIPrefix,
+  splitSysPromptPrefix,
+  toolToAPISchema,
+  type CacheScope,
+} from 'src/utils/api.js'
 import { endQueryProfile, queryCheckpoint } from 'src/utils/queryProfiler.js'
 import {
   modelSupportsAdaptiveThinking,
   modelSupportsThinking,
   type ThinkingConfig,
 } from 'src/utils/thinking.js'
-import { getModelForTask } from 'src/utils/model/taskModels.js'
+import { toolMatchesName, type Tool, type Tools, type QueryChainTracking, type ToolPermissionContext, getEmptyToolPermissionContext } from 'src/Tool.js'
+import type { UserMessage, AssistantMessage, Message, SystemAPIErrorMessage, StreamEvent } from 'src/types/message.js'
+import { isConnectorTextBlock, type ConnectorTextBlock } from 'src/types/connectorText.js'
+import type { AgentDefinition } from 'src/tools/AgentTool/loadAgentsDir.js'
+import {
+  getAttributionHeader,
+  getCLISyspromptPrefix,
+} from 'src/constants/system.js'
 import {
   extractDiscoveredToolNames,
   isDeferredToolsDeltaEnabled,
@@ -199,6 +169,7 @@ import {
 } from '../../tools/ToolSearchTool/prompt.js'
 import { count } from '../../utils/array.js'
 import { insertBlockAfterToolResults } from '../../utils/contentArray.js'
+import { computeFingerprintFromMessages } from 'src/utils/fingerprint.js'
 import { validateBoundedIntEnvVar } from '../../utils/envValidation.js'
 import { safeParseJSON } from '../../utils/json.js'
 import { getInferenceProfileBackingModel } from '../../utils/model/bedrock.js'
@@ -214,6 +185,7 @@ import { jsonStringify } from '../../utils/slowOperations.js'
 import {
   isBetaTracingEnabled,
   type LLMRequestNewContext,
+  type Span,
   startLLMRequestSpan,
 } from '../../utils/telemetry/sessionTracing.js'
 /* eslint-enable @typescript-eslint/no-require-imports */
@@ -237,6 +209,7 @@ import {
   getAssistantMessageFromError,
   getErrorMessageIfRefusal,
 } from './errors.js'
+import { errorMessage } from 'src/utils/errors.js'
 import {
   EMPTY_USAGE,
   type GlobalCacheStrategy,
@@ -245,11 +218,8 @@ import {
   logAPISuccessAndDuration,
   type NonNullableUsage,
 } from './logging.js'
-import {
-  CACHE_TTL_1HOUR_MS,
-  checkResponseForCacheBreak,
-  recordPromptState,
-} from './promptCacheBreakDetection.js'
+import { captureAPIRequest } from 'src/utils/log.js'
+import { CACHE_TTL_1HOUR_MS } from './promptCacheBreakDetection.js'
 import {
   CannotRetryError,
   FallbackTriggeredError,
@@ -262,6 +232,9 @@ import {
 type JsonValue = string | number | boolean | null | JsonObject | JsonArray
 type JsonObject = { [key: string]: JsonValue }
 type JsonArray = JsonValue[]
+
+// Connector text streaming delta type (not yet in SDK types)
+type ConnectorTextDelta = { type: 'connector_text_delta'; text?: string; connector_text?: string }
 
 /**
  * Assemble the extra body parameters for the API request, based on the
@@ -444,7 +417,7 @@ function configureEffortParams(
     betas.push(EFFORT_BETA_HEADER)
   } else if (typeof effortValue === 'string') {
     // Send string effort level as is
-    outputConfig.effort = effortValue
+    outputConfig.effort = effortValue as 'low' | 'medium' | 'high' | 'max'
     betas.push(EFFORT_BETA_HEADER)
   } else if (process.env.USER_TYPE === 'ant') {
     // Numeric effort override - ant-only (uses anthropic_internal)
@@ -607,7 +580,7 @@ export function userMessageToMessageParam(
               ? { cache_control: getCacheControl({ querySource }) }
               : {}
             : {}),
-        })),
+        })) as unknown as BetaContentBlockParam[],
       }
     }
   }
@@ -616,9 +589,9 @@ export function userMessageToMessageParam(
   // to addCacheBreakpoints share the same array and each splices in duplicate cache_edits.
   return {
     role: 'user',
-    content: Array.isArray(message.message.content)
+    content: (Array.isArray(message.message.content)
       ? [...message.message.content]
-      : message.message.content,
+      : message.message.content) as string | BetaContentBlockParam[],
   }
 }
 
@@ -645,23 +618,23 @@ export function assistantMessageToMessageParam(
     } else {
       return {
         role: 'assistant',
-        content: message.message.content.map((_, i) => ({
+        content: (message.message!.content as BetaContentBlockParam[]).map((_, i) => ({
           ..._,
-          ...(i === message.message.content.length - 1 &&
+          ...(i === (message.message!.content as BetaContentBlockParam[]).length - 1 &&
           _.type !== 'thinking' &&
           _.type !== 'redacted_thinking' &&
-          (feature('CONNECTOR_TEXT') ? !isConnectorTextBlock(_) : true)
+          !isConnectorTextBlock(_)
             ? enablePromptCaching
               ? { cache_control: getCacheControl({ querySource }) }
               : {}
             : {}),
-        })),
+        })) as unknown as BetaContentBlockParam[],
       }
     }
   }
   return {
     role: 'assistant',
-    content: message.message.content,
+    content: message.message!.content as string | BetaContentBlockParam[],
   }
 }
 
@@ -727,7 +700,7 @@ export async function queryModelWithoutStreaming({
     )
   })) {
     if (message.type === 'assistant') {
-      assistantMessage = message
+      assistantMessage = message as AssistantMessage
     }
   }
   if (!assistantMessage) {
@@ -927,7 +900,7 @@ function getPreviousRequestIdFromMessages(
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i]!
     if (msg.type === 'assistant' && msg.requestId) {
-      return msg.requestId
+      return msg.requestId as string
     }
   }
   return undefined
@@ -960,7 +933,7 @@ export function stripExcessMediaItems(
       if (isMedia(block)) toRemove++
       if (isToolResult(block) && Array.isArray(block.content)) {
         for (const nested of block.content) {
-          if (isMedia(nested)) toRemove++
+          if (isMedia(nested as BetaContentBlockParam)) toRemove++
         }
       }
     }
@@ -983,7 +956,7 @@ export function stripExcessMediaItems(
         )
           return block
         const filtered = block.content.filter(n => {
-          if (toRemove > 0 && isMedia(n)) {
+          if (toRemove > 0 && isMedia(n as BetaContentBlockParam)) {
             toRemove--
             return false
           }
@@ -1049,6 +1022,12 @@ async function* queryModel(
   // so concurrent agents don't clobber each other's request chain tracking.
   // Also naturally handles rollback/undo since removed messages won't be in the array.
   const previousRequestId = getPreviousRequestIdFromMessages(messages)
+  let start = 0
+  let startIncludingRetries = 0
+  let attemptNumber = 0
+  const attemptStartTimes: number[] = []
+  let clientRequestId: string | undefined = undefined
+  let llmSpan: Span | undefined = undefined
 
   const resolvedModel =
     getAPIProvider() === 'bedrock' &&
@@ -1183,22 +1162,6 @@ async function* queryModel(
   // ant-only CACHE_EDITING_BETA_HEADER constant.
   let cachedMCEnabled = false
   let cacheEditingBetaHeader = ''
-  if (feature('CACHED_MICROCOMPACT')) {
-    const {
-      isCachedMicrocompactEnabled,
-      isModelSupportedForCacheEditing,
-      getCachedMCConfig,
-    } = await import('../compact/cachedMicrocompact.js')
-    const betas = await import('src/constants/betas.js')
-    cacheEditingBetaHeader = betas.CACHE_EDITING_BETA_HEADER
-    const featureEnabled = isCachedMicrocompactEnabled()
-    const modelSupported = isModelSupportedForCacheEditing(options.model)
-    cachedMCEnabled = featureEnabled && modelSupported
-    const config = getCachedMCConfig()
-    logForDebugging(
-      `Cached MC gate: enabled=${featureEnabled} modelSupported=${modelSupported} model=${options.model} supportedModels=${jsonStringify(config.supportedModels)}`,
-    )
-  }
 
   const useGlobalCacheFeature = shouldUseGlobalCacheScope()
   const willDefer = (t: Tool) =>
@@ -1406,16 +1369,14 @@ async function* queryModel(
   // per-call so non-agentic queries keep their own stable header set.
 
   let afkHeaderLatched = getAfkModeHeaderLatched() === true
-  if (feature('TRANSCRIPT_CLASSIFIER')) {
-    if (
-      !afkHeaderLatched &&
-      isAgenticQuery &&
-      shouldIncludeFirstPartyOnlyBetas() &&
-      (autoModeStateModule?.isAutoModeActive() ?? false)
-    ) {
-      afkHeaderLatched = true
-      setAfkModeHeaderLatched(true)
-    }
+  if (
+    !afkHeaderLatched &&
+    isAgenticQuery &&
+    shouldIncludeFirstPartyOnlyBetas() &&
+    (autoModeStateModule?.isAutoModeActive() ?? false)
+  ) {
+    afkHeaderLatched = true
+    setAfkModeHeaderLatched(true)
   }
 
   let fastModeHeaderLatched = getFastModeHeaderLatched() === true
@@ -1425,16 +1386,14 @@ async function* queryModel(
   }
 
   let cacheEditingHeaderLatched = getCacheEditingHeaderLatched() === true
-  if (feature('CACHED_MICROCOMPACT')) {
-    if (
-      !cacheEditingHeaderLatched &&
-      cachedMCEnabled &&
-      getAPIProvider() === 'firstParty' &&
-      options.querySource === 'repl_main_thread'
-    ) {
-      cacheEditingHeaderLatched = true
-      setCacheEditingHeaderLatched(true)
-    }
+  if (
+    !cacheEditingHeaderLatched &&
+    cachedMCEnabled &&
+    getAPIProvider() === 'firstParty' &&
+    options.querySource === 'repl_main_thread'
+  ) {
+    cacheEditingHeaderLatched = true
+    setCacheEditingHeaderLatched(true)
   }
 
   // Only latch from agentic queries so a classifier call doesn't flip the
@@ -1453,34 +1412,6 @@ async function* queryModel(
 
   const effort = resolveAppliedEffort(options.model, options.effortValue)
 
-  if (feature('PROMPT_CACHE_BREAK_DETECTION')) {
-    // Exclude defer_loading tools from the hash -- the API strips them from the
-    // prompt, so they never affect the actual cache key. Including them creates
-    // false-positive "tool schemas changed" breaks when tools are discovered or
-    // MCP servers reconnect.
-    const toolsForCacheDetection = allTools.filter(
-      t => !('defer_loading' in t && t.defer_loading),
-    )
-    // Capture everything that could affect the server-side cache key.
-    // Pass latched header values (not live state) so break detection
-    // reflects what we actually send, not what the user toggled.
-    recordPromptState({
-      system,
-      toolSchemas: toolsForCacheDetection,
-      querySource: options.querySource,
-      model: options.model,
-      agentId: options.agentId,
-      fastMode: fastModeHeaderLatched,
-      globalCacheStrategy,
-      betas,
-      autoModeActive: afkHeaderLatched,
-      isUsingOverage: currentLimits.isUsingOverage ?? false,
-      cachedMCEnabled: cacheEditingHeaderLatched,
-      effortValue: effort,
-      extraBodyParams: getExtraBodyParams(),
-    })
-  }
-
   const newContext: LLMRequestNewContext | undefined = isBetaTracingEnabled()
     ? {
         systemPrompt: systemPrompt.join('\n\n'),
@@ -1490,36 +1421,6 @@ async function* queryModel(
     : undefined
 
   // Capture the span so we can pass it to endLLMRequestSpan later
-  // This ensures responses are matched to the correct request when multiple requests run in parallel
-  const llmSpan = startLLMRequestSpan(
-    options.model,
-    newContext,
-    messagesForAPI,
-    isFastMode,
-  )
-
-  const startIncludingRetries = Date.now()
-  let start = Date.now()
-  let attemptNumber = 0
-  const attemptStartTimes: number[] = []
-  let stream: Stream<BetaRawMessageStreamEvent> | undefined = undefined
-  let streamRequestId: string | null | undefined = undefined
-  let clientRequestId: string | undefined = undefined
-  // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins -- Response is available in Node 18+ and is used by the SDK
-  let streamResponse: Response | undefined = undefined
-
-  // Release all stream resources to prevent native memory leaks.
-  // The Response object holds native TLS/socket buffers that live outside the
-  // V8 heap (observed on the Node.js/npm path; see GH #32920), so we must
-  // explicitly cancel and release it regardless of how the generator exits.
-  function releaseStreamResources(): void {
-    cleanupStream(stream)
-    stream = undefined
-    if (streamResponse) {
-      streamResponse.body?.cancel().catch(() => {})
-      streamResponse = undefined
-    }
-  }
 
   // Consume pending cache edits ONCE before paramsFromContext is defined.
   // paramsFromContext is called multiple times (logging, retries), so consuming
@@ -1654,15 +1555,13 @@ async function* queryModel(
 
     // AFK mode beta: latched once auto mode is first activated. Still gated
     // by isAgenticQuery per-call so classifiers/compaction don't get it.
-    if (feature('TRANSCRIPT_CLASSIFIER')) {
-      if (
-        afkHeaderLatched &&
-        shouldIncludeFirstPartyOnlyBetas() &&
-        isAgenticQuery &&
-        !betasParams.includes(AFK_MODE_BETA_HEADER)
-      ) {
-        betasParams.push(AFK_MODE_BETA_HEADER)
-      }
+    if (
+      afkHeaderLatched &&
+      shouldIncludeFirstPartyOnlyBetas() &&
+      isAgenticQuery &&
+      !betasParams.includes(AFK_MODE_BETA_HEADER)
+    ) {
+      betasParams.push(AFK_MODE_BETA_HEADER)
     }
 
     // Cache editing beta: header is latched session-stable; useCachedMC
@@ -1765,9 +1664,35 @@ async function* queryModel(
   let fallbackMessage: AssistantMessage | undefined
   let maxOutputTokens = 0
   let responseHeaders: globalThis.Headers | undefined = undefined
+  let responseStream: Response | undefined = undefined
+  let streamRequestId: string | undefined = undefined
+  let stream: Stream<BetaRawMessageStreamEvent> | AsyncGenerator<BetaRawMessageStreamEvent> | undefined = undefined
   let research: unknown = undefined
   let isFastModeRequest = isFastMode // Keep separate state as it may change if falling back
   let isAdvisorInProgress = false
+
+  function releaseStreamResources(): void {
+    try {
+      if (responseStream) {
+        const response = responseStream as unknown as Response
+        if (response.body && typeof (response.body as any).cancel === 'function') {
+          ;(response.body as any).cancel()
+        }
+      }
+    } catch (error) {
+      logForDebugging(
+        `Failed to cancel response stream body: ${String(error)}`,
+        { level: 'warn' },
+      )
+    }
+    try {
+      if (stream && typeof (stream as any).return === 'function') {
+        void (stream as any).return()
+      }
+    } catch {
+      // best-effort cleanup, ignore failures
+    }
+  }
 
   try {
     queryCheckpoint('query_client_creation_start')
@@ -1832,7 +1757,7 @@ async function* queryModel(
           .withResponse()
         queryCheckpoint('query_response_headers_received')
         streamRequestId = result.request_id
-        streamResponse = result.response
+        responseStream = result.response
         return result.data
       },
       {
@@ -2064,7 +1989,6 @@ async function* queryModel(
               throw new RangeError('Content block not found')
             }
             if (
-              feature('CONNECTOR_TEXT') &&
               delta.type === 'connector_text_delta'
             ) {
               if (contentBlock.type !== 'connector_text') {
@@ -2125,10 +2049,7 @@ async function* queryModel(
                   contentBlock.text += delta.text
                   break
                 case 'signature_delta':
-                  if (
-                    feature('CONNECTOR_TEXT') &&
-                    contentBlock.type === 'connector_text'
-                  ) {
+                  if (contentBlock.type === 'connector_text') {
                     contentBlock.signature = delta.signature
                     break
                   }
@@ -2190,6 +2111,7 @@ async function* queryModel(
               throw new Error('Message not found')
             }
             const m: AssistantMessage = {
+              type: 'assistant',
               message: {
                 ...partialMessage,
                 content: normalizeContentFromAPI(
@@ -2199,14 +2121,7 @@ async function* queryModel(
                 ),
               },
               requestId: streamRequestId ?? undefined,
-              type: 'assistant',
-              uuid: randomUUID(),
-              timestamp: new Date().toISOString(),
-              ...(process.env.USER_TYPE === 'ant' &&
-                research !== undefined && { research }),
-              ...(advisorModel && { advisorModel }),
             }
-            newMessages.push(m)
             yield m
             break
           }
@@ -2251,7 +2166,7 @@ async function* queryModel(
             const costUSDForPart = 0
             costUSD += addToTotalSessionUsage(
               costUSDForPart,
-              usage,
+              usage as unknown as BetaUsage,
               options.model,
             )
 
@@ -2272,7 +2187,6 @@ async function* queryModel(
                   maxOutputTokens
                 } output token maximum. To configure this behavior, set the MYCODE_MAX_OUTPUT_TOKENS environment variable.`,
                 apiError: 'max_output_tokens',
-                error: 'max_output_tokens',
               })
             }
 
@@ -2287,7 +2201,6 @@ async function* queryModel(
               yield createAssistantAPIErrorMessage({
                 content: `${API_ERROR_MESSAGE_PREFIX}: The model has reached its context window limit.`,
                 apiError: 'max_output_tokens',
-                error: 'max_output_tokens',
               })
             }
             break
@@ -2379,23 +2292,12 @@ async function* queryModel(
         })
       }
 
-      // Check if the cache actually broke based on response tokens
-      if (feature('PROMPT_CACHE_BREAK_DETECTION')) {
-        void checkResponseForCacheBreak(
-          options.querySource,
-          usage.cache_read_input_tokens,
-          usage.cache_creation_input_tokens,
-          messages,
-          options.agentId,
-          streamRequestId,
-        )
-      }
 
       // Process fallback percentage header and quota status if available
-      // streamResponse is set when the stream is created in the withRetry callback above
-      // TypeScript's control flow analysis can't track that streamResponse is set in the callback
+      // responseStream is set when the stream is created in the withRetry callback above
+      // TypeScript's control flow analysis can't track that responseStream is set in the callback
       // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
-      const resp = streamResponse as unknown as Response | undefined
+      const resp = responseStream as unknown as Response | undefined
       if (resp) {
         extractQuotaStatusFromHeaders(resp.headers)
         // Store headers for gateway detection
@@ -2818,9 +2720,9 @@ async function* queryModel(
     // message_delta handler before any yield. Fallback pushes to newMessages
     // then yields, so tracking must be here to survive .return() at the yield.
     if (fallbackMessage) {
-      const fallbackUsage = fallbackMessage.message.usage
-      usage = updateUsage(EMPTY_USAGE, fallbackUsage)
-      stopReason = fallbackMessage.message.stop_reason
+      const fallbackUsage = fallbackMessage.message?.usage as BetaUsage | undefined
+      usage = updateUsage(EMPTY_USAGE, fallbackUsage as BetaMessageDeltaUsage | undefined)
+      stopReason = fallbackMessage.message?.stop_reason as BetaStopReason | null
       const fallbackCost = 0
       costUSD += addToTotalSessionUsage(
         fallbackCost,
@@ -2831,7 +2733,7 @@ async function* queryModel(
   }
 
   // Mark all registered tools as sent to API so they become eligible for deletion
-  if (feature('CACHED_MICROCOMPACT') && cachedMCEnabled) {
+  if (cachedMCEnabled) {
     markToolsSentToAPIState()
   }
 
@@ -2857,7 +2759,7 @@ async function* queryModel(
   void options.getToolPermissionContext().then(permissionContext => {
     logAPISuccessAndDuration({
       model:
-        newMessages[0]?.message.model ?? partialMessage?.model ?? options.model,
+        (newMessages[0]?.message?.model as string | undefined) ?? partialMessage?.model ?? options.model,
       preNormalizedModel: options.model,
       usage,
       start,
@@ -2967,19 +2869,6 @@ export function updateUsage(
     // so the string is eliminated from external builds by dead code elimination.
     // Uses the same > 0 guard as other token fields to prevent message_delta
     // from overwriting the real value with 0.
-    ...(feature('CACHED_MICROCOMPACT')
-      ? {
-          cache_deleted_input_tokens:
-            (partUsage as unknown as { cache_deleted_input_tokens?: number })
-              .cache_deleted_input_tokens != null &&
-            (partUsage as unknown as { cache_deleted_input_tokens: number })
-              .cache_deleted_input_tokens > 0
-              ? (partUsage as unknown as { cache_deleted_input_tokens: number })
-                  .cache_deleted_input_tokens
-              : ((usage as unknown as { cache_deleted_input_tokens?: number })
-                  .cache_deleted_input_tokens ?? 0),
-        }
-      : {}),
     inference_geo: usage.inference_geo,
     iterations: partUsage.iterations ?? usage.iterations,
     speed: (partUsage as BetaUsage).speed ?? usage.speed,
@@ -3021,16 +2910,6 @@ export function accumulateUsage(
     },
     // See comment in updateUsage — field is not on NonNullableUsage to keep
     // the string out of external builds.
-    ...(feature('CACHED_MICROCOMPACT')
-      ? {
-          cache_deleted_input_tokens:
-            ((totalUsage as unknown as { cache_deleted_input_tokens?: number })
-              .cache_deleted_input_tokens ?? 0) +
-            ((
-              messageUsage as unknown as { cache_deleted_input_tokens?: number }
-            ).cache_deleted_input_tokens ?? 0),
-        }
-      : {}),
     inference_geo: messageUsage.inference_geo, // Use the most recent
     iterations: messageUsage.iterations, // Use the most recent
     speed: messageUsage.speed, // Use the most recent

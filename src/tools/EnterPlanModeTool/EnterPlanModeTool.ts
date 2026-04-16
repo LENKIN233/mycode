@@ -1,7 +1,5 @@
-import { feature } from 'bun:bundle'
 import { z } from 'zod/v4'
 import {
-  getAllowedChannels,
   handlePlanModeTransition,
 } from '../../bootstrap/state.js'
 import type { Tool } from '../../Tool.js'
@@ -57,12 +55,6 @@ export const EnterPlanModeTool: Tool<InputSchema, Output> = buildTool({
     // When --channels is active, ExitPlanMode is disabled (its approval
     // dialog needs the terminal). Disable entry too so plan mode isn't a
     // trap the model can enter but never leave.
-    if (
-      (feature('KAIROS') || feature('KAIROS_CHANNELS')) &&
-      getAllowedChannels().length > 0
-    ) {
-      return false
-    }
     return true
   },
   isConcurrencySafe() {

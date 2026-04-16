@@ -1,5 +1,4 @@
 import { c as _c } from "react/compiler-runtime";
-import { feature } from 'bun:bundle';
 import figures from 'figures';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Text, useTheme } from '../../../ink.js';
@@ -258,7 +257,7 @@ function BashPermissionRequestInner({
   // and only ever transitions true→false, so capturing the mount-time value is
   // sufficient — no latch/ref needed. The feature() ternary keeps the property
   // read out of external builds (forbidden-string check).
-  const [classifierWasChecking] = useState(feature('BASH_CLASSIFIER') ? !!toolUseConfirm.classifierCheckInProgress : false);
+  const [classifierWasChecking] = useState(false);
 
   // These derive solely from the tool input (fixed for the dialog lifetime).
   // The shimmer clock used to live in this component and re-render it at 20fps
@@ -315,7 +314,7 @@ function BashPermissionRequestInner({
   }, [toolUseConfirm]);
   useKeybinding('confirm:no', handleDismissCheckmark, {
     context: 'Confirmation',
-    isActive: feature('BASH_CLASSIFIER') ? !!toolUseConfirm.classifierAutoApproved : false
+    isActive: false
   });
   function onSelect(value_0: string) {
     // Map options to numeric values for analytics (strings not allowed in logEvent)
@@ -325,15 +324,6 @@ function BashPermissionRequestInner({
       'yes-prefix-edited': 2,
       no: 3
     };
-    if (feature('BASH_CLASSIFIER')) {
-      optionIndex = {
-        yes: 1,
-        'yes-apply-suggestions': 2,
-        'yes-prefix-edited': 2,
-        'yes-classifier-reviewed': 3,
-        no: 4
-      };
-    }
     logEvent('tengu_permission_request_option_selected', {
       option_index: optionIndex[value_0],
       explainer_visible: explainerState.visible
@@ -355,26 +345,6 @@ function BashPermissionRequestInner({
           destination: 'localSettings'
         }];
         toolUseConfirm.onAllow(toolUseConfirm.input, prefixUpdates);
-      }
-      onDone();
-      return;
-    }
-    if (feature('BASH_CLASSIFIER') && value_0 === 'yes-classifier-reviewed') {
-      const trimmedDescription = classifierDescription.trim();
-      logUnaryPermissionEvent('tool_use_single', toolUseConfirm, 'accept');
-      if (!trimmedDescription) {
-        toolUseConfirm.onAllow(toolUseConfirm.input, []);
-      } else {
-        const permissionUpdates: PermissionUpdate[] = [{
-          type: 'addRules',
-          rules: [{
-            toolName: BashTool.name,
-            ruleContent: createPromptRuleContent(trimmedDescription)
-          }],
-          behavior: 'allow',
-          destination: 'session'
-        }];
-        toolUseConfirm.onAllow(toolUseConfirm.input, permissionUpdates);
       }
       onDone();
       return;
@@ -424,14 +394,14 @@ function BashPermissionRequestInner({
         }
     }
   }
-  const classifierSubtitle = feature('BASH_CLASSIFIER') ? toolUseConfirm.classifierAutoApproved ? <Text>
+  const classifierSubtitle = toolUseConfirm.classifierAutoApproved ? <Text>
         <Text color="success">{figures.tick} Auto-approved</Text>
         {toolUseConfirm.classifierMatchedRule && <Text dimColor>
             {' \u00b7 matched "'}
             {toolUseConfirm.classifierMatchedRule}
             {'"'}
           </Text>}
-      </Text> : toolUseConfirm.classifierCheckInProgress ? <ClassifierCheckingSubtitle /> : classifierWasChecking ? <Text dimColor>Requires manual approval</Text> : undefined : undefined;
+      </Text> : toolUseConfirm.classifierCheckInProgress ? <ClassifierCheckingSubtitle /> : classifierWasChecking ? <Text dimColor>Requires manual approval</Text> : undefined;
   return <PermissionDialog workerBadge={workerBadge} title={sandboxingEnabled_0 && !isSandboxed_0 ? 'Bash command (unsandboxed)' : 'Bash command'} subtitle={classifierSubtitle}>
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Text dimColor={explainerState.visible}>
@@ -456,17 +426,17 @@ function BashPermissionRequestInner({
           <Box flexDirection="column">
             <PermissionRuleExplanation permissionResult={toolUseConfirm.permissionResult} toolType="command" />
             {destructiveWarning_0 && <Box marginBottom={1}>
-                <Text color="warning" dimColor={feature('BASH_CLASSIFIER') ? toolUseConfirm.classifierAutoApproved : false}>
+                <Text color="warning" dimColor={toolUseConfirm.classifierAutoApproved}>
                   {destructiveWarning_0}
                 </Text>
               </Box>}
-            <Text dimColor={feature('BASH_CLASSIFIER') ? toolUseConfirm.classifierAutoApproved : false}>
+            <Text dimColor={toolUseConfirm.classifierAutoApproved}>
               Do you want to proceed?
             </Text>
-            <Select options={feature('BASH_CLASSIFIER') ? toolUseConfirm.classifierAutoApproved ? options.map(o => ({
+            <Select options={toolUseConfirm.classifierAutoApproved ? options.map(o => ({
           ...o,
           disabled: true
-        })) : options : options} isDisabled={feature('BASH_CLASSIFIER') ? toolUseConfirm.classifierAutoApproved : false} inlineDescriptions onChange={onSelect} onCancel={() => handleReject()} onFocus={handleFocus} onInputModeToggle={handleInputModeToggle} />
+        })) : options} isDisabled={toolUseConfirm.classifierAutoApproved} inlineDescriptions onChange={onSelect} onCancel={() => handleReject()} onFocus={handleFocus} onInputModeToggle={handleInputModeToggle} />
           </Box>
           <Box justifyContent="space-between" marginTop={1}>
             <Text dimColor>

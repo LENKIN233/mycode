@@ -1,4 +1,3 @@
-import { feature } from 'bun:bundle'
 import type {
   ContentBlockParam,
   ToolResultBlockParam,
@@ -1069,36 +1068,6 @@ async function checkPermissionsAndCallTool(
         sourceToolAssistantUUID: assistantMessage.uuid,
       }),
     })
-
-    // Run PermissionDenied hooks for auto mode classifier denials.
-    // If a hook returns {retry: true}, tell the model it may retry.
-    if (
-      feature('TRANSCRIPT_CLASSIFIER') &&
-      permissionDecision.decisionReason?.type === 'classifier' &&
-      permissionDecision.decisionReason.classifier === 'auto-mode'
-    ) {
-      let hookSaysRetry = false
-      for await (const result of executePermissionDeniedHooks(
-        tool.name,
-        toolUseID,
-        processedInput,
-        permissionDecision.decisionReason.reason ?? 'Permission denied',
-        toolUseContext,
-        permissionMode,
-        toolUseContext.abortController.signal,
-      )) {
-        if (result.retry) hookSaysRetry = true
-      }
-      if (hookSaysRetry) {
-        resultingMessages.push({
-          message: createUserMessage({
-            content:
-              'The PermissionDenied hook indicated this command is now approved. You may retry it if you would like.',
-            isMeta: true,
-          }),
-        })
-      }
-    }
 
     return resultingMessages
   }

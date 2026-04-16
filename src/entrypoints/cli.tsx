@@ -23,6 +23,7 @@ if (process.env.MYCODE_REMOTE === 'true') {
  * Fast-path for --version has zero imports beyond this file.
  */
 async function main(): Promise<void> {
+
   const args = process.argv.slice(2);
 
   // Fast-path for --version/-v: zero module loading needed

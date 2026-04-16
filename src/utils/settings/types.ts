@@ -1,11 +1,9 @@
-import { feature } from 'bun:bundle'
 import { z } from 'zod/v4'
 import { SandboxSettingsSchema } from '../../entrypoints/sandboxTypes.js'
 import { isEnvTruthy } from '../envUtils.js'
 import { lazySchema } from '../lazySchema.js'
 import {
   EXTERNAL_PERMISSION_MODES,
-  PERMISSION_MODES,
 } from '../permissions/PermissionMode.js'
 import { MarketplaceSourceSchema } from '../plugins/schemas.js'
 import { MYCODE_SETTINGS_SCHEMA_URL } from './constants.js'
@@ -57,25 +55,13 @@ export const PermissionsSchema = lazySchema(() =>
           'List of permission rules that should always prompt for confirmation',
         ),
       defaultMode: z
-        .enum(
-          feature('TRANSCRIPT_CLASSIFIER')
-            ? PERMISSION_MODES
-            : EXTERNAL_PERMISSION_MODES,
-        )
+        .enum(EXTERNAL_PERMISSION_MODES)
         .optional()
         .describe('Default permission mode when MyCode needs access'),
       disableBypassPermissionsMode: z
         .enum(['disable'])
         .optional()
         .describe('Disable the ability to bypass permission prompts'),
-      ...(feature('TRANSCRIPT_CLASSIFIER')
-        ? {
-            disableAutoMode: z
-              .enum(['disable'])
-              .optional()
-              .describe('Disable auto mode'),
-          }
-        : {}),
       additionalDirectories: z
         .array(z.string())
         .optional()
@@ -837,45 +823,6 @@ export const SettingsSchema = lazySchema(() =>
               ),
           }
         : {}),
-      ...(feature('PROACTIVE') || feature('KAIROS')
-        ? {
-            minSleepDurationMs: z
-              .number()
-              .nonnegative()
-              .int()
-              .optional()
-              .describe(
-                'Minimum duration in milliseconds that the Sleep tool must sleep for. ' +
-                  'Useful for throttling proactive tick frequency.',
-              ),
-            maxSleepDurationMs: z
-              .number()
-              .int()
-              .min(-1)
-              .optional()
-              .describe(
-                'Maximum duration in milliseconds that the Sleep tool can sleep for. ' +
-                  'Set to -1 for indefinite sleep (waits for user input). ' +
-                  'Useful for limiting idle time in remote/managed environments.',
-              ),
-          }
-        : {}),
-      ...(feature('KAIROS')
-        ? {
-            assistant: z
-              .boolean()
-              .optional()
-              .describe(
-                'Start MyCode in assistant mode (custom system prompt, brief view, scheduled check-in skills)',
-              ),
-            assistantName: z
-              .string()
-              .optional()
-              .describe(
-                'Display name for the assistant, shown in the mycode.ai session list',
-              ),
-          }
-        : {}),
       // Teams/Enterprise opt-IN for channel notifications. Default OFF.
       // MCP servers that declare the mycode/channel capability can push
       // inbound messages into the conversation; for managed orgs this only
@@ -910,16 +857,6 @@ export const SettingsSchema = lazySchema(() =>
             'plugins may push inbound messages. Undefined falls back to the default. ' +
             'Requires channelsEnabled: true.',
         ),
-      ...(feature('KAIROS') || feature('KAIROS_BRIEF')
-        ? {
-            defaultView: z
-              .enum(['chat', 'transcript'])
-              .optional()
-              .describe(
-                'Default transcript view: chat (SendUserMessage checkpoints only) or transcript (full)',
-              ),
-          }
-        : {}),
       prefersReducedMotion: z
         .boolean()
         .optional()
@@ -956,47 +893,6 @@ export const SettingsSchema = lazySchema(() =>
         .describe(
           'Whether the user has accepted the bypass permissions mode dialog',
         ),
-      ...(feature('TRANSCRIPT_CLASSIFIER')
-        ? {
-            skipAutoPermissionPrompt: z
-              .boolean()
-              .optional()
-              .describe(
-                'Whether the user has accepted the auto mode opt-in dialog',
-              ),
-            useAutoModeDuringPlan: z
-              .boolean()
-              .optional()
-              .describe(
-                'Whether plan mode uses auto mode semantics when auto mode is available (default: true)',
-              ),
-            autoMode: z
-              .object({
-                allow: z
-                  .array(z.string())
-                  .optional()
-                  .describe('Rules for the auto mode classifier allow section'),
-                soft_deny: z
-                  .array(z.string())
-                  .optional()
-                  .describe('Rules for the auto mode classifier deny section'),
-                ...(process.env.USER_TYPE === 'ant'
-                  ? {
-                      // Back-compat alias for ant users; external users use soft_deny
-                      deny: z.array(z.string()).optional(),
-                    }
-                  : {}),
-                environment: z
-                  .array(z.string())
-                  .optional()
-                  .describe(
-                    'Entries for the auto mode classifier environment section',
-                  ),
-              })
-              .optional()
-              .describe('Auto mode classifier prompt customization'),
-          }
-        : {}),
       disableAutoMode: z
         .enum(['disable'])
         .optional()

@@ -12,6 +12,7 @@ import { getCopilotModelMaxOutput, warmModelCache } from './models.js'
 import { addToTotalModelRequests } from '../../bootstrap/state.js'
 import { saveSessionUsageSnapshot } from '../../usage-tracker.js'
 import { setClipboard } from '../../ink/termio/osc.js'
+import { registerCleanup } from '../../utils/cleanupRegistry.js'
 
 const COPILOT_API_BASE = 'https://api.githubcopilot.com'
 
@@ -1158,6 +1159,7 @@ interface ReauthState {
     verification_uri: string
     user_code: string
   } | null
+  abort: AbortController
 }
 const REAUTH_KEY = '__copilot_reauth__'
 
@@ -1166,6 +1168,20 @@ function getReauthState(): ReauthState | null {
 }
 function setReauthState(state: ReauthState | null): void {
   ;(globalThis as Record<string, unknown>)[REAUTH_KEY] = state
+}
+
+// Register a one-time cleanup handler to abort any in-progress reauth poll
+// so the background fetch doesn't keep the process alive after the session ends.
+const REAUTH_EXIT_HANDLER_KEY = '__copilot_reauth_exit_handler__'
+if (!(globalThis as Record<string, unknown>)[REAUTH_EXIT_HANDLER_KEY]) {
+  ;(globalThis as Record<string, unknown>)[REAUTH_EXIT_HANDLER_KEY] = true
+  registerCleanup(async () => {
+    const state = getReauthState()
+    if (state) {
+      state.abort.abort()
+      setReauthState(null)
+    }
+  })
 }
 
 /**
@@ -1183,8 +1199,9 @@ async function handleReauth(
   let state = getReauthState()
 
   if (!state) {
-    const gate = requestCopilotReauth()
-    state = { gate, resolved: null }
+    const abort = new AbortController()
+    const gate = requestCopilotReauth(abort.signal)
+    state = { gate, resolved: null, abort }
     setReauthState(state)
 
     // When background polling completes (user authorized), clear the state

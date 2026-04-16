@@ -99,10 +99,6 @@ export function shouldAutoRunIssue(reason: AutoRunIssueReason): boolean {
  * ANT-ONLY: good-mycode command only exists in ant builds
  */
 export function getAutoRunCommand(reason: AutoRunIssueReason): string {
-  // Only ant builds have the /good-mycode command
-  if ("external" === 'ant' && reason === 'feedback_survey_good') {
-    return '/good-mycode';
-  }
   return '/issue';
 }
 

@@ -3,6 +3,7 @@ import React, { type PropsWithChildren, useContext, useInsertionEffect } from 'r
 import instances from '../instances.js';
 import { DISABLE_MOUSE_TRACKING, ENABLE_MOUSE_TRACKING, ENTER_ALT_SCREEN, EXIT_ALT_SCREEN } from '../termio/dec.js';
 import { TerminalWriteContext } from '../useTerminalNotification.js';
+import { isEnvTruthy } from '../../utils/envUtils.js';
 import Box from './Box.js';
 import { TerminalSizeContext } from './TerminalSizeContext.js';
 type Props = PropsWithChildren<{
@@ -31,7 +32,7 @@ type Props = PropsWithChildren<{
  * screen if the component's own unmount doesn't run.
  */
 export function AlternateScreen(t0) {
-  const $ = _c(7);
+  const $ = _c(8);
   const {
     children,
     mouseTracking: t1
@@ -39,12 +40,19 @@ export function AlternateScreen(t0) {
   const mouseTracking = t1 === undefined ? true : t1;
   const size = useContext(TerminalSizeContext);
   const writeRaw = useContext(TerminalWriteContext);
+  const disableAltScreen =
+    isEnvTruthy(process.env.MYCODE_DISABLE_ALT_SCREEN) &&
+    !isEnvTruthy(process.env.MYCODE_ENABLE_ALT_SCREEN);
   let t2;
   let t3;
-  if ($[0] !== mouseTracking || $[1] !== writeRaw) {
+  if ($[0] !== disableAltScreen || $[1] !== mouseTracking || $[2] !== writeRaw) {
     t2 = () => {
       const ink = instances.get(process.stdout);
       if (!writeRaw) {
+        return;
+      }
+      if (disableAltScreen) {
+        ink?.setAltScreenActive(false);
         return;
       }
       writeRaw(ENTER_ALT_SCREEN + "\x1B[2J\x1B[H" + (mouseTracking ? ENABLE_MOUSE_TRACKING : ""));
@@ -55,25 +63,26 @@ export function AlternateScreen(t0) {
         writeRaw((mouseTracking ? DISABLE_MOUSE_TRACKING : "") + EXIT_ALT_SCREEN);
       };
     };
-    t3 = [writeRaw, mouseTracking];
-    $[0] = mouseTracking;
-    $[1] = writeRaw;
-    $[2] = t2;
-    $[3] = t3;
+    t3 = [writeRaw, mouseTracking, disableAltScreen];
+    $[0] = disableAltScreen;
+    $[1] = mouseTracking;
+    $[2] = writeRaw;
+    $[3] = t2;
+    $[4] = t3;
   } else {
-    t2 = $[2];
-    t3 = $[3];
+    t2 = $[3];
+    t3 = $[4];
   }
   useInsertionEffect(t2, t3);
   const t4 = size?.rows ?? 24;
   let t5;
-  if ($[4] !== children || $[5] !== t4) {
+  if ($[5] !== children || $[6] !== t4) {
     t5 = <Box flexDirection="column" height={t4} width="100%" flexShrink={0}>{children}</Box>;
-    $[4] = children;
-    $[5] = t4;
-    $[6] = t5;
+    $[5] = children;
+    $[6] = t4;
+    $[7] = t5;
   } else {
-    t5 = $[6];
+    t5 = $[7];
   }
   return t5;
 }

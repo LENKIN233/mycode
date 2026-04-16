@@ -1,5 +1,3 @@
-  return { schedule() {}, scheduleFromExpiresIn() {}, cancel() {}, cancelAll() {} }
-}
 import { logEvent } from '../services/analytics/index.js'
 import { logForDebugging } from '../utils/debug.js'
 import { logForDiagnosticsNoPII } from '../utils/diagLogs.js'

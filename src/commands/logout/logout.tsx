@@ -7,7 +7,8 @@ const getGroveNoticeConfig: any = () => ({ shouldShow: false });
 const getGroveSettings: any = () => Promise.resolve(null);
 import { clearPolicyLimitsCache } from '../../services/policyLimits/index.js';
 // flushTelemetry is loaded lazily to avoid pulling in ~1.1MB of OpenTelemetry at startup
-import { clearRemoteManagedSettingsCache } from '../../services/remoteManagedSettings/index.js';
+// [MyCode] remote managed settings removed; keep logout flow stable.
+const clearRemoteManagedSettingsCache = async (): Promise<void> => {};
 import { getMyCodeAIOAuthTokens, removeApiKey } from '../../utils/auth.js';
 import { clearBetasCaches } from '../../utils/betas.js';
 import { saveGlobalConfig } from '../../utils/config.js';

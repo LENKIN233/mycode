@@ -1,6 +1,4 @@
-import { feature } from 'bun:bundle'
 import { z } from 'zod/v4'
-import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
 import { buildTool, type ToolDef } from '../../Tool.js'
 import { isAgentSwarmsEnabled } from '../../utils/agentSwarmsEnabled.js'
 import {
@@ -14,7 +12,6 @@ import {
   getTask,
   getTaskListId,
   isTodoV2Enabled,
-  listTasks,
   type TaskStatus,
   TaskStatusSchema,
   updateTask,
@@ -331,22 +328,6 @@ export const TaskUpdateTool = buildTool({
     // (interactive CLI). TaskUpdateToolOutput is @internal so this field
     // does not touch the public SDK surface.
     let verificationNudgeNeeded = false
-    if (
-      feature('VERIFICATION_AGENT') &&
-      getFeatureValue_CACHED_MAY_BE_STALE('tengu_hive_evidence', false) &&
-      !context.agentId &&
-      updates.status === 'completed'
-    ) {
-      const allTasks = await listTasks(taskListId)
-      const allDone = allTasks.every(t => t.status === 'completed')
-      if (
-        allDone &&
-        allTasks.length >= 3 &&
-        !allTasks.some(t => /verif/i.test(t.subject))
-      ) {
-        verificationNudgeNeeded = true
-      }
-    }
 
     return {
       data: {

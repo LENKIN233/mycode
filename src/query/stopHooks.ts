@@ -1,6 +1,4 @@
-import { feature } from 'bun:bundle'
 import { getShortcutDisplay } from '../keybindings/shortcutFormat.js'
-import { isExtractModeActive } from '../memdir/paths.js'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
@@ -39,9 +37,7 @@ import { getTaskListId, listTasks } from '../utils/tasks.js'
 import { getAgentName, getTeamName, isTeammate } from '../utils/teammate.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const extractMemoriesModule = feature('EXTRACT_MEMORIES')
-  ? (require('../services/extractMemories/extractMemories.js') as typeof import('../services/extractMemories/extractMemories.js'))
-  : null
+const extractMemoriesModule = null
 const jobClassifierModule = null
 
 /* eslint-enable @typescript-eslint/no-require-imports */
@@ -111,19 +107,6 @@ export async function* handleStopHooks(
     // Inline env check for dead code elimination in external builds
     if (!isEnvDefinedFalsy(process.env.MYCODE_ENABLE_PROMPT_SUGGESTION)) {
       void executePromptSuggestion(stopHookContext)
-    }
-    if (
-      feature('EXTRACT_MEMORIES') &&
-      !toolUseContext.agentId &&
-      isExtractModeActive()
-    ) {
-      // Fire-and-forget in both interactive and non-interactive. For -p/SDK,
-      // print.ts drains the in-flight promise after flushing the response
-      // but before gracefulShutdownSync (see drainPendingExtraction).
-      void extractMemoriesModule!.executeExtractMemories(
-        stopHookContext,
-        toolUseContext.appendSystemMessage,
-      )
     }
     if (!toolUseContext.agentId) {
       void executeAutoDream(stopHookContext, toolUseContext.appendSystemMessage)

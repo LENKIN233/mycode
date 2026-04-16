@@ -10,8 +10,7 @@
  * Token is cached to ~/.mycode/copilot_token.json
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { homedir } from 'os'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { getConfigHomeDir } from '../../utils/envUtils.js'
 
@@ -22,6 +21,17 @@ const COPILOT_TOKEN_URL =
   'https://api.github.com/copilot_internal/v2/token'
 
 const POLLING_SAFETY_MARGIN_MS = 3000
+const COPILOT_EARLY_REFRESH_SECONDS = 300
+const COPILOT_STALE_GRACE_SECONDS = 24 * 60 * 60
+
+class CopilotTokenRefreshError extends Error {
+  constructor(
+    message: string,
+    readonly statusCode?: number,
+  ) {
+    super(message)
+  }
+}
 
 interface DeviceCodeResponse {
   verification_uri: string
@@ -61,9 +71,12 @@ function loadStoredAuth(): StoredAuth | null {
 }
 
 function saveStoredAuth(auth: StoredAuth): void {
-  writeFileSync(getTokenPath(), JSON.stringify(auth, null, 2), {
+  const tokenPath = getTokenPath()
+  const tempPath = `${tokenPath}.tmp.${process.pid}.${Date.now()}`
+  writeFileSync(tempPath, JSON.stringify(auth, null, 2), {
     mode: 0o600,
   })
+  renameSync(tempPath, tokenPath)
 }
 
 /**
@@ -113,11 +126,23 @@ async function requestDeviceCode(): Promise<DeviceCodeResponse> {
 async function pollForAccessToken(
   deviceCode: string,
   interval: number,
+  signal?: AbortSignal,
 ): Promise<string> {
   const sleep = (ms: number) =>
-    new Promise(resolve => setTimeout(resolve, ms))
+    new Promise<void>((resolve, reject) => {
+      if (signal?.aborted) { reject(new DOMException('Aborted', 'AbortError')); return }
+      const timer = setTimeout(resolve, ms)
+      // Use unref() so the polling loop doesn't keep the process alive
+      // when the only remaining work is waiting for user authorization.
+      // The process can still exit normally; if it does, the poll is abandoned.
+      if (typeof timer === 'object' && timer !== null && 'unref' in timer) {
+        ;(timer as NodeJS.Timeout).unref()
+      }
+      signal?.addEventListener('abort', () => { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')) }, { once: true })
+    })
 
   while (true) {
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
     const response = await fetch(ACCESS_TOKEN_URL, {
       method: 'POST',
       headers: {
@@ -129,6 +154,7 @@ async function pollForAccessToken(
         device_code: deviceCode,
         grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
       }),
+      signal,
     })
 
     if (!response.ok) {
@@ -179,19 +205,27 @@ async function pollForAccessToken(
 async function getCopilotApiToken(
   githubToken: string,
 ): Promise<CopilotToken> {
-  const response = await fetch(COPILOT_TOKEN_URL, {
-    method: 'GET',
-    headers: {
-      Authorization: `token ${githubToken}`,
-      Accept: 'application/json',
-      'User-Agent': 'mycode-rev/1.0',
-    },
-  })
+  let response: Response
+  try {
+    response = await fetch(COPILOT_TOKEN_URL, {
+      method: 'GET',
+      headers: {
+        Authorization: `token ${githubToken}`,
+        Accept: 'application/json',
+        'User-Agent': 'mycode-rev/1.0',
+      },
+    })
+  } catch (error) {
+    throw new CopilotTokenRefreshError(
+      `Failed to refresh Copilot API token: ${error instanceof Error ? error.message : String(error)}`,
+    )
+  }
 
   if (!response.ok) {
     const text = await response.text()
-    throw new Error(
+    throw new CopilotTokenRefreshError(
       `Failed to get Copilot API token: ${response.status} ${text}`,
+      response.status,
     )
   }
 
@@ -277,7 +311,7 @@ export async function getCopilotToken(
   if (
     stored.copilot_token &&
     stored.copilot_expires_at &&
-    stored.copilot_expires_at > Date.now() / 1000 + 300
+    stored.copilot_expires_at > Date.now() / 1000 + COPILOT_EARLY_REFRESH_SECONDS
   ) {
     return stored.copilot_token
   }
@@ -293,10 +327,37 @@ export async function getCopilotToken(
     })
 
     return copilotToken.token
-  } catch {
-    if (!autoLogin) {
-      throw new Error('Copilot session expired. Re-authentication required.')
+  } catch (error) {
+    const now = Date.now() / 1000
+    const hasStaleCopilotToken =
+      !!stored.copilot_token &&
+      !!stored.copilot_expires_at &&
+      stored.copilot_expires_at > now - COPILOT_STALE_GRACE_SECONDS
+
+    // Network/server hiccups should not force a re-login. Keep using the
+    // previous Copilot token and let the request path decide via 401 handling.
+    const isAuthInvalidation =
+      error instanceof CopilotTokenRefreshError &&
+      (error.statusCode === 401 || error.statusCode === 403)
+
+    if (!isAuthInvalidation && hasStaleCopilotToken) {
+      return stored.copilot_token!
     }
+
+    if (!autoLogin) {
+      throw new Error(
+        isAuthInvalidation
+          ? 'Copilot session expired. Re-authentication required.'
+          : `Unable to refresh Copilot session: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+    // Only force re-auth for explicit auth invalidation (401/403).
+    if (!isAuthInvalidation) {
+      throw new Error(
+        `Unable to refresh Copilot session. Please retry. ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+
     // GitHub token is invalid/expired — automatically re-authenticate
     // biome-ignore lint/suspicious/noConsole: intentional user-facing output
     console.error(
@@ -312,7 +373,7 @@ export async function getCopilotToken(
  * Returns the verification info so callers (like the proxy error handler
  * in TUI mode) can display it however they need.
  */
-export async function requestCopilotReauth(): Promise<{
+export async function requestCopilotReauth(signal?: AbortSignal): Promise<{
   verification_uri: string
   user_code: string
   pollPromise: Promise<void>
@@ -323,6 +384,7 @@ export async function requestCopilotReauth(): Promise<{
     const githubToken = await pollForAccessToken(
       deviceData.device_code,
       deviceData.interval,
+      signal,
     )
     const copilotToken = await getCopilotApiToken(githubToken)
     saveStoredAuth({

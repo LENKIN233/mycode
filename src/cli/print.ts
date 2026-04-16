@@ -1,5 +1,4 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
-import { feature } from 'bun:bundle'
 import { readFile, stat } from 'fs/promises'
 import { dirname } from 'path'
 import { StructuredIO } from 'src/cli/structuredIO.js'
@@ -70,17 +69,6 @@ import type {
   McpSdkServerConfig,
   ScopedMcpServerConfig,
 } from 'src/services/mcp/types.js'
-import {
-  ChannelMessageNotificationSchema,
-  gateChannelServer,
-  wrapChannelMessage,
-  findChannelEntry,
-} from 'src/services/mcp/channelNotification.js'
-import {
-  isChannelAllowlisted,
-  isChannelsEnabled,
-} from 'src/services/mcp/channelAllowlist.js'
-import { parsePluginIdentifier } from 'src/utils/plugins/pluginIdentifier.js'
 import { validateUuid } from 'src/utils/uuid.js'
 import { fromArray } from 'src/utils/generators.js'
 import { ask } from 'src/QueryEngine.js'
@@ -155,7 +143,7 @@ import {
   DEFAULT_OUTPUT_STYLE_NAME,
   getAllOutputStyles,
 } from 'src/constants/outputStyles.js'
-import { TEAMMATE_MESSAGE_TAG, TICK_TAG } from 'src/constants/xml.js'
+import { TEAMMATE_MESSAGE_TAG } from 'src/constants/xml.js'
 import {
   getSettings_DEPRECATED,
   getSettingsWithSources,
@@ -169,9 +157,6 @@ import {
   getFastModeState,
 } from 'src/utils/fastMode.js'
 import {
-  isAutoModeGateEnabled,
-  getAutoModeUnavailableNotification,
-  getAutoModeUnavailableReason,
   isBypassPermissionsModeDisabled,
   transitionPermissionMode,
 } from 'src/utils/permissions/permissionSetup.js'
@@ -202,7 +187,6 @@ import {
   doesMessageExistInSession,
   findUnresolvedToolUse,
   saveAgentSetting,
-  saveMode,
   saveAiGeneratedTitle,
   restoreSessionMetadata,
 } from 'src/utils/sessionStorage.js'
@@ -281,9 +265,6 @@ import {
   getFlagSettingsInline,
   setFlagSettingsInline,
   getMainThreadAgentType,
-  getAllowedChannels,
-  setAllowedChannels,
-  type ChannelEntry,
 } from 'src/bootstrap/state.js'
 import { runWithWorkload } from 'src/utils/workloadContext.js'
 import type { UUID } from 'crypto'
@@ -342,21 +323,8 @@ import { drainSdkEvents } from '../utils/sdkEventQueue.js'
 import { initializeGrowthBook } from '../services/analytics/growthbook.js'
 import { errorMessage, toError } from '../utils/errors.js'
 import { sleep } from '../utils/sleep.js'
-import { isExtractModeActive } from '../memdir/paths.js'
 
-// Dead code elimination: conditional imports
-/* eslint-disable @typescript-eslint/no-require-imports */
-const coordinatorModeModule = feature('COORDINATOR_MODE')
-  ? (require('../coordinator/coordinatorMode.js') as typeof import('../coordinator/coordinatorMode.js'))
-  : null
-const proactiveModule =
-  feature('PROACTIVE') || feature('KAIROS')
-    ? (require('../proactive/index.js') as typeof import('../proactive/index.js'))
-    : null
-const extractMemoriesModule = feature('EXTRACT_MEMORIES')
-  ? (require('../services/extractMemories/extractMemories.js') as typeof import('../services/extractMemories/extractMemories.js'))
-  : null
-/* eslint-enable @typescript-eslint/no-require-imports */
+
 
 const SHUTDOWN_TEAM_PROMPT = `<system-reminder>
 You are running in non-interactive mode and cannot return a response to the user until your team is shut down.
@@ -505,15 +473,6 @@ export async function runHeadless(
   // SleepTool passes isEnabled() filtering. This fallback covers the case
   // where MYCODE_PROACTIVE is set but main.tsx's check didn't fire
   // (e.g. env was injected by the SDK transport after argv parsing).
-  if (
-    (feature('PROACTIVE') || feature('KAIROS')) &&
-    proactiveModule &&
-    !proactiveModule.isProactiveActive() &&
-    isEnvTruthy(process.env.MYCODE_PROACTIVE)
-  ) {
-    proactiveModule.activateProactive('command')
-  }
-
   // Periodically force a full GC to keep memory usage in check
   if (typeof Bun !== 'undefined') {
     const gcTimer = setInterval(Bun.gc, 1000)
@@ -924,10 +883,6 @@ export async function runHeadless(
   // delays process exit so gracefulShutdownSync's 5s failsafe doesn't kill
   // the forked agent mid-flight. Gated by isExtractModeActive so the
   // tengu_slate_thimble flag controls non-interactive extraction end-to-end.
-  if (feature('EXTRACT_MEMORIES') && isExtractModeActive()) {
-    await extractMemoriesModule!.drainPendingExtraction()
-  }
-
   gracefulShutdownSync(
     lastMessage?.type === 'result' && lastMessage?.is_error ? 1 : 0,
   )
@@ -1026,7 +981,6 @@ function runHeadlessStreaming(
       newMode === 'acceptEdits' ||
       newMode === 'bypassPermissions' ||
       newMode === 'plan' ||
-      newMode === (feature('TRANSCRIPT_CLASSIFIER') && 'auto') ||
       newMode === 'dontAsk'
     ) {
       output.enqueue({
@@ -1653,29 +1607,6 @@ function runHeadlessStreaming(
               },
             }))
           : undefined
-      // Capabilities passthrough with allowlist pre-filter. The IDE reads
-      // experimental['mycode/channel'] to decide whether to show the
-      // Enable-channel prompt — only echo it if channel_enable would
-      // actually pass the allowlist. Not a security boundary (the
-      // handler re-runs the full gate); just avoids dead buttons.
-      let capabilities: { experimental?: Record<string, unknown> } | undefined
-      if (
-        (feature('KAIROS') || feature('KAIROS_CHANNELS')) &&
-        connection.type === 'connected' &&
-        connection.capabilities.experimental
-      ) {
-        const exp = { ...connection.capabilities.experimental }
-        if (
-          exp['mycode/channel'] &&
-          (!isChannelsEnabled() ||
-            !isChannelAllowlisted(connection.config.pluginSource))
-        ) {
-          delete exp['mycode/channel']
-        }
-        if (Object.keys(exp).length > 0) {
-          capabilities = { experimental: exp }
-        }
-      }
       return {
         name: connection.name,
         status: connection.type,
@@ -1685,7 +1616,6 @@ function runHeadlessStreaming(
         config,
         scope: connection.config.scope,
         tools: serverTools,
-        capabilities,
       }
     })
   }
@@ -1808,33 +1738,6 @@ function runHeadlessStreaming(
       currentCommands = newCommands
     })
   })
-
-  // Proactive mode: schedule a tick to keep the model looping autonomously.
-  // setTimeout(0) yields to the event loop so pending stdin messages
-  // (interrupts, user messages) are processed before the tick fires.
-  const scheduleProactiveTick =
-    feature('PROACTIVE') || feature('KAIROS')
-      ? () => {
-          setTimeout(() => {
-            if (
-              !proactiveModule?.isProactiveActive() ||
-              proactiveModule.isProactivePaused() ||
-              inputClosed
-            ) {
-              return
-            }
-            const tickContent = `<${TICK_TAG}>${new Date().toLocaleTimeString()}</${TICK_TAG}>`
-            enqueue({
-              mode: 'prompt' as const,
-              value: tickContent,
-              uuid: randomUUID(),
-              priority: 'later',
-              isMeta: true,
-            })
-            void run()
-          }, 0)
-        }
-      : undefined
 
   // Abort the current operation when a 'now' priority message arrives.
   subscribeToCommandQueue(() => {
@@ -2432,18 +2335,6 @@ function runHeadlessStreaming(
       running = false
       // Start idle timer when we finish processing and are waiting for input
       idleTimeout.start()
-    }
-
-    // Proactive tick: if proactive is active and queue is empty, inject a tick
-    if (
-      (feature('PROACTIVE') || feature('KAIROS')) &&
-      proactiveModule?.isProactiveActive() &&
-      !proactiveModule.isProactivePaused()
-    ) {
-      if (peek(isMainThread) === undefined && !inputClosed) {
-        scheduleProactiveTick!()
-        return
-      }
     }
 
     // Re-check the queue after releasing the mutex. A message may have
@@ -3726,23 +3617,6 @@ function runHeadlessStreaming(
               sendControlResponseError(message, errorMessage(e))
             }
           })()
-        } else if (
-          (feature('PROACTIVE') || feature('KAIROS')) &&
-          (message.request as { subtype: string }).subtype === 'set_proactive'
-        ) {
-          const req = message.request as unknown as {
-            subtype: string
-            enabled: boolean
-          }
-          if (req.enabled) {
-            if (!proactiveModule!.isProactiveActive()) {
-              proactiveModule!.activateProactive('command')
-              scheduleProactiveTick!()
-            }
-          } else {
-            proactiveModule!.deactivateProactive()
-          }
-          sendControlResponseSuccess(message)
         } else if (message.request.subtype === 'remote_control') {
           if (message.request.enabled) {
             if (bridgeHandle) {
@@ -4441,26 +4315,6 @@ function handleSetPermissionMode(
     }
   }
 
-  // Check if trying to switch to auto mode without the classifier gate
-  if (
-    feature('TRANSCRIPT_CLASSIFIER') &&
-    request.mode === 'auto' &&
-    !isAutoModeGateEnabled()
-  ) {
-    const reason = getAutoModeUnavailableReason()
-    output.enqueue({
-      type: 'control_response',
-      response: {
-        subtype: 'error',
-        request_id: requestId,
-        error: reason
-          ? `Cannot set permission mode to auto: ${getAutoModeUnavailableNotification(reason)}`
-          : 'Cannot set permission mode to auto',
-      },
-    })
-    return toolPermissionContext
-  }
-
   // Allow the mode switch
   output.enqueue({
     type: 'control_response',
@@ -4513,167 +4367,16 @@ function handleChannelEnable(
       response: { subtype: 'error', request_id: requestId, error },
     })
 
-  if (!(feature('KAIROS') || feature('KAIROS_CHANNELS'))) {
-    return respondError('channels feature not available in this build')
-  }
-
-  // Only a 'connected' client has .capabilities and .client to register the
-  // handler on. The pool spread at the call site matches mcp_status.
-  const connection = connectionPool.find(
-    c => c.name === serverName && c.type === 'connected',
-  )
-  if (!connection || connection.type !== 'connected') {
-    return respondError(`server ${serverName} is not connected`)
-  }
-
-  const pluginSource = connection.config.pluginSource
-  const parsed = pluginSource ? parsePluginIdentifier(pluginSource) : undefined
-  if (!parsed?.marketplace) {
-    // No pluginSource or @-less source — can never pass the {plugin,
-    // marketplace}-keyed allowlist. Short-circuit with the same reason the
-    // gate would produce.
-    return respondError(
-      `server ${serverName} is not plugin-sourced; channel_enable requires a marketplace plugin`,
-    )
-  }
-
-  const entry: ChannelEntry = {
-    kind: 'plugin',
-    name: parsed.name,
-    marketplace: parsed.marketplace,
-  }
-  // Idempotency: don't double-append on repeat enable.
-  const prior = getAllowedChannels()
-  const already = prior.some(
-    e =>
-      e.kind === 'plugin' &&
-      e.name === entry.name &&
-      e.marketplace === entry.marketplace,
-  )
-  if (!already) setAllowedChannels([...prior, entry])
-
-  const gate = gateChannelServer(
-    serverName,
-    connection.capabilities,
-    pluginSource,
-  )
-  if (gate.action === 'skip') {
-    // Rollback — only remove the entry we appended.
-    if (!already) setAllowedChannels(prior)
-    return respondError(gate.reason)
-  }
-
-  const pluginId =
-    `${entry.name}@${entry.marketplace}` as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
-  logMCPDebug(serverName, 'Channel notifications registered')
-  logEvent('tengu_mcp_channel_enable', { plugin: pluginId })
-
-  // Identical enqueue shape to the interactive register block in
-  // useManageMCPConnections. drainCommandQueue processes it between turns —
-  // channel messages queue at priority 'next' and are seen by the model on
-  // the turn after they arrive.
-  connection.client.setNotificationHandler(
-    ChannelMessageNotificationSchema(),
-    async notification => {
-      const { content, meta } = notification.params
-      logMCPDebug(
-        serverName,
-        `notifications/mycode/channel: ${content.slice(0, 80)}`,
-      )
-      logEvent('tengu_mcp_channel_message', {
-        content_length: content.length,
-        meta_key_count: Object.keys(meta ?? {}).length,
-        entry_kind:
-          'plugin' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-        is_dev: false,
-        plugin: pluginId,
-      })
-      enqueue({
-        mode: 'prompt',
-        value: wrapChannelMessage(serverName, content, meta),
-        priority: 'next',
-        isMeta: true,
-        origin: { kind: 'channel', server: serverName },
-        skipSlashCommands: true,
-      })
-    },
-  )
-
-  output.enqueue({
-    type: 'control_response',
-    response: {
-      subtype: 'success',
-      request_id: requestId,
-      response: undefined,
-    },
-  })
+  return respondError('channels feature not available in this build')
 }
 
 /**
- * Re-register the channel notification handler after mcp_reconnect /
- * mcp_toggle creates a new client. handleChannelEnable bound the handler to
- * the OLD client object; allowedChannels survives the reconnect but the
- * handler binding does not. Without this, channel messages silently drop
- * after a reconnect while the IDE still believes the channel is live.
- *
- * Mirrors the interactive CLI's onConnectionAttempt in
- * useManageMCPConnections, which re-gates on every new connection. Paired
- * with registerElicitationHandlers at the same call sites.
- *
- * No-op if the server was never channel-enabled: gateChannelServer calls
- * findChannelEntry internally and returns skip/session for an unlisted
- * server, so reconnecting a non-channel MCP server costs one feature-flag
- * check.
+ * No-op: channel features are not available in this build.
  */
 function reregisterChannelHandlerAfterReconnect(
-  connection: MCPServerConnection,
+  _connection: MCPServerConnection,
 ): void {
-  if (!(feature('KAIROS') || feature('KAIROS_CHANNELS'))) return
-  if (connection.type !== 'connected') return
-
-  const gate = gateChannelServer(
-    connection.name,
-    connection.capabilities,
-    connection.config.pluginSource,
-  )
-  if (gate.action !== 'register') return
-
-  const entry = findChannelEntry(connection.name, getAllowedChannels())
-  const pluginId =
-    entry?.kind === 'plugin'
-      ? (`${entry.name}@${entry.marketplace}` as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS)
-      : undefined
-
-  logMCPDebug(
-    connection.name,
-    'Channel notifications re-registered after reconnect',
-  )
-  connection.client.setNotificationHandler(
-    ChannelMessageNotificationSchema(),
-    async notification => {
-      const { content, meta } = notification.params
-      logMCPDebug(
-        connection.name,
-        `notifications/mycode/channel: ${content.slice(0, 80)}`,
-      )
-      logEvent('tengu_mcp_channel_message', {
-        content_length: content.length,
-        meta_key_count: Object.keys(meta ?? {}).length,
-        entry_kind:
-          entry?.kind as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-        is_dev: entry?.dev ?? false,
-        plugin: pluginId,
-      })
-      enqueue({
-        mode: 'prompt',
-        value: wrapChannelMessage(connection.name, content, meta),
-        priority: 'next',
-        isMeta: true,
-        origin: { kind: 'channel', server: connection.name },
-        skipSlashCommands: true,
-      })
-    },
-  )
+  return
 }
 
 /**
@@ -4756,34 +4459,6 @@ async function loadInitialMessages(
         undefined /* file path */,
       )
       if (result) {
-        // Match coordinator mode to the resumed session's mode
-        if (feature('COORDINATOR_MODE') && coordinatorModeModule) {
-          const warning = coordinatorModeModule.matchSessionMode(result.mode)
-          if (warning) {
-            process.stderr.write(warning + '\n')
-            // Refresh agent definitions to reflect the mode switch
-            const {
-              getAgentDefinitionsWithOverrides,
-              getActiveAgentsFromList,
-            } =
-              // eslint-disable-next-line @typescript-eslint/no-require-imports
-              require('../tools/AgentTool/loadAgentsDir.js') as typeof import('../tools/AgentTool/loadAgentsDir.js')
-            getAgentDefinitionsWithOverrides.cache.clear?.()
-            const freshAgentDefs = await getAgentDefinitionsWithOverrides(
-              getCwd(),
-            )
-
-            setAppState(prev => ({
-              ...prev,
-              agentDefinitions: {
-                ...freshAgentDefs,
-                allAgents: freshAgentDefs.allAgents,
-                activeAgents: getActiveAgentsFromList(freshAgentDefs.allAgents),
-              },
-            }))
-          }
-        }
-
         // Reuse the resumed session's ID
         if (!options.forkSession) {
           if (result.sessionId) {
@@ -4804,15 +4479,6 @@ async function loadInitialMessages(
             ? { ...result, worktreeSession: undefined }
             : result,
         )
-
-        // Write mode entry for the resumed session
-        if (feature('COORDINATOR_MODE') && coordinatorModeModule) {
-          saveMode(
-            coordinatorModeModule.isCoordinatorMode()
-              ? 'coordinator'
-              : 'normal',
-          )
-        }
 
         return {
           messages: result.messages,
@@ -4929,31 +4595,6 @@ async function loadInitialMessages(
         result.messages = index >= 0 ? result.messages.slice(0, index + 1) : []
       }
 
-      // Match coordinator mode to the resumed session's mode
-      if (feature('COORDINATOR_MODE') && coordinatorModeModule) {
-        const warning = coordinatorModeModule.matchSessionMode(result.mode)
-        if (warning) {
-          process.stderr.write(warning + '\n')
-          // Refresh agent definitions to reflect the mode switch
-          const { getAgentDefinitionsWithOverrides, getActiveAgentsFromList } =
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            require('../tools/AgentTool/loadAgentsDir.js') as typeof import('../tools/AgentTool/loadAgentsDir.js')
-          getAgentDefinitionsWithOverrides.cache.clear?.()
-          const freshAgentDefs = await getAgentDefinitionsWithOverrides(
-            getCwd(),
-          )
-
-          setAppState(prev => ({
-            ...prev,
-            agentDefinitions: {
-              ...freshAgentDefs,
-              allAgents: freshAgentDefs.allAgents,
-              activeAgents: getActiveAgentsFromList(freshAgentDefs.allAgents),
-            },
-          }))
-        }
-      }
-
       // Reuse the resumed session's ID
       if (!options.forkSession && result.sessionId) {
         switchSession(
@@ -4972,13 +4613,6 @@ async function loadInitialMessages(
           ? { ...result, worktreeSession: undefined }
           : result,
       )
-
-      // Write mode entry for the resumed session
-      if (feature('COORDINATOR_MODE') && coordinatorModeModule) {
-        saveMode(
-          coordinatorModeModule.isCoordinatorMode() ? 'coordinator' : 'normal',
-        )
-      }
 
       return {
         messages: result.messages,

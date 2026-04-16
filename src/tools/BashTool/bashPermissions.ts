@@ -1,4 +1,3 @@
-import { feature } from 'bun:bundle'
 import { APIUserAbortError } from '@anthropic-ai/sdk'
 import type { z } from 'zod/v4'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
@@ -1464,7 +1463,7 @@ function buildPendingClassifierCheck(
     return undefined
   }
   // Skip in auto mode - auto mode classifier handles all permission decisions
-  if (feature('TRANSCRIPT_CLASSIFIER') && toolPermissionContext.mode === 'auto')
+  if (toolPermissionContext.mode === 'auto')
     return undefined
   if (toolPermissionContext.mode === 'bypassPermissions') return undefined
 
@@ -1502,7 +1501,7 @@ export function startSpeculativeClassifierCheck(
 ): boolean {
   // Same guards as buildPendingClassifierCheck
   if (!isClassifierPermissionsEnabled()) return false
-  if (feature('TRANSCRIPT_CLASSIFIER') && toolPermissionContext.mode === 'auto')
+  if (toolPermissionContext.mode === 'auto')
     return false
   if (toolPermissionContext.mode === 'bypassPermissions') return false
   const allowDescriptions = getBashPromptAllowDescriptions(
@@ -1572,17 +1571,6 @@ export async function awaitClassifierAutoApproval(
 
   logClassifierResultForAnts(command, 'allow', descriptions, classifierResult)
 
-  if (
-    feature('BASH_CLASSIFIER') &&
-    classifierResult.matches &&
-    classifierResult.confidence === 'high'
-  ) {
-    return {
-      type: 'classifier',
-      classifier: 'bash_allow',
-      reason: `Allowed by prompt rule: "${classifierResult.matchedDescription}"`,
-    }
-  }
   return undefined
 }
 
@@ -1641,20 +1629,7 @@ export async function executeAsyncClassifierCheck(
   // with the permission dialog (e.g., arrow keys, tab, typing)
   if (!callbacks.shouldContinue()) return
 
-  if (
-    feature('BASH_CLASSIFIER') &&
-    classifierResult.matches &&
-    classifierResult.confidence === 'high'
-  ) {
-    callbacks.onAllow({
-      type: 'classifier',
-      classifier: 'bash_allow',
-      reason: `Allowed by prompt rule: "${classifierResult.matchedDescription}"`,
-    })
-  } else {
-    // No match — notify so the checking indicator is cleared
-    callbacks.onComplete?.()
-  }
+  callbacks.onComplete?.()
 }
 
 /**
@@ -1709,14 +1684,6 @@ export async function bashToolHasPermission(
       decisionReason,
       message: createPermissionRequestMessage(BashTool.name, decisionReason),
       suggestions: [],
-      ...(feature('BASH_CLASSIFIER')
-        ? {
-            pendingClassifierCheck: buildPendingClassifierCheck(
-              input.command,
-              appState.toolPermissionContext,
-            ),
-          }
-        : {}),
     }
   }
 
@@ -1810,10 +1777,7 @@ export async function bashToolHasPermission(
   // Skip when in auto mode - auto mode classifier handles all permission decisions
   if (
     isClassifierPermissionsEnabled() &&
-    !(
-      feature('TRANSCRIPT_CLASSIFIER') &&
-      appState.toolPermissionContext.mode === 'auto'
-    )
+    appState.toolPermissionContext.mode !== 'auto'
   ) {
     const denyDescriptions = getBashPromptDenyDescriptions(
       appState.toolPermissionContext,
@@ -1909,14 +1873,6 @@ export async function bashToolHasPermission(
             reason: `Required by Bash prompt rule: "${askResult.matchedDescription}"`,
           },
           suggestions,
-          ...(feature('BASH_CLASSIFIER')
-            ? {
-                pendingClassifierCheck: buildPendingClassifierCheck(
-                  input.command,
-                  appState.toolPermissionContext,
-                ),
-              }
-            : {}),
         }
       }
     }
@@ -1976,14 +1932,6 @@ export async function bashToolHasPermission(
               safetyResult.message ??
               'Command contains patterns that require approval',
           },
-          ...(feature('BASH_CLASSIFIER')
-            ? {
-                pendingClassifierCheck: buildPendingClassifierCheck(
-                  input.command,
-                  appState.toolPermissionContext,
-                ),
-              }
-            : {}),
         }
       }
 
@@ -2013,14 +1961,6 @@ export async function bashToolHasPermission(
       appState = context.getAppState()
       return {
         ...commandOperatorResult,
-        ...(feature('BASH_CLASSIFIER')
-          ? {
-              pendingClassifierCheck: buildPendingClassifierCheck(
-                input.command,
-                appState.toolPermissionContext,
-              ),
-            }
-          : {}),
       }
     }
 
@@ -2080,14 +2020,6 @@ export async function bashToolHasPermission(
           ),
           decisionReason,
           suggestions: [], // Don't suggest saving a potentially dangerous command
-          ...(feature('BASH_CLASSIFIER')
-            ? {
-                pendingClassifierCheck: buildPendingClassifierCheck(
-                  input.command,
-                  appState.toolPermissionContext,
-                ),
-              }
-            : {}),
         }
       }
     }
@@ -2271,14 +2203,6 @@ export async function bashToolHasPermission(
   if (askSubresult !== undefined && nonAllowCount === 1) {
     return {
       ...askSubresult,
-      ...(feature('BASH_CLASSIFIER')
-        ? {
-            pendingClassifierCheck: buildPendingClassifierCheck(
-              input.command,
-              appState.toolPermissionContext,
-            ),
-          }
-        : {}),
     }
   }
 
@@ -2370,14 +2294,6 @@ export async function bashToolHasPermission(
     if (result.behavior === 'ask' || result.behavior === 'passthrough') {
       return {
         ...result,
-        ...(feature('BASH_CLASSIFIER')
-          ? {
-              pendingClassifierCheck: buildPendingClassifierCheck(
-                input.command,
-                appState.toolPermissionContext,
-              ),
-            }
-          : {}),
       }
     }
     return result
@@ -2497,14 +2413,6 @@ export async function bashToolHasPermission(
     message: createPermissionRequestMessage(BashTool.name, decisionReason),
     decisionReason,
     suggestions: suggestedUpdates,
-    ...(feature('BASH_CLASSIFIER')
-      ? {
-          pendingClassifierCheck: buildPendingClassifierCheck(
-            input.command,
-            appState.toolPermissionContext,
-          ),
-        }
-      : {}),
   }
 }
 

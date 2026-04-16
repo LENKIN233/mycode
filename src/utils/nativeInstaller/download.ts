@@ -488,9 +488,7 @@ export async function downloadVersion(
   version: string,
   stagingPath: string,
 ): Promise<'npm' | 'binary'> {
-
-    return 'binary'
-  }
+  
 
   if (process.env.USER_TYPE === 'ant') {
     // Use Artifactory for ant users

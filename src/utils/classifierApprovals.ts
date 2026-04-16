@@ -3,7 +3,6 @@
  * Populated from useCanUseTool.ts and permissions.ts, read from UserToolSuccessMessage.tsx.
  */
 
-import { feature } from 'bun:bundle'
 import { createSignal } from './signal.js'
 
 type ClassifierApproval = {
@@ -17,58 +16,35 @@ const CLASSIFIER_CHECKING = new Set<string>()
 const classifierChecking = createSignal()
 
 export function setClassifierApproval(
-  toolUseID: string,
-  matchedRule: string,
+  _toolUseID: string,
+  _matchedRule: string,
 ): void {
-  if (!feature('BASH_CLASSIFIER')) {
-    return
-  }
-  CLASSIFIER_APPROVALS.set(toolUseID, {
-    classifier: 'bash',
-    matchedRule,
-  })
+  return
 }
 
-export function getClassifierApproval(toolUseID: string): string | undefined {
-  if (!feature('BASH_CLASSIFIER')) {
-    return undefined
-  }
-  const approval = CLASSIFIER_APPROVALS.get(toolUseID)
-  if (!approval || approval.classifier !== 'bash') return undefined
-  return approval.matchedRule
+export function getClassifierApproval(_toolUseID: string): string | undefined {
+  return undefined
 }
 
 export function setYoloClassifierApproval(
-  toolUseID: string,
-  reason: string,
+  _toolUseID: string,
+  _reason: string,
 ): void {
-  if (!feature('TRANSCRIPT_CLASSIFIER')) {
-    return
-  }
-  CLASSIFIER_APPROVALS.set(toolUseID, { classifier: 'auto-mode', reason })
+  return
 }
 
 export function getYoloClassifierApproval(
-  toolUseID: string,
+  _toolUseID: string,
 ): string | undefined {
-  if (!feature('TRANSCRIPT_CLASSIFIER')) {
-    return undefined
-  }
-  const approval = CLASSIFIER_APPROVALS.get(toolUseID)
-  if (!approval || approval.classifier !== 'auto-mode') return undefined
-  return approval.reason
+  return undefined
 }
 
-export function setClassifierChecking(toolUseID: string): void {
-  if (!feature('BASH_CLASSIFIER') && !feature('TRANSCRIPT_CLASSIFIER')) return
-  CLASSIFIER_CHECKING.add(toolUseID)
-  classifierChecking.emit()
+export function setClassifierChecking(_toolUseID: string): void {
+  return
 }
 
-export function clearClassifierChecking(toolUseID: string): void {
-  if (!feature('BASH_CLASSIFIER') && !feature('TRANSCRIPT_CLASSIFIER')) return
-  CLASSIFIER_CHECKING.delete(toolUseID)
-  classifierChecking.emit()
+export function clearClassifierChecking(_toolUseID: string): void {
+  return
 }
 
 export const subscribeClassifierChecking = classifierChecking.subscribe

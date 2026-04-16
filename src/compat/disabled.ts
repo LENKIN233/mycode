@@ -41,14 +41,14 @@ export const createDirectConnectSession = async (
 // paths are conditionally reached.
 export const fetchSession = async (_id: string): Promise<any> => null
 export const prepareApiRequest = async (): Promise<{
-  baseUrl: string
-  headers: Record<string, string>
+  accessToken: string
+  orgUUID: string
 }> => {
   throw new Error('teleport disabled')
 }
 export const checkOutTeleportedSessionBranch = async (
   _branch?: string,
-): Promise<void> => {}
+): Promise<{ branchError?: Error }> => ({})
 export const processMessagesForTeleportResume = (
   _messages: any[],
   _error?: any,
@@ -65,9 +65,13 @@ export const validateGitState = async (): Promise<{
 }> => ({ valid: false, error: 'teleport disabled' })
 export const validateSessionRepository = async (
   _data: any,
-): Promise<{ valid: boolean; error?: string }> => ({
-  valid: false,
-  error: 'teleport disabled',
+): Promise<{
+  status: 'ok' | 'mismatch' | 'not_in_repo' | 'error'
+  sessionRepo?: string
+  errorMessage?: string
+}> => ({
+  status: 'error',
+  errorMessage: 'teleport disabled',
 })
 
 // ── OAuth Headers ──────────────────────────────────────────────────

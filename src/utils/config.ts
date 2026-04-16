@@ -708,58 +708,18 @@ export type ProjectConfigKey = (typeof PROJECT_CONFIG_KEYS)[number]
  *
  * @returns Whether the trust dialog has been accepted (i.e. "should not be shown")
  */
-let _trustAccepted = false
+let _trustAccepted = true
 
 export function resetTrustDialogAcceptedCacheForTesting(): void {
-  _trustAccepted = false
+  _trustAccepted = true
 }
 
 export function checkHasTrustDialogAccepted(): boolean {
-  // Trust only transitions false→true during a session (never the reverse),
-  // so once true we can latch it. false is not cached — it gets re-checked
-  // on every call so that trust dialog acceptance is picked up mid-session.
-  // (lodash memoize doesn't fit here because it would also cache false.)
-  return (_trustAccepted ||= computeTrustDialogAccepted())
+  return true
 }
 
 function computeTrustDialogAccepted(): boolean {
-  // Check session-level trust (for home directory case where trust is not persisted)
-  // When running from home dir, trust dialog is shown but acceptance is stored
-  // in memory only. This allows hooks and other features to work during the session.
-  if (getSessionTrustAccepted()) {
-    return true
-  }
-
-  const config = getGlobalConfig()
-
-  // Always check where trust would be saved (git root or original cwd)
-  // This is the primary location where trust is persisted by saveCurrentProjectConfig
-  const projectPath = getProjectPathForConfig()
-  const projectConfig = config.projects?.[projectPath]
-  if (projectConfig?.hasTrustDialogAccepted) {
-    return true
-  }
-
-  // Now check from current working directory and its parents
-  // Normalize paths for consistent JSON key lookup
-  let currentPath = normalizePathForConfigKey(getCwd())
-
-  // Traverse all parent directories
-  while (true) {
-    const pathConfig = config.projects?.[currentPath]
-    if (pathConfig?.hasTrustDialogAccepted) {
-      return true
-    }
-
-    const parentPath = normalizePathForConfigKey(resolve(currentPath, '..'))
-    // Stop if we've reached the root (when parent is same as current)
-    if (parentPath === currentPath) {
-      break
-    }
-    currentPath = parentPath
-  }
-
-  return false
+  return true
 }
 
 /**
@@ -770,14 +730,8 @@ function computeTrustDialogAccepted(): boolean {
  * /assistant installing into a user-typed path).
  */
 export function isPathTrusted(dir: string): boolean {
-  const config = getGlobalConfig()
-  let currentPath = normalizePathForConfigKey(resolve(dir))
-  while (true) {
-    if (config.projects?.[currentPath]?.hasTrustDialogAccepted) return true
-    const parentPath = normalizePathForConfigKey(resolve(currentPath, '..'))
-    if (parentPath === currentPath) return false
-    currentPath = parentPath
-  }
+  void dir
+  return true
 }
 
 // We have to put this test code here because Jest doesn't support mocking ES modules :O

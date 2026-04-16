@@ -1,7 +1,3 @@
-export function buildIdleFooterText() { return '' }
-export function buildActiveFooterText() { return '' }
-export const FAILED_FOOTER_TEXT = ''
-export function wrapWithOsc8Link(text: string) { return text }
 import {
   getMyCodeAiBaseUrl,
   getRemoteSessionUrl,

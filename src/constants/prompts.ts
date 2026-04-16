@@ -45,7 +45,6 @@ import {
 } from '../utils/permissions/filesystem.js'
 import { isEnvTruthy } from '../utils/envUtils.js'
 import { isReplModeEnabled } from '../tools/REPLTool/constants.js'
-import { feature } from 'bun:bundle'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js'
 import { shouldUseGlobalCacheScope } from '../utils/betas.js'
 import { isForkSubagentEnabled } from '../tools/AgentTool/forkSubagent.js'
@@ -54,51 +53,18 @@ import {
   DANGEROUS_uncachedSystemPromptSection,
   resolveSystemPromptSections,
 } from './systemPromptSections.js'
-import { SLEEP_TOOL_NAME } from '../tools/SleepTool/prompt.js'
-import { TICK_TAG } from './xml.js'
-import { logForDebugging } from '../utils/debug.js'
 import { loadMemoryPrompt } from '../memdir/memdir.js'
 import { isUndercover } from '../utils/undercover.js'
 import { isMcpInstructionsDeltaEnabled } from '../utils/mcpInstructionsDelta.js'
 import { getAntModelOverrideConfig } from '../utils/model/antModels.js'
-
-// Dead code elimination: conditional imports for feature-gated modules
-/* eslint-disable @typescript-eslint/no-require-imports */
-const getCachedMCConfigForFRC = feature('CACHED_MICROCOMPACT')
-  ? (
-      require('../services/compact/cachedMCConfig.js') as typeof import('../services/compact/cachedMCConfig.js')
-    ).getCachedMCConfig
-  : null
-
-const proactiveModule =
-  feature('PROACTIVE') || feature('KAIROS')
-    ? require('../proactive/index.js')
-    : null
-const BRIEF_PROACTIVE_SECTION: string | null =
-  feature('KAIROS') || feature('KAIROS_BRIEF')
-    ? (
-        require('../tools/BriefTool/prompt.js') as typeof import('../tools/BriefTool/prompt.js')
-      ).BRIEF_PROACTIVE_SECTION
-    : null
-const briefToolModule =
-  feature('KAIROS') || feature('KAIROS_BRIEF')
-    ? (require('../tools/BriefTool/BriefTool.js') as typeof import('../tools/BriefTool/BriefTool.js'))
-    : null
-const DISCOVER_SKILLS_TOOL_NAME: string | null = feature(
-  'EXPERIMENTAL_SKILL_SEARCH',
-)
-  ? (
-      require('../tools/DiscoverSkillsTool/prompt.js') as typeof import('../tools/DiscoverSkillsTool/prompt.js')
-    ).DISCOVER_SKILLS_TOOL_NAME
-  : null
-// Capture the module (not .isSkillSearchEnabled directly) so spyOn() in tests
-// patches what we actually call — a captured function ref would point past the spy.
-const skillSearchFeatureCheck = feature('EXPERIMENTAL_SKILL_SEARCH')
-  ? (require('../services/skillSearch/featureCheck.js') as typeof import('../services/skillSearch/featureCheck.js'))
-  : null
-/* eslint-enable @typescript-eslint/no-require-imports */
-import type { OutputStyleConfig } from './outputStyles.js'
 import { CYBER_RISK_INSTRUCTION } from './cyberRiskInstruction.js'
+
+const getCachedMCConfigForFRC = null
+const BRIEF_PROACTIVE_SECTION: string | null = null
+const briefToolModule = null
+const DISCOVER_SKILLS_TOOL_NAME: string | null = null
+const skillSearchFeatureCheck = null
+import type { OutputStyleConfig } from './outputStyles.js'
 
 /**
  * Boundary marker separating static (cross-org cacheable) content from dynamic content.
@@ -319,24 +285,15 @@ function getAgentToolSection(): string {
  * along with the DISCOVER_SKILLS_TOOL_NAME interpolation.
  */
 function getDiscoverSkillsGuidance(): string | null {
-  if (
-    feature('EXPERIMENTAL_SKILL_SEARCH') &&
-    DISCOVER_SKILLS_TOOL_NAME !== null
-  ) {
-    return `Relevant skills are automatically surfaced each turn as "Skills relevant to your task:" reminders. If you're about to do something those don't cover — a mid-task pivot, an unusual workflow, a multi-step plan — call ${DISCOVER_SKILLS_TOOL_NAME} with a specific description of what you're doing. Skills already visible or loaded are filtered automatically. Skip this if the surfaced skills already cover your next action.`
-  }
   return null
 }
-
-/**
- * Session-variant guidance that would fragment the cacheScope:'global'
- * prefix if placed before SYSTEM_PROMPT_DYNAMIC_BOUNDARY. Each conditional
- * here is a runtime bit that would otherwise multiply the Blake2b prefix
- * hash variants (2^N). See PR #24490, #24171 for the same bug class.
- *
- * outputStyleConfig intentionally NOT moved here — identity framing lives
- * in the static intro pending eval.
- */
+// Session-variant guidance that would fragment the cacheScope:'global'
+// prefix if placed before SYSTEM_PROMPT_DYNAMIC_BOUNDARY. Each conditional
+// here is a runtime bit that would otherwise multiply the Blake2b prefix
+// hash variants (2^N). See PR #24490, #24171 for the same bug class.
+//
+// outputStyleConfig intentionally NOT moved here — identity framing lives
+// in the static intro pending eval.
 function getSessionSpecificGuidanceSection(
   enabledTools: Set<string>,
   skillToolCommands: Command[],
@@ -376,8 +333,6 @@ function getSessionSpecificGuidanceSection(
       ? getDiscoverSkillsGuidance()
       : null,
     hasAgentTool &&
-    feature('VERIFICATION_AGENT') &&
-    // 3P default: false — verification agent is ant-only A/B
     getFeatureValue_CACHED_MAY_BE_STALE('tengu_hive_evidence', false)
       ? `The contract: when non-trivial implementation happens on your turn, independent adversarial verification must happen before you report completion \u2014 regardless of who did the implementing (you directly, a fork you spawned, or a subagent). You are the one reporting to the user; you own the gate. Non-trivial means: 3+ file edits, backend/API changes, or infrastructure changes. Spawn the ${AGENT_TOOL_NAME} tool with subagent_type="${VERIFICATION_AGENT_TYPE}". Your own checks, caveats, and a fork's self-checks do NOT substitute \u2014 only the verifier assigns a verdict; you cannot self-assign PARTIAL. Pass the original user request, all files changed (by anyone), the approach, and the plan file path if applicable. Flag concerns if you have them but do NOT share test results or claim things work. On FAIL: fix, resume the verifier with its findings plus your fix, repeat until PASS. On PASS: spot-check it \u2014 re-run 2-3 commands from its report, confirm every PASS has a Command run block with output that matches your re-run. If any PASS lacks a command block or diverges, resume the verifier with the specifics. On PARTIAL (from the verifier): report what passed and what could not be verified.`
       : null,
@@ -444,36 +399,11 @@ export async function getSystemPrompt(
   const [skillToolCommands, outputStyleConfig, envInfo] = await Promise.all([
     getSkillToolCommands(cwd),
     getOutputStyleConfig(),
-    computeSimpleEnvInfo(model, additionalWorkingDirectories),
+    computeEnvInfo(model, additionalWorkingDirectories),
   ])
 
   const settings = getInitialSettings()
   const enabledTools = new Set(tools.map(_ => _.name))
-
-  if (
-    (feature('PROACTIVE') || feature('KAIROS')) &&
-    proactiveModule?.isProactiveActive()
-  ) {
-    logForDebugging(`[SystemPrompt] path=simple-proactive`)
-    return [
-      `\nYou are an autonomous agent. Use the available tools to do useful work.
-
-${CYBER_RISK_INSTRUCTION}`,
-      getSystemRemindersSection(),
-      await loadMemoryPrompt(),
-      envInfo,
-      getLanguageSection(settings.language),
-      // When delta enabled, instructions are announced via persisted
-      // mcp_instructions_delta attachments (attachments.ts) instead.
-      isMcpInstructionsDeltaEnabled()
-        ? null
-        : getMcpInstructionsSection(mcpClients),
-      getScratchpadInstructions(),
-      getFunctionResultClearingSection(model),
-      SUMMARIZE_TOOL_RESULTS_SECTION,
-      getProactiveSection(),
-    ].filter(s => s !== null)
-  }
 
   const dynamicSections = [
     systemPromptSection('session_guidance', () =>
@@ -484,7 +414,7 @@ ${CYBER_RISK_INSTRUCTION}`,
       getAntModelOverrideSection(),
     ),
     systemPromptSection('env_info_simple', () =>
-      computeSimpleEnvInfo(model, additionalWorkingDirectories),
+      computeEnvInfo(model, additionalWorkingDirectories),
     ),
     systemPromptSection('language', () =>
       getLanguageSection(settings.language),
@@ -521,23 +451,6 @@ ${CYBER_RISK_INSTRUCTION}`,
               'Length limits: keep text between tool calls to \u226425 words. Keep final responses to \u2264100 words unless the task requires more detail.',
           ),
         ]
-      : []),
-    ...(feature('TOKEN_BUDGET')
-      ? [
-          // Cached unconditionally — the "When the user specifies..." phrasing
-          // makes it a no-op with no budget active. Was DANGEROUS_uncached
-          // (toggled on getCurrentTurnTokenBudget()), busting ~20K tokens per
-          // budget flip. Not moved to a tail attachment: first-response and
-          // budget-continuation paths don't see attachments (#21577).
-          systemPromptSection(
-            'token_budget',
-            () =>
-              'When the user specifies a token target (e.g., "+500k", "spend 2M tokens", "use 1B tokens"), your output token count will be shown each turn. Keep working until you approach the target \u2014 plan your work to fill it productively. The target is a hard minimum, not a suggestion. If you stop early, the system will automatically continue you.',
-          ),
-        ]
-      : []),
-    ...(feature('KAIROS') || feature('KAIROS_BRIEF')
-      ? [systemPromptSection('brief', () => getBriefSection())]
       : []),
   ]
 
@@ -611,7 +524,7 @@ export async function computeEnvInfo(
     const marketingName = getMarketingNameForModel(modelId)
     modelDescription = marketingName
       ? `You are powered by the model named ${marketingName}. The exact model ID is ${modelId}.`
-      : `You are powered by the model ${modelId}.`
+      : `You are powered by the model ${modelId}.`;
   }
 
   const additionalDirsInfo =
@@ -623,40 +536,6 @@ export async function computeEnvInfo(
   const knowledgeCutoffMessage = cutoff
     ? `\n\nAssistant knowledge cutoff is ${cutoff}.`
     : ''
-
-  return `Here is useful information about the environment you are running in:
-<env>
-Working directory: ${getCwd()}
-Is directory a git repo: ${isGit ? 'Yes' : 'No'}
-${additionalDirsInfo}Platform: ${env.platform}
-${getShellInfoLine()}
-OS Version: ${unameSR}
-</env>
-${modelDescription}${knowledgeCutoffMessage}`
-}
-
-export async function computeSimpleEnvInfo(
-  modelId: string,
-  additionalWorkingDirectories?: string[],
-): Promise<string> {
-  const [isGit, unameSR] = await Promise.all([getIsGit(), getUnameSR()])
-
-  // Undercover: strip all model name/ID references. See computeEnvInfo.
-  // DCE: inline the USER_TYPE check at each site — do NOT hoist to a const.
-  let modelDescription: string | null = null
-  if (process.env.USER_TYPE === 'ant' && isUndercover()) {
-    // suppress
-  } else {
-    const marketingName = getMarketingNameForModel(modelId)
-    modelDescription = marketingName
-      ? `You are powered by the model named ${marketingName}. The exact model ID is ${modelId}.`
-      : `You are powered by the model ${modelId}.`
-  }
-
-  const cutoff = getKnowledgeCutoff(modelId)
-  const knowledgeCutoffMessage = cutoff
-    ? `Assistant knowledge cutoff is ${cutoff}.`
-    : null
 
   const cwd = getCwd()
   const isWorktree = getCurrentWorktreeSession() !== null
@@ -752,7 +631,6 @@ export async function enhanceSystemPromptWithEnvDetails(
   // AgentTool.tsx:768 builds the prompt before assembleToolPool:830 so it
   // omits this param — `?? true` preserves guidance there.
   const discoverSkillsGuidance =
-    feature('EXPERIMENTAL_SKILL_SEARCH') &&
     skillSearchFeatureCheck?.isSkillSearchEnabled() &&
     DISCOVER_SKILLS_TOOL_NAME !== null &&
     (enabledToolNames?.has(DISCOVER_SKILLS_TOOL_NAME) ?? true)
@@ -796,7 +674,7 @@ The scratchpad directory is session-specific, isolated from the user's project, 
 }
 
 function getFunctionResultClearingSection(model: string): string | null {
-  if (!feature('CACHED_MICROCOMPACT') || !getCachedMCConfigForFRC) {
+  if (!getCachedMCConfigForFRC) {
     return null
   }
   const config = getCachedMCConfigForFRC()
@@ -818,53 +696,11 @@ Old tool results will be automatically cleared from context to free up space. Th
 const SUMMARIZE_TOOL_RESULTS_SECTION = `When working with tool results, write down any important information you might need later in your response, as the original tool result may be cleared later.`
 
 function getBriefSection(): string | null {
-  if (!(feature('KAIROS') || feature('KAIROS_BRIEF'))) return null
-  if (!BRIEF_PROACTIVE_SECTION) return null
-  // Whenever the tool is available, the model is told to use it. The
-  // /brief toggle and --brief flag now only control the isBriefOnly
-  // display filter — they no longer gate model-facing behavior.
-  if (!briefToolModule?.isBriefEnabled()) return null
-  // When proactive is active, getProactiveSection() already appends the
-  // section inline. Skip here to avoid duplicating it in the system prompt.
-  if (
-    (feature('PROACTIVE') || feature('KAIROS')) &&
-    proactiveModule?.isProactiveActive()
-  )
-    return null
-  return BRIEF_PROACTIVE_SECTION
+  return null
 }
 
 function getProactiveSection(): string | null {
-  if (!(feature('PROACTIVE') || feature('KAIROS'))) return null
-  if (!proactiveModule?.isProactiveActive()) return null
-
-  return `# Autonomous work
-
-You are running autonomously. You will receive \`<${TICK_TAG}>\` prompts that keep you alive between turns — just treat them as "you're awake, what now?" The time in each \`<${TICK_TAG}>\` is the user's current local time. Use it to judge the time of day — timestamps from external tools (Slack, GitHub, etc.) may be in a different timezone.
-
-Multiple ticks may be batched into a single message. This is normal — just process the latest one. Never echo or repeat tick content in your response.
-
-## Pacing
-
-Use the ${SLEEP_TOOL_NAME} tool to control how long you wait between actions. Sleep longer when waiting for slow processes, shorter when actively iterating. Each wake-up costs an API call, but the prompt cache expires after 5 minutes of inactivity — balance accordingly.
-
-**If you have nothing useful to do on a tick, you MUST call ${SLEEP_TOOL_NAME}.** Never respond with only a status message like "still waiting" or "nothing to do" — that wastes a turn and burns tokens for no reason.
-
-## First wake-up
-
-On your very first tick in a new session, greet the user briefly and ask what they'd like to work on. Do not start exploring the codebase or making changes unprompted — wait for direction.
-
-## What to do on subsequent wake-ups
-
-Look for useful work. A good colleague faced with ambiguity doesn't just stop — they investigate, reduce risk, and build understanding. Ask yourself: what don't I know yet? What could go wrong? What would I want to verify before calling this done?
-
-Do not spam the user. If you already asked something and they haven't responded, do not ask again. Do not narrate what you're about to do — just do it.
-
-If a tick arrives and you have no useful action to take (no files to read, no commands to run, no decisions to make), call ${SLEEP_TOOL_NAME} immediately. Do not output text narrating that you're idle — the user doesn't need "still waiting" messages.
-
-## Staying responsive
-
-When the user is actively engaging with you, check for and respond to their messages frequently. Treat real-time conversations like pairing — keep the feedback loop tight. If you sense the user is waiting on you (e.g., they just sent a message, the terminal is focused), prioritize responding over continuing background work.
+  return `When the user is actively engaging with you, check for and respond to their messages frequently. Treat real-time conversations like pairing — keep the feedback loop tight. If you sense the user is waiting on you (e.g., they just sent a message, the terminal is focused), prioritize responding over continuing background work.
 
 ## Bias toward action
 
@@ -887,5 +723,5 @@ Do not narrate each step, list every file you read, or explain routine actions. 
 
 The user context may include a \`terminalFocus\` field indicating whether the user's terminal is focused or unfocused. Use this to calibrate how autonomous you are:
 - **Unfocused**: The user is away. Lean heavily into autonomous action — make decisions, explore, commit, push. Only pause for genuinely irreversible or high-risk actions.
-- **Focused**: The user is watching. Be more collaborative — surface choices, ask before committing to large changes, and keep your output concise so it's easy to follow in real time.${BRIEF_PROACTIVE_SECTION && briefToolModule?.isBriefEnabled() ? `\n\n${BRIEF_PROACTIVE_SECTION}` : ''}`
+- **Focused**: The user is watching. Be more collaborative — surface choices, ask before committing to large changes, and keep your output concise so it's easy to follow in real time.`
 }

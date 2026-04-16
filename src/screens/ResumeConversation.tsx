@@ -1,5 +1,4 @@
 import { c as _c } from "react/compiler-runtime";
-import { feature } from 'bun:bundle';
 import { dirname } from 'path';
 import React from 'react';
 import { useTerminalSize } from 'src/hooks/useTerminalSize.js';
@@ -192,31 +191,6 @@ export function ResumeConversation({
       if (!result_3) {
         throw new Error('Failed to load conversation');
       }
-      if (feature('COORDINATOR_MODE')) {
-        /* eslint-disable @typescript-eslint/no-require-imports */
-        const coordinatorModule = require('../coordinator/coordinatorMode.js') as typeof import('../coordinator/coordinatorMode.js');
-        /* eslint-enable @typescript-eslint/no-require-imports */
-        const warning = coordinatorModule.matchSessionMode(result_3.mode);
-        if (warning) {
-          /* eslint-disable @typescript-eslint/no-require-imports */
-          const {
-            getAgentDefinitionsWithOverrides,
-            getActiveAgentsFromList
-          } = require('../tools/AgentTool/loadAgentsDir.js') as typeof import('../tools/AgentTool/loadAgentsDir.js');
-          /* eslint-enable @typescript-eslint/no-require-imports */
-          getAgentDefinitionsWithOverrides.cache.clear?.();
-          const freshAgentDefs = await getAgentDefinitionsWithOverrides(getOriginalCwd());
-          setAppState(prev_0 => ({
-            ...prev_0,
-            agentDefinitions: {
-              ...freshAgentDefs,
-              allAgents: freshAgentDefs.allAgents,
-              activeAgents: getActiveAgentsFromList(freshAgentDefs.allAgents)
-            }
-          }));
-          result_3.messages.push(createSystemMessage(warning, 'warning'));
-        }
-      }
       if (result_3.sessionId && !forkSession) {
         switchSession(asSessionId(result_3.sessionId), log_0.fullPath ? dirname(log_0.fullPath) : null);
         await renameRecordingForSession();
@@ -232,17 +206,6 @@ export function ResumeConversation({
         ...prev_1,
         agent: resolvedAgentDef?.agentType
       }));
-      if (feature('COORDINATOR_MODE')) {
-        /* eslint-disable @typescript-eslint/no-require-imports */
-        const {
-          saveMode
-        } = require('../utils/sessionStorage.js');
-        const {
-          isCoordinatorMode
-        } = require('../coordinator/coordinatorMode.js') as typeof import('../coordinator/coordinatorMode.js');
-        /* eslint-enable @typescript-eslint/no-require-imports */
-        saveMode(isCoordinatorMode() ? 'coordinator' : 'normal');
-      }
       const standaloneAgentContext = computeStandaloneAgentContext(result_3.agentName, result_3.agentColor);
       if (standaloneAgentContext) {
         setAppState(prev_2 => ({
@@ -260,12 +223,6 @@ export function ResumeConversation({
         if (result_3.sessionId) {
           adoptResumedSessionFile();
         }
-      }
-      if (feature('CONTEXT_COLLAPSE')) {
-        /* eslint-disable @typescript-eslint/no-require-imports */
-        ;
-        (require('../services/contextCollapse/persist.js') as typeof import('../services/contextCollapse/persist.js')).restoreFromEntries(result_3.contextCollapseCommits ?? [], result_3.contextCollapseSnapshot);
-        /* eslint-enable @typescript-eslint/no-require-imports */
       }
       logEvent('tengu_session_resumed', {
         entrypoint: 'picker' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
