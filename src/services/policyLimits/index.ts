@@ -298,94 +298,10 @@ async function fetchWithRetry(
  * Fetch policy limits (single attempt, no retries)
  */
 async function fetchPolicyLimits(
-  cachedChecksum?: string,
+  _cachedChecksum?: string,
 ): Promise<PolicyLimitsFetchResult> {
   // Policy limits API calls api.anthropic.com — disabled in this fork
-  return { success: false, error: 'Anthropic policy limits not available in this fork', skipRetry: true }
-
-  try {
-    await checkAndRefreshOAuthTokenIfNeeded()
-
-    const authHeaders = getAuthHeaders()
-    if (authHeaders.error) {
-      return {
-        success: false,
-        error: 'Authentication required for policy limits',
-        skipRetry: true,
-      }
-    }
-
-    const endpoint = getPolicyLimitsEndpoint()
-    const headers: Record<string, string> = {
-      ...authHeaders.headers,
-      'User-Agent': getMyCodeUserAgent(),
-    }
-
-    if (cachedChecksum) {
-      headers['If-None-Match'] = `"${cachedChecksum}"`
-    }
-
-    const response = await axios.get(endpoint, {
-      headers,
-      timeout: FETCH_TIMEOUT_MS,
-      validateStatus: status =>
-        status === 200 || status === 304 || status === 404,
-    })
-
-    // Handle 304 Not Modified - cached version is still valid
-    if (response.status === 304) {
-      logForDebugging('Policy limits: Using cached restrictions (304)')
-      return {
-        success: true,
-        restrictions: null, // Signal that cache is valid
-        etag: cachedChecksum,
-      }
-    }
-
-    // Handle 404 Not Found - no policy limits exist or feature not enabled
-    if (response.status === 404) {
-      logForDebugging('Policy limits: No restrictions found (404)')
-      return {
-        success: true,
-        restrictions: {},
-        etag: undefined,
-      }
-    }
-
-    const parsed = PolicyLimitsResponseSchema().safeParse(response.data)
-    if (!parsed.success) {
-      logForDebugging(
-        `Policy limits: Invalid response format - ${parsed.error.message}`,
-      )
-      return {
-        success: false,
-        error: 'Invalid policy limits format',
-      }
-    }
-
-    logForDebugging('Policy limits: Fetched successfully')
-    return {
-      success: true,
-      restrictions: parsed.data.restrictions,
-    }
-  } catch (error) {
-    // 404 is handled above via validateStatus, so it won't reach here
-    const { kind, message } = classifyAxiosError(error)
-    switch (kind) {
-      case 'auth':
-        return {
-          success: false,
-          error: 'Not authorized for policy limits',
-          skipRetry: true,
-        }
-      case 'timeout':
-        return { success: false, error: 'Policy limits request timeout' }
-      case 'network':
-        return { success: false, error: 'Cannot connect to server' }
-      default:
-        return { success: false, error: message }
-    }
-  }
+  return { success: false, error: 'Policy limits not available in this fork', skipRetry: true }
 }
 
 /**

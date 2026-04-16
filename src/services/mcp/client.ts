@@ -899,7 +899,7 @@ export const connectToServer = memoize(
           '../../utils/mycodeInChrome/mcpServer.js'
         )
         const { createMyCodeForChromeMcpServer } = await import(
-          '@ant/mycode-for-chrome-mcp'
+          '../../vendor/mycode-for-chrome-mcp.js'
         )
         const { createLinkedTransportPair } = await import(
           './InProcessTransport.js'

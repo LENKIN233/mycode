@@ -15,12 +15,21 @@ import {
   getIsNonInteractiveSession,
   preferThirdPartyAuthentication,
 } from '../bootstrap/state.js'
-import {
-  shouldUseMyCodeAIAuth,
-  getMockSubscriptionType,
-  shouldUseMockSubscription,
-  type OAuthTokens,
-} from '../compat/disabled.js'
+// OAuth types and stubs (inlined — this fork uses API key auth only)
+export type OAuthTokens = {
+  access_token: string
+  refresh_token: string
+  expires_at?: number
+  accessToken?: string
+  profile?: any
+  scopes?: string[]
+  refreshToken?: string
+  expiresAt?: number
+  tokenAccount?: any
+}
+const shouldUseMyCodeAIAuth = (_s?: string[]) => false
+const getMockSubscriptionType = () => undefined
+const shouldUseMockSubscription = () => false
 type SubscriptionType = 'free' | 'pro' | 'max' | 'team' | 'enterprise'
 import {
   getApiKeyFromFileDescriptor,

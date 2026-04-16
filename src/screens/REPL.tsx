@@ -58,7 +58,7 @@ import { useRemoteSession } from '../hooks/useRemoteSession.js';
 import { useDirectConnect } from '../hooks/useDirectConnect.js';
 import type { DirectConnectConfig } from '../server/directConnectManager.js';
 import { useSSHSession } from '../hooks/useSSHSession.js';
-import type { SSHSession } from '../compat/disabled.js';
+type SSHSession = { remoteCwd: string };
 import { useMoreRight } from '../moreright/useMoreRight.js';
 import { SpinnerWithVerb, BriefIdleStatus, type SpinnerMode } from '../components/Spinner.js';
 import { getSystemPrompt } from '../constants/prompts.js';
@@ -89,7 +89,7 @@ import { isHumanTurn } from '../utils/messagePredicates.js';
 import { logError } from '../utils/log.js';
 // Dead code elimination: conditional imports
 /* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
-import { useFrustrationDetection } from '../compat/disabled.js';
+const useFrustrationDetection = (..._args: any[]) => ({ state: 'closed' as const, handleTranscriptSelect: () => {} });
 const useAntOrgWarningNotification = () => {};
 // Dead code elimination: conditional import for coordinator mode
 const getCoordinatorUserContext: (mcpClients: ReadonlyArray<{
@@ -193,8 +193,11 @@ import { RemoteCallout } from '../components/RemoteCallout.js';
 import { activityManager } from '../utils/activityManager.js';
 import { createAbortController } from '../utils/abortController.js';
 import { MCPConnectionManager } from 'src/services/mcp/MCPConnectionManager.js';
-// FeedbackSurvey stubs inlined
-import { useFeedbackSurvey, useMemorySurvey, usePostCompactSurvey, FeedbackSurvey } from '../compat/disabled.js';
+// Survey hooks (disabled — Anthropic analytics pipeline not applicable)
+const useFeedbackSurvey = (..._args: any[]) => ({ show: false, dismiss: () => {}, state: 'closed' as const, lastResponse: null, handleSelect: (_s: any) => false as any, handleTranscriptSelect: undefined })
+const useMemorySurvey = (..._args: any[]) => ({ state: 'closed' as const, lastResponse: null, handleSelect: (_s: any) => {}, handleTranscriptSelect: undefined })
+const usePostCompactSurvey = (..._args: any[]) => ({ state: 'closed' as const, lastResponse: null, handleSelect: (_s: any) => {} })
+const FeedbackSurvey = (_props: any) => null
 import { useInstallMessages } from 'src/hooks/notifs/useInstallMessages.js';
 import { useAwaySummary } from 'src/hooks/useAwaySummary.js';
 import { useChromeExtensionNotification } from 'src/hooks/useChromeExtensionNotification.js';
@@ -235,7 +238,7 @@ import { AutoRunIssueNotification, shouldAutoRunIssue, getAutoRunIssueReasonText
 import type { HookProgress } from '../types/hooks.js';
 import { IssueFlagBanner } from '../components/PromptInput/IssueFlagBanner.js';
 import { useIssueFlagBanner } from '../hooks/useIssueFlagBanner.js';
-import { type RemoteMessageContent } from '../compat/disabled.js';
+type RemoteMessageContent = { type: string; content: string };
 import type { RemoteSessionConfig } from '../remote/RemoteSessionManager.js';
 import { REMOTE_SAFE_COMMANDS } from '../commands.js';
 import { FullscreenLayout, useUnseenDivider, computeUnseenDivider } from '../components/FullscreenLayout.js';

@@ -3,7 +3,7 @@ import {
   createMyCodeForChromeMcpServer,
   type Logger,
   type PermissionMode,
-} from '@ant/mycode-for-chrome-mcp'
+} from '../../vendor/mycode-for-chrome-mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { format } from 'util'
 import {

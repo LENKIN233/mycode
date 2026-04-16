@@ -186,36 +186,6 @@ async function fetchInstallCountsFromGitHub(): Promise<
 > {
   // Install counts repo (github.com/anthropics/mycode-plugins-official) not available in this fork
   return []
-
-  logForDebugging(`Fetching install counts from ${INSTALL_COUNTS_URL}`)
-
-  const started = performance.now()
-  try {
-    const response = await axios.get<GitHubStatsResponse>(INSTALL_COUNTS_URL, {
-      timeout: 10000,
-    })
-
-    if (!response.data?.plugins || !Array.isArray(response.data.plugins)) {
-      throw new Error('Invalid response format from install counts API')
-    }
-
-    logPluginFetch(
-      'install_counts',
-      INSTALL_COUNTS_URL,
-      'success',
-      performance.now() - started,
-    )
-    return response.data.plugins
-  } catch (error) {
-    logPluginFetch(
-      'install_counts',
-      INSTALL_COUNTS_URL,
-      'failure',
-      performance.now() - started,
-      classifyFetchError(error),
-    )
-    throw error
-  }
 }
 
 /**

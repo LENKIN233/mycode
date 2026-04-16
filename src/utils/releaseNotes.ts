@@ -81,44 +81,6 @@ export async function migrateChangelogFromConfig(): Promise<void> {
  */
 export async function fetchAndStoreChangelog(): Promise<void> {
   // Upstream changelog URL (github.com/anthropics/mycode) is not available in this fork
-  return
-
-  // Skip in noninteractive mode
-  if (getIsNonInteractiveSession()) {
-    return
-  }
-
-  // Skip network requests if nonessential traffic is disabled
-  if (isEssentialTrafficOnly()) {
-    return
-  }
-
-  const response = await axios.get(RAW_CHANGELOG_URL)
-  if (response.status === 200) {
-    const changelogContent = response.data
-
-    // Skip write if content unchanged — writing Date.now() defeats the
-    // dirty-check in saveGlobalConfig since the timestamp always differs.
-    if (changelogContent === changelogMemoryCache) {
-      return
-    }
-
-    const cachePath = getChangelogCachePath()
-
-    // Ensure cache directory exists
-    await mkdir(dirname(cachePath), { recursive: true })
-
-    // Write changelog to cache file
-    await writeFile(cachePath, changelogContent, { encoding: 'utf-8' })
-    changelogMemoryCache = changelogContent
-
-    // Update timestamp in config
-    const changelogLastFetched = Date.now()
-    saveGlobalConfig(current => ({
-      ...current,
-      changelogLastFetched,
-    }))
-  }
 }
 
 /**

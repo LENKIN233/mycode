@@ -382,21 +382,10 @@ export async function getNpmDistTags(): Promise<NpmDistTags> {
  * This is used by installations that don't have npm (e.g. package manager installs).
  */
 export async function getLatestVersionFromGcs(
-  channel: ReleaseChannel,
+  _channel: ReleaseChannel,
 ): Promise<string | null> {
   // GCS bucket points to upstream binaries, not this fork — disabled
   return null
-
-  try {
-    const response = await axios.get(`${GCS_BUCKET_URL}/${channel}`, {
-      timeout: 5000,
-      responseType: 'text',
-    })
-    return response.data.trim()
-  } catch (error) {
-    logForDebugging(`Failed to fetch ${channel} from GCS: ${error}`)
-    return null
-  }
 }
 
 /**

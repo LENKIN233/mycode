@@ -1,4 +1,4 @@
-import { BROWSER_TOOLS } from '@ant/mycode-for-chrome-mcp'
+import { BROWSER_TOOLS } from '../../vendor/mycode-for-chrome-mcp.js'
 import { BASE_CHROME_PROMPT } from '../../utils/mycodeInChrome/prompt.js'
 import { shouldAutoEnableMyCodeInChrome } from '../../utils/mycodeInChrome/setup.js'
 import { registerBundledSkill } from '../bundledSkills.js'

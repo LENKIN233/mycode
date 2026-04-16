@@ -427,7 +427,6 @@ export async function runHeadless(
     appendSystemPrompt: string | undefined
     userSpecifiedModel: string | undefined
     fallbackModel: string | undefined
-    teleport: string | true | null | undefined
     sdkUrl: string | undefined
     replayUserMessages: boolean | undefined
     includePartialMessages: boolean | undefined
@@ -614,7 +613,6 @@ export async function runHeadless(
     agentSetting: resumedAgentSetting,
   } = await loadInitialMessages(setAppState, {
     continue: options.continue,
-    teleport: options.teleport,
     resume: options.resume,
     resumeSessionAt: options.resumeSessionAt,
     forkSession: options.forkSession,
@@ -4439,7 +4437,6 @@ async function loadInitialMessages(
   setAppState: (f: (prev: AppState) => AppState) => void,
   options: {
     continue: boolean | undefined
-    teleport: string | true | null | undefined
     resume: string | boolean | undefined
     resumeSessionAt: string | undefined
     forkSession: boolean | undefined
@@ -4491,13 +4488,6 @@ async function loadInitialMessages(
       gracefulShutdownSync(1)
       return { messages: [] }
     }
-  }
-
-  // Handle teleport in print mode (teleport disabled)
-  if (options.teleport) {
-    logError(new Error('teleport is disabled'))
-    gracefulShutdownSync(1)
-    return { messages: [] }
   }
 
   // Handle resume in print mode (accepts session ID or URL)

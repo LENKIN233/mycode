@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTerminalSize } from 'src/hooks/useTerminalSize.js';
 // Teleport API removed — inlined
 type CodeSession = any;
@@ -15,7 +15,6 @@ import { Select } from './CustomSelect/index.js';
 import { Byline } from './design-system/Byline.js';
 import { KeyboardShortcutHint } from './design-system/KeyboardShortcutHint.js';
 import { Spinner } from './Spinner.js';
-import { TeleportError } from './TeleportError.js';
 type Props = {
   onSelect: (session: CodeSession) => void;
   onCancel: () => void;
@@ -37,7 +36,6 @@ export function ResumeTask({
   const [loading, setLoading] = useState(true);
   const [loadErrorType, setLoadErrorType] = useState<LoadErrorType | null>(null);
   const [retrying, setRetrying] = useState(false);
-  const [hasCompletedTeleportErrorFlow, setHasCompletedTeleportErrorFlow] = useState(false);
 
   // Track focused index for scroll position display in title
   const [focusedIndex, setFocusedIndex] = useState(1);
@@ -108,15 +106,10 @@ export function ResumeTask({
       return;
     }
   });
-  const handleErrorComplete = useCallback(() => {
-    setHasCompletedTeleportErrorFlow(true);
+  // Load sessions on mount
+  useEffect(() => {
     void loadSessions();
-  }, [setHasCompletedTeleportErrorFlow, loadSessions]);
-
-  // Show error dialog if needed
-  if (!hasCompletedTeleportErrorFlow) {
-    return <TeleportError onComplete={handleErrorComplete} />;
-  }
+  }, [loadSessions]);
   if (loading) {
     return <Box flexDirection="column" padding={1}>
         <Box flexDirection="row">

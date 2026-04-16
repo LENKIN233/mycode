@@ -43,15 +43,6 @@ export type RemoteAgentTaskState = TaskStateBase & {
    * a task spawned >30min ago.
    */
   pollStartedAt: number;
-  /** True when this task was created by a teleported /ultrareview command. */
-  isRemoteReview?: boolean;
-  /** Parsed from the orchestrator's <remote-review-progress> heartbeat echoes. */
-  reviewProgress?: {
-    stage?: 'finding' | 'verifying' | 'synthesizing';
-    bugsFound: number;
-    bugsVerified: number;
-    bugsRefuted: number;
-  };
   isUltraplan?: boolean;
   /**
    * Scanner-derived pill state. Undefined = running. `needs_input` when the
@@ -61,7 +52,7 @@ export type RemoteAgentTaskState = TaskStateBase & {
    */
   ultraplanPhase?: Exclude<UltraplanPhase, 'running'>;
 };
-const REMOTE_TASK_TYPES = ['remote-agent', 'ultraplan', 'ultrareview', 'autofix-pr', 'background-pr'] as const;
+const REMOTE_TASK_TYPES = ['remote-agent', 'ultraplan', 'autofix-pr', 'background-pr'] as const;
 export type RemoteTaskType = (typeof REMOTE_TASK_TYPES)[number];
 function isRemoteTaskType(v: string | undefined): v is RemoteTaskType {
   return (REMOTE_TASK_TYPES as readonly string[]).includes(v ?? '');
@@ -356,7 +347,7 @@ function enqueueRemoteReviewFailureNotification(taskId: string, reason: string, 
 <${STATUS_TAG}>failed</${STATUS_TAG}>
 <${SUMMARY_TAG}>Remote review failed: ${reason}</${SUMMARY_TAG}>
 </${TASK_NOTIFICATION_TAG}>
-Remote review did not produce output (${reason}). Tell the user to retry /ultrareview, or use /review for a local review instead.`;
+Remote review did not produce output (${reason}). Tell the user to retry /review for a local review.`;
   enqueuePendingNotification({
     value: message,
     mode: 'task-notification'

@@ -1,3 +1,8 @@
+/**
+ * Local implementation of `@ant/computer-use-mcp` types and utilities.
+ * Replaces the private Anthropic package with an in-tree module.
+ */
+
 export const DEFAULT_GRANT_FLAGS = {
   accessibility: false,
   screenRecording: false,
@@ -30,6 +35,7 @@ export type CuPermissionRequest = {
   apps?: Array<{ bundleId?: string; displayName?: string }>
   flags?: Record<string, boolean>
   tccState?: { accessibility?: boolean; screenRecording?: boolean }
+  [key: string]: unknown
 }
 export type CuPermissionResponse = {
   granted: Array<{ bundleId?: string; displayName?: string; grantedAt?: string }>
@@ -56,18 +62,23 @@ export type ComputerUseSessionContext = {
   [key: string]: unknown
 }
 export type ComputerExecutor = Record<string, unknown>
-
-function successText(text: string): CuCallToolResult {
-  return {
-    content: [{ type: 'text', text }],
-  }
+export type CoordinateMode = 'screen' | 'viewport'
+export type CuSubGates = Record<string, boolean>
+export type Logger = {
+  silly?(message: string, ...args: unknown[]): void
+  debug?(message: string, ...args: unknown[]): void
+  info(message: string): void
+  warn(message: string): void
+  error(message: string): void
+}
+export type ComputerUseHostAdapter = {
+  logger?: Logger
+  executor?: Record<string, unknown>
+  [key: string]: unknown
 }
 
-function errorText(text: string): CuCallToolResult {
-  return {
-    is_error: true,
-    content: [{ type: 'text', text }],
-  }
+export function getSentinelCategory() {
+  return null
 }
 
 export function targetImageSize(width: number, height: number) {
@@ -75,15 +86,8 @@ export function targetImageSize(width: number, height: number) {
 }
 
 const TOOL_DEFS: ToolDef[] = [
-  {
-    name: 'request_access',
-    description:
-      'Request access to applications and computer-use permissions for this session.',
-  },
-  {
-    name: 'list_granted_applications',
-    description: 'List applications currently granted for computer use.',
-  },
+  { name: 'request_access', description: 'Request access to applications and computer-use permissions for this session.' },
+  { name: 'list_granted_applications', description: 'List applications currently granted for computer use.' },
   { name: 'screenshot', description: 'Capture a screenshot.' },
   { name: 'zoom', description: 'Capture a zoomed screenshot region.' },
   { name: 'cursor_position', description: 'Read the current cursor position.' },
@@ -102,15 +106,9 @@ const TOOL_DEFS: ToolDef[] = [
   { name: 'hold_key', description: 'Hold one or more keys for a duration.' },
   { name: 'read_clipboard', description: 'Read clipboard text.' },
   { name: 'write_clipboard', description: 'Write clipboard text.' },
-  {
-    name: 'open_application',
-    description: 'Open an application by bundle identifier.',
-  },
+  { name: 'open_application', description: 'Open an application by bundle identifier.' },
   { name: 'wait', description: 'Wait for a short duration.' },
-  {
-    name: 'computer_batch',
-    description: 'Execute a sequence of computer-use actions.',
-  },
+  { name: 'computer_batch', description: 'Execute a sequence of computer-use actions.' },
 ]
 
 export function buildComputerUseTools() {
@@ -126,7 +124,7 @@ export function createComputerUseMcpServer(
   return {
     async connect() {
       adapter?.logger?.warn(
-        'Computer Use MCP is running with a restored compatibility shim; request_access works, but native desktop actions remain unavailable in this workspace.',
+        'Computer Use MCP is not available in this build; request_access works but native desktop actions are unavailable.',
       )
     },
     setRequestHandler(schema: unknown, handler: unknown) {
@@ -135,7 +133,7 @@ export function createComputerUseMcpServer(
     async close() {
       closed = true
       handlers.clear()
-      adapter?.logger?.info?.('Computer Use MCP shim closed.')
+      adapter?.logger?.info?.('Computer Use MCP closed.')
     },
     get isClosed() {
       return closed
@@ -156,40 +154,25 @@ export function bindSessionContext(
       case 'request_access': {
         if (ctx?.onPermissionRequest) {
           const response = await ctx.onPermissionRequest(args as CuPermissionRequest)
-          const grantedCount = Array.isArray(response.granted)
-            ? response.granted.length
-            : 0
-          return successText(
-            grantedCount > 0
+          const grantedCount = Array.isArray(response.granted) ? response.granted.length : 0
+          return {
+            content: [{ type: 'text', text: grantedCount > 0
               ? `Computer-use access updated for ${grantedCount} application(s).`
-              : 'Computer-use access request completed.',
-          )
+              : 'Computer-use access request completed.' }],
+          }
         }
-        return errorText(
-          'Computer-use access approval is not configured in this restored workspace.',
-        )
+        return { is_error: true, content: [{ type: 'text', text: 'Computer-use access approval is not configured.' }] }
       }
-
       case 'list_granted_applications': {
         const apps = ctx?.getAllowedApps?.() ?? []
-        if (apps.length === 0) {
-          return successText('No computer-use applications are currently granted.')
-        }
-        const names = apps
-          .map(app => app.displayName || app.bundleId || 'unknown')
-          .join(', ')
-        return successText(`Granted computer-use applications: ${names}`)
+        if (apps.length === 0) return { content: [{ type: 'text', text: 'No computer-use applications are currently granted.' }] }
+        const names = apps.map(a => a.displayName || a.bundleId || 'unknown').join(', ')
+        return { content: [{ type: 'text', text: `Granted computer-use applications: ${names}` }] }
       }
-
       case 'read_clipboard':
-        return errorText(
-          'Clipboard access is unavailable in the restored computer-use shim.',
-        )
-
+        return { is_error: true, content: [{ type: 'text', text: 'Clipboard access is unavailable.' }] }
       default:
-        return errorText(
-          `Computer-use tool "${name}" is not available in this restored workspace. The shim currently supports session approval flows, but not native desktop execution.`,
-        )
+        return { is_error: true, content: [{ type: 'text', text: `Computer-use tool "${name}" is not available in this build.` }] }
     }
   }
 }

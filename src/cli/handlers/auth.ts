@@ -12,15 +12,6 @@ import { getSSLErrorHint } from '../../services/api/errorUtils.js'
 import { fetchAndStoreMyCodeFirstTokenDate } from '../../services/api/firstTokenDate.js'
 import {
   type OAuthTokens,
-  createAndStoreApiKey,
-  fetchAndStoreUserRoles,
-  refreshOAuthToken,
-  shouldUseMyCodeAIAuth,
-  storeOAuthAccountInfo,
-  getOauthProfileFromOauthToken,
-  OAuthService,
-} from '../../compat/disabled.js'
-import {
   clearOAuthTokenCache,
   getAnthropicApiKeyWithSource,
   getAuthTokenSource,
@@ -30,6 +21,21 @@ import {
   saveOAuthTokensIfNeeded,
   validateForceLoginOrg,
 } from '../../utils/auth.js'
+
+// OAuth stubs \u2014 this fork uses API key auth only
+const createAndStoreApiKey = async (_t: string) => ''
+const fetchAndStoreUserRoles = async (_t: string) => {}
+const refreshOAuthToken = async (_t: string, _o?: any): Promise<OAuthTokens> => ({}) as any
+const shouldUseMyCodeAIAuth = (_s?: string[]) => false
+const storeOAuthAccountInfo = (_o: any) => {}
+const getOauthProfileFromOauthToken = async (_t: string) => null
+class OAuthService {
+  async login() { return null }
+  async logout() {}
+  async getToken() { return null }
+  cleanup() {}
+  startOAuthFlow(..._a: any[]) { return Promise.resolve(null as any) }
+}
 import { saveGlobalConfig } from '../../utils/config.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { isRunningOnHomespace } from '../../utils/envUtils.js'
