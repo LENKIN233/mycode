@@ -22,6 +22,7 @@ type Props = {
     options?: { display?: CommandResultDisplay },
   ) => void
   context: LocalJSXCommandContext
+  onProviderChanged?: (provider: SelectableProvider) => void
 }
 
 async function switchProvider(
@@ -29,6 +30,7 @@ async function switchProvider(
   current: SelectableProvider,
   context: LocalJSXCommandContext,
   onDone: LocalJSXCommandOnDone,
+  onProviderChanged?: (provider: SelectableProvider) => void,
 ): Promise<void> {
   const previousLabel = PROVIDER_LABELS[current]
   const newLabel = PROVIDER_LABELS[provider]
@@ -51,9 +53,13 @@ async function switchProvider(
       : `Provider switched: ${chalk.dim(previousLabel)} → ${chalk.bold.green(newLabel)}`,
     { display: 'system' },
   )
+
+  if (provider !== current) {
+    onProviderChanged?.(provider)
+  }
 }
 
-function ProviderPicker({ current, onDone, context }: Props): React.ReactNode {
+function ProviderPicker({ current, onDone, context, onProviderChanged }: Props): React.ReactNode {
   const options: OptionWithDescription[] = INTERACTIVE_PROVIDER_OPTIONS.map(option => ({
     label: option.label,
     description:
@@ -63,8 +69,8 @@ function ProviderPicker({ current, onDone, context }: Props): React.ReactNode {
   }))
 
   const handleSelect = useCallback(async (value: string) => {
-    await switchProvider(value as APIProvider, current, context, onDone)
-  }, [context, current, onDone])
+    await switchProvider(value as SelectableProvider, current, context, onDone, onProviderChanged)
+  }, [context, current, onDone, onProviderChanged])
 
   const handleCancel = useCallback(() => {
     onDone('Provider selection dismissed', { display: 'system' })
@@ -93,6 +99,8 @@ function ProviderPicker({ current, onDone, context }: Props): React.ReactNode {
     </Pane>
   )
 }
+
+export { ProviderPicker }
 
 export const call: LocalJSXCommandCall = async (onDone, context, args) => {
   const current = getCurrentSelectableProvider()

@@ -21,6 +21,7 @@ type Props = {
     result?: string,
     options?: { display?: CommandResultDisplay },
   ) => void
+  onConfigChange?: () => void
 }
 
 type PersistedTaskConfig = {
@@ -135,7 +136,7 @@ function buildPersistedModelConfig(excluding?: TaskCategory): Record<string, Per
   return Object.keys(currentConfig).length > 0 ? currentConfig : undefined
 }
 
-function ModelConfigPicker({ onDone }: Props): React.ReactNode {
+function ModelConfigPicker({ onDone, onConfigChange }: Props): React.ReactNode {
   const [selectedCategory, setSelectedCategory] = useState<TaskCategory | null>(null)
 
   const handleCategorySelect = useCallback((value: string) => {
@@ -160,8 +161,9 @@ function ModelConfigPicker({ onDone }: Props): React.ReactNode {
       } as any)
     }
 
+    onConfigChange?.()
     setSelectedCategory(null)
-  }, [selectedCategory])
+  }, [onConfigChange, selectedCategory])
 
   const handleCancel = useCallback(() => {
     if (selectedCategory) {
@@ -219,6 +221,8 @@ function ModelConfigPicker({ onDone }: Props): React.ReactNode {
     </Pane>
   )
 }
+
+export { ModelConfigPicker }
 
 export const call: LocalJSXCommandCall = async (onDone, _context) => {
   return <ModelConfigPicker onDone={onDone} />

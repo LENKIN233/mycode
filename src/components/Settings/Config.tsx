@@ -47,6 +47,11 @@ import { useSearchInput } from '../../hooks/useSearchInput.js';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import { clearFastModeCooldown, FAST_MODE_MODEL_DISPLAY, isFastModeAvailable, isFastModeEnabled, getFastModeModel, isFastModeSupportedByModel } from '../../utils/fastMode.js';
 import { isFullscreenEnvEnabled } from '../../utils/fullscreen.js';
+import {
+  getProviderRoutingSettingsItems,
+  isProviderRoutingSubMenu,
+  renderProviderRoutingSubMenu,
+} from './providerRoutingSettings.js';
 type Props = {
   onClose: (result?: string, options?: {
     display?: CommandResultDisplay;
@@ -80,7 +85,7 @@ type Setting = (SettingBase & {
   onChange(value: string): void;
   type: 'managedEnum';
 });
-type SubMenu = 'Theme' | 'Model' | 'TeammateModel' | 'ExternalIncludes' | 'OutputStyle' | 'ChannelDowngrade' | 'Language' | 'EnableAutoUpdates';
+type SubMenu = 'Theme' | 'Model' | 'Provider' | 'TaskRouting' | 'TeammateModel' | 'ExternalIncludes' | 'OutputStyle' | 'ChannelDowngrade' | 'Language' | 'EnableAutoUpdates';
 export function Config({
   onClose,
   context,
@@ -258,6 +263,7 @@ export function Config({
   }
 
   // TODO: Add MCP servers
+  const providerRoutingItems = getProviderRoutingSettingsItems();
   const settingsItems: Setting[] = [
   // Global settings
   {
@@ -622,7 +628,7 @@ export function Config({
     onChange() {
       // Handled via toggleSetting -> 'ChannelDowngrade'
     }
-  }, {
+  }, ...providerRoutingItems, {
     id: 'theme',
     label: 'Theme',
     value: themeSetting,
@@ -1178,7 +1184,7 @@ export function Config({
       }
       return;
     }
-    if (setting_0.id === 'theme' || setting_0.id === 'model' || setting_0.id === 'teammateDefaultModel' || setting_0.id === 'showExternalIncludesDialog' || setting_0.id === 'outputStyle' || setting_0.id === 'language') {
+    if (setting_0.id === 'theme' || setting_0.id === 'model' || setting_0.id === 'provider' || setting_0.id === 'taskRouting' || setting_0.id === 'teammateDefaultModel' || setting_0.id === 'showExternalIncludesDialog' || setting_0.id === 'outputStyle' || setting_0.id === 'language') {
       // managedEnum items open a submenu — isDirty is set by the submenu's
       // completion callback, not here (submenu may be cancelled).
       switch (setting_0.id) {
@@ -1188,6 +1194,14 @@ export function Config({
           return;
         case 'model':
           setShowSubmenu('Model');
+          setTabsHidden(true);
+          return;
+        case 'provider':
+          setShowSubmenu('Provider');
+          setTabsHidden(true);
+          return;
+        case 'taskRouting':
+          setShowSubmenu('TaskRouting');
           setTabsHidden(true);
           return;
         case 'teammateDefaultModel':
@@ -1363,6 +1377,18 @@ export function Config({
               <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="cancel" />
             </Byline>
           </Text>
+        </> : isProviderRoutingSubMenu(showSubmenu) ? <>
+          {renderProviderRoutingSubMenu({
+        submenu: showSubmenu,
+        context,
+        onClose: () => {
+          setShowSubmenu(null);
+          setTabsHidden(false);
+        },
+        onDirty: () => {
+          isDirty.current = true;
+        }
+      })}
         </> : showSubmenu === 'TeammateModel' ? <>
           <ModelPicker initial={globalConfig.teammateDefaultModel ?? null} skipSettingsWrite headerText="Default model for newly spawned teammates. The leader can override via the tool call's model parameter." onSelect={(model_1, _effort_0) => {
         setShowSubmenu(null);
