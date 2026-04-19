@@ -51,7 +51,7 @@ export function setAPIProviderOverride(provider: APIProvider | null): void {
   import('./modelStrings.js').then(m => m.reinitModelStrings()).catch(() => {})
 }
 
-export function getAPIProvider(): APIProvider {
+export function getExplicitAPIProvider(): APIProvider | null {
   if (runtimeProviderOverride) {
     return runtimeProviderOverride
   }
@@ -66,6 +66,15 @@ export function getAPIProvider(): APIProvider {
   )
   if (settingsProvider) {
     return settingsProvider
+  }
+
+  return null
+}
+
+export function getAPIProvider(): APIProvider {
+  const explicitProvider = getExplicitAPIProvider()
+  if (explicitProvider) {
+    return explicitProvider
   }
 
   if (

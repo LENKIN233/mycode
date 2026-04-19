@@ -1,77 +1,113 @@
 import chalk from 'chalk'
-import type { LocalJSXCommandContext, LocalJSXCommandOnDone } from '../../types/command.js'
-import { getAPIProvider, setAPIProviderOverride, type APIProvider } from '../../utils/model/providers.js'
-import { hasCopilotCredentials, copilotLogin } from '../../services/copilot/index.js'
-import { updateSettingsForSource } from '../../utils/settings/settings.js'
+import * as React from 'react'
+import { useCallback } from 'react'
+import type { CommandResultDisplay } from '../../commands.js'
+import { Select, type OptionWithDescription } from '../../components/CustomSelect/index.js'
+import { Pane } from '../../components/design-system/Pane.js'
+import { Box, Text } from '../../ink.js'
+import type { LocalJSXCommandCall, LocalJSXCommandContext, LocalJSXCommandOnDone } from '../../types/command.js'
+import {
+  activateProviderSelection,
+  getCurrentSelectableProvider,
+  INTERACTIVE_PROVIDER_OPTIONS,
+  PROVIDER_ALIASES,
+  PROVIDER_LABELS,
+  type SelectableProvider,
+} from '../../utils/model/providerSelection.js'
 
-const PROVIDER_LABELS: Record<APIProvider, string> = {
-  copilot: 'GitHub Copilot',
-  firstParty: 'Manual API / Compatible Endpoint',
-  bedrock: 'Unsupported',
-  vertex: 'Unsupported',
-  foundry: 'Unsupported',
+type Props = {
+  current: SelectableProvider
+  onDone: (
+    result?: string,
+    options?: { display?: CommandResultDisplay },
+  ) => void
+  context: LocalJSXCommandContext
 }
 
-const AVAILABLE_PROVIDER_OPTIONS = [
-  { id: 'copilot', provider: 'copilot' as const },
-  { id: 'api', provider: 'firstParty' as const },
-]
-
-const PROVIDER_ALIASES: Record<string, APIProvider> = {
-  api: 'firstParty',
-  anthropic: 'firstParty',
-  manual: 'firstParty',
-  local: 'firstParty',
-  'first-party': 'firstParty',
-  firstparty: 'firstParty',
-  copilot: 'copilot',
-  'github-copilot': 'copilot',
-  github: 'copilot',
-}
-
-function persistProviderSelection(provider: APIProvider): void {
-  updateSettingsForSource('userSettings', {
-    apiProvider: provider,
-  })
-}
-
-export async function call(
-  onDone: LocalJSXCommandOnDone,
+async function switchProvider(
+  provider: SelectableProvider,
+  current: SelectableProvider,
   context: LocalJSXCommandContext,
-  args: string,
-): Promise<undefined> {
-  const current = getAPIProvider()
-  const currentLabel = PROVIDER_LABELS[current]
+  onDone: LocalJSXCommandOnDone,
+): Promise<void> {
+  const previousLabel = PROVIDER_LABELS[current]
+  const newLabel = PROVIDER_LABELS[provider]
 
-  // No args — show current provider and available options
-  if (!args || !args.trim()) {
-    const lines = [
-      `Current provider: ${chalk.bold.green(currentLabel)}`,
-      '',
-      'Available providers:',
-    ]
-    for (const option of AVAILABLE_PROVIDER_OPTIONS) {
-      const marker = option.provider === current ? chalk.green(' ← active') : ''
-      lines.push(
-        `  ${chalk.bold(option.id.padEnd(12))} ${PROVIDER_LABELS[option.provider]}${marker}`,
-      )
-    }
-    lines.push('')
-    lines.push(`Usage: ${chalk.cyan('/provider copilot')} or ${chalk.cyan('/provider api')}`)
-    lines.push(`API mode uses ${chalk.bold('ANTHROPIC_API_KEY')} and optional ${chalk.bold('ANTHROPIC_BASE_URL')}`)
-    onDone(lines.join('\n'), { display: 'system' })
+  try {
+    await activateProviderSelection(provider, {
+      onProviderChanged: () => context.onChangeAPIKey(),
+    })
+  } catch (err) {
+    onDone(
+      `${chalk.red('✗')} ${provider === 'copilot' ? 'Copilot login failed' : 'Provider switch failed'}: ${err instanceof Error ? err.message : String(err)}`,
+      { display: 'system' },
+    )
     return
+  }
+
+  onDone(
+    provider === current
+      ? `Already using ${chalk.bold(newLabel)}`
+      : `Provider switched: ${chalk.dim(previousLabel)} → ${chalk.bold.green(newLabel)}`,
+    { display: 'system' },
+  )
+}
+
+function ProviderPicker({ current, onDone, context }: Props): React.ReactNode {
+  const options: OptionWithDescription[] = INTERACTIVE_PROVIDER_OPTIONS.map(option => ({
+    label: option.label,
+    description:
+      option.description +
+      (option.value === current ? chalk.green(' ← active') : ''),
+    value: option.value,
+  }))
+
+  const handleSelect = useCallback(async (value: string) => {
+    await switchProvider(value as APIProvider, current, context, onDone)
+  }, [context, current, onDone])
+
+  const handleCancel = useCallback(() => {
+    onDone('Provider selection dismissed', { display: 'system' })
+  }, [onDone])
+
+  return (
+    <Pane color="permission">
+      <Box flexDirection="column">
+        <Text bold>Choose Provider</Text>
+        <Text dimColor>
+          Current: {PROVIDER_LABELS[current]}
+        </Text>
+        <Text dimColor>
+          Use `/model-config` to route individual request types to different providers and models.
+        </Text>
+        <Box marginTop={1}>
+          <Select
+            options={options}
+            onChange={handleSelect}
+            onCancel={handleCancel}
+            visibleOptionCount={options.length}
+            hideIndexes={false}
+          />
+        </Box>
+      </Box>
+    </Pane>
+  )
+}
+
+export const call: LocalJSXCommandCall = async (onDone, context, args) => {
+  const current = getCurrentSelectableProvider()
+
+  if (!args || !args.trim()) {
+    return <ProviderPicker current={current} onDone={onDone} context={context} />
   }
 
   const target = args.trim().toLowerCase()
 
-  // Handle 'login' subcommand
   if (target === 'login') {
     try {
-      await copilotLogin()
-      setAPIProviderOverride('copilot')
-      persistProviderSelection('copilot')
-      context.onChangeAPIKey()
+      await activateProviderSelection('copilot', {
+        onProviderChanged: () => context.onChangeAPIKey(),
+      })
       onDone(
         `${chalk.green('✓')} Copilot login successful! Provider switched to ${chalk.bold('GitHub Copilot')}`,
         { display: 'system' },
@@ -82,49 +118,18 @@ export async function call(
         { display: 'system' },
       )
     }
-    return
+    return undefined
   }
 
-  // Resolve provider
   const provider = PROVIDER_ALIASES[target]
   if (!provider) {
     onDone(
-      `Unknown provider "${target}". Available: ${Object.keys(PROVIDER_ALIASES).join(', ')}`,
+      `Unknown provider "${target}". Run ${chalk.cyan('/provider')} to choose interactively.`,
       { display: 'system' },
     )
-    return
+    return undefined
   }
 
-  // If switching to copilot, check credentials
-  if (provider === 'copilot') {
-    if (!hasCopilotCredentials()) {
-      try {
-        // Trigger login flow
-        await copilotLogin()
-      } catch (err) {
-        onDone(
-          `${chalk.red('✗')} Copilot login failed: ${err instanceof Error ? err.message : String(err)}`,
-          { display: 'system' },
-        )
-        return
-      }
-    }
-  }
-
-  const previousLabel = PROVIDER_LABELS[current]
-  setAPIProviderOverride(provider)
-  persistProviderSelection(provider)
-  const newLabel = PROVIDER_LABELS[provider]
-
-  // Trigger API key reverification so the REPL status updates
-  context.onChangeAPIKey()
-
-  if (provider === current) {
-    onDone(`Already using ${chalk.bold(newLabel)}`, { display: 'system' })
-  } else {
-    onDone(
-      `Provider switched: ${chalk.dim(previousLabel)} → ${chalk.bold.green(newLabel)}`,
-      { display: 'system' },
-    )
-  }
+  await switchProvider(provider, current, context, onDone)
+  return undefined
 }

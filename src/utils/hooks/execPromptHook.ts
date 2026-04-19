@@ -10,7 +10,7 @@ import { errorMessage } from '../errors.js'
 import type { HookResult } from '../hooks.js'
 import { safeParseJSON } from '../json.js'
 import { createUserMessage, extractTextContent } from '../messages.js'
-import { getSmallFastModel } from '../model/model.js'
+import { inferProviderFromModel } from '../model/providerSelection.js'
 import { getModelForTask, getProviderForTask } from '../model/taskModels.js'
 import type { PromptHook } from '../settings/types.js'
 import { asSystemPrompt } from '../systemPromptType.js'
@@ -54,6 +54,10 @@ export async function execPromptHook(
 
     // Query the model with Haiku
     const hookTimeoutMs = hook.timeout ? hook.timeout * 1000 : 30000
+    const model = hook.model ?? getModelForTask('hooks')
+    const provider =
+      (hook.model ? inferProviderFromModel(hook.model) : null) ??
+      getProviderForTask('hooks')
 
     // Combined signal: aborts if either the hook signal or timeout triggers
     const { signal: combinedSignal, cleanup: cleanupSignal } =
@@ -77,8 +81,8 @@ Your response must be a JSON object matching one of the following schemas:
             const appState = toolUseContext.getAppState()
             return appState.toolPermissionContext
           },
-          model: hook.model ?? getModelForTask('hooks'),
-          ...(hook.model ? {} : { provider: getProviderForTask('hooks') }),
+          model,
+          provider,
           toolChoice: undefined,
           isNonInteractiveSession: true,
           hasAppendSystemPrompt: false,

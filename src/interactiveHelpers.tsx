@@ -24,6 +24,8 @@ import { isEnvTruthy, isRunningOnHomespace } from './utils/envUtils.js';
 import { type FpsMetrics, FpsTracker } from './utils/fpsTracker.js';
 import { updateGithubRepoPathMapping } from './utils/githubRepoPathMapping.js';
 import { applyConfigEnvironmentVariables } from './utils/managedEnv.js';
+import { getExplicitProviderSelection } from './utils/model/providerSelection.js';
+import { getAPIProvider } from './utils/model/providers.js';
 import type { PermissionMode } from './utils/permissions/PermissionMode.js';
 import { getBaseRenderOptions } from './utils/renderOptions.js';
 import { getSettingsWithAllErrors } from './utils/settings/allErrors.js';
@@ -152,6 +154,15 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
       } = await import('./components/MyCodeMdExternalIncludesDialog.js');
       await showSetupDialog(root, done => <MyCodeMdExternalIncludesDialog onDone={done} isStandaloneDialog externalIncludes={externalIncludes} />);
     }
+
+    if (!getExplicitProviderSelection()) {
+      const {
+        ProviderSetupDialog
+      } = await import('./components/ProviderSetupDialog.js');
+      await showSetupDialog(root, done => <ProviderSetupDialog onDone={done} />, {
+        onChangeAppState
+      });
+    }
   }
 
   // Track current repo path (fire-and-forget)
@@ -183,7 +194,7 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
   // Check for custom API key
   // On homespace, ANTHROPIC_API_KEY is preserved in process.env for child
   // processes but ignored by MyCode itself (see auth.ts).
-  if (process.env.ANTHROPIC_API_KEY && !isRunningOnHomespace()) {
+  if (process.env.ANTHROPIC_API_KEY && !isRunningOnHomespace() && getAPIProvider() === 'firstParty') {
     const customApiKeyTruncated = normalizeApiKeyForConfig(process.env.ANTHROPIC_API_KEY);
     const keyStatus = getCustomApiKeyStatus(customApiKeyTruncated);
     if (keyStatus === 'new') {
