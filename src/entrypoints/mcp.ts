@@ -21,6 +21,7 @@ import { createFileStateCacheWithSizeLimit } from '../utils/fileStateCache.js'
 import { logError } from '../utils/log.js'
 import { createAssistantMessage } from '../utils/messages.js'
 import { getMainLoopModel } from '../utils/model/model.js'
+import { getProviderForTask } from '../utils/model/taskModels.js'
 import { hasPermissionsToUseTool } from '../utils/permissions/permissions.js'
 import { setCwd } from '../utils/Shell.js'
 import { jsonStringify } from '../utils/slowOperations.js'
@@ -115,6 +116,7 @@ export async function startMCPServer(
           commands: MCP_COMMANDS,
           tools,
           mainLoopModel: getMainLoopModel(),
+          mainLoopProvider: getProviderForTask('mainLoop'),
           thinkingConfig: { type: 'disabled' },
           mcpClients: [],
           mcpResources: {},

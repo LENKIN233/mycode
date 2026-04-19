@@ -29,7 +29,7 @@ import { lazySchema } from '../lazySchema.js'
 import { extractTextContent } from '../messages.js'
 import { resolveAntModel } from '../model/antModels.js'
 import { getMainLoopModel } from '../model/model.js'
-import { getModelForTask } from '../model/taskModels.js'
+import { getModelForTask, getProviderForTask } from '../model/taskModels.js'
 import { getAutoModeConfig } from '../settings/settings.js'
 import { sideQuery } from '../sideQuery.js'
 import { jsonStringify } from '../slowOperations.js'
@@ -1132,6 +1132,7 @@ export async function classifyYoloAction(
     const start = Date.now()
     const sideQueryOpts = {
       model,
+      provider: getClassifierProvider(),
       max_tokens: 4096 + thinkingPadding,
       system: [
         {
@@ -1343,6 +1344,10 @@ function getClassifierModel(): string {
     return config.model
   }
   return getModelForTask('permission')
+}
+
+function getClassifierProvider() {
+  return getProviderForTask('permission')
 }
 
 /**

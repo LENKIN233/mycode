@@ -64,6 +64,7 @@ import {
   getMainLoopModel,
   parseUserSpecifiedModel,
 } from './utils/model/model.js'
+import { getProviderForTask } from './utils/model/taskModels.js'
 import { loadAllPluginsCacheOnly } from './utils/plugins/pluginLoader.js'
 import {
   type ProcessUserInputContext,
@@ -352,6 +353,7 @@ export class QueryEngine {
         tools,
         verbose,
         mainLoopModel: initialMainLoopModel,
+        mainLoopProvider: getProviderForTask('mainLoop'),
         thinkingConfig: initialThinkingConfig,
         mcpClients,
         mcpResources: {},
@@ -500,6 +502,7 @@ export class QueryEngine {
         tools,
         verbose,
         mainLoopModel,
+        mainLoopProvider: getProviderForTask('mainLoop'),
         thinkingConfig: initialThinkingConfig,
         mcpClients,
         mcpResources: {},

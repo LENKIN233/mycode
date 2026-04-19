@@ -6,7 +6,7 @@ import {
   getApiKeyFromApiKeyHelper,
   getApiKeyWithSource,
 } from 'src/utils/auth.js'
-import { getAPIProvider } from 'src/utils/model/providers.js'
+import { getAPIProvider, type APIProvider } from 'src/utils/model/providers.js'
 import {
   getIsNonInteractiveSession,
   getSessionId,
@@ -34,12 +34,14 @@ export async function getAiClient({
   maxRetries,
   fetchOverride,
   source,
+  provider,
 }: {
   apiKey?: string
   maxRetries: number
   model?: string
   fetchOverride?: ClientOptions['fetch']
   source?: string
+  provider?: APIProvider
 }): Promise<Anthropic> {
   const containerId = process.env.MYCODE_CONTAINER_ID
   const remoteSessionId = process.env.MYCODE_REMOTE_SESSION_ID
@@ -79,7 +81,9 @@ export async function getAiClient({
     ...(isDebugToStdErr() && { logger: createStderrLogger() }),
   } satisfies Partial<ClientOptions>
 
-  if (getAPIProvider() === 'copilot') {
+  const effectiveProvider = provider ?? getAPIProvider()
+
+  if (effectiveProvider === 'copilot') {
     const { createCopilotFetch } = await import('../../services/copilot/proxy.js')
     const copilotFetch = createCopilotFetch()
     return new Anthropic({

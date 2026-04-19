@@ -3,10 +3,9 @@ import {
   getSmallFastModel,
   getDefaultSonnetModel,
   getDefaultOpusModel,
-  getDefaultMainLoopModel,
   type ModelName,
 } from './model.js'
-import { getAPIProvider } from './providers.js'
+import { getAPIProvider, type APIProvider, normalizeSupportedProvider } from './providers.js'
 
 // On Copilot, use FREE models (0x multiplier) for small tasks by default.
 // GPT-5-mini: free (0x), 64K max output, strong reasoning + tool use.
@@ -93,55 +92,129 @@ export const TASK_CATEGORIES = {
 export type TaskCategory = keyof typeof TASK_CATEGORIES
 export const TASK_CATEGORY_KEYS = Object.keys(TASK_CATEGORIES) as TaskCategory[]
 
-type ModelConfigSettings = Partial<Record<TaskCategory, string>>
+export type SupportedTaskProvider = Extract<APIProvider, 'firstParty' | 'copilot'>
+
+type TaskModelOverride = string | {
+  model: string
+  provider?: SupportedTaskProvider
+}
+
+type ModelConfigSettings = Partial<Record<TaskCategory, TaskModelOverride>>
+
+export type TaskRoute = {
+  provider: SupportedTaskProvider
+  model: ModelName
+  isOverridden: boolean
+  tier: string
+}
 
 function getModelConfigFromSettings(): ModelConfigSettings {
   const settings = getSettings_DEPRECATED()
   return (settings as Record<string, unknown>)?.modelConfig as ModelConfigSettings ?? {}
 }
 
+function getDefaultProviderForTask(_category: TaskCategory): SupportedTaskProvider {
+  const provider = getAPIProvider()
+  return provider === 'copilot' ? 'copilot' : 'firstParty'
+}
+
+function normalizeTaskProvider(value: string | undefined): SupportedTaskProvider | null {
+  const provider = normalizeSupportedProvider(value)
+  return provider === 'copilot' || provider === 'firstParty' ? provider : null
+}
+
+function parseTaskOverride(
+  override: TaskModelOverride | undefined,
+): { provider?: SupportedTaskProvider; model?: ModelName } | null {
+  if (!override) {
+    return null
+  }
+  if (typeof override === 'string') {
+    return { model: override }
+  }
+  if (typeof override.model !== 'string' || !override.model.trim()) {
+    return null
+  }
+  return {
+    model: override.model,
+    provider: normalizeTaskProvider(override.provider),
+  }
+}
+
 function getDefaultModelForTier(
   tier: 'main' | 'small' | 'medium' | 'large',
+  provider: SupportedTaskProvider,
+  category?: TaskCategory,
 ): ModelName {
   switch (tier) {
     case 'main':
-      return getDefaultMainLoopModel()
+      return provider === 'copilot' ? 'claude-sonnet-4.6' : getDefaultSonnetModel()
     case 'small':
-      // On Copilot provider, default to FREE model to save premium requests
-      return getAPIProvider() === 'copilot' ? COPILOT_FREE_SMALL_MODEL : getSmallFastModel()
-    case 'medium': return getDefaultSonnetModel()
-    case 'large': return getDefaultOpusModel()
+      if (provider === 'copilot') {
+        return COPILOT_FREE_SMALL_MODEL
+      }
+      if (
+        category === 'verifyApiKey' ||
+        category === 'quotaCheck' ||
+        category === 'tokenCount' ||
+        category === 'tokenCountFallback'
+      ) {
+        return getSmallFastModel()
+      }
+      return getDefaultSonnetModel()
+    case 'medium':
+      return provider === 'copilot' ? 'claude-haiku-4.5' : getDefaultSonnetModel()
+    case 'large':
+      return provider === 'copilot' ? 'claude-opus-4.6' : getDefaultOpusModel()
+  }
+}
+
+export function getTaskRoute(category: TaskCategory): TaskRoute {
+  const config = getModelConfigFromSettings()
+  const parsedOverride = parseTaskOverride(config[category])
+  const provider = parsedOverride?.provider ?? getDefaultProviderForTask(category)
+  const tier = TASK_CATEGORIES[category].defaultTier
+
+  if (parsedOverride?.model) {
+    return {
+      provider,
+      model: parsedOverride.model,
+      isOverridden: true,
+      tier,
+    }
+  }
+
+  if (category === 'forkAgent' && provider === 'copilot') {
+    return {
+      provider,
+      model: COPILOT_FREE_SMALL_MODEL,
+      isOverridden: false,
+      tier,
+    }
+  }
+
+  return {
+    provider,
+    model: getDefaultModelForTier(tier, provider, category),
+    isOverridden: false,
+    tier,
   }
 }
 
 export function getModelForTask(category: TaskCategory): ModelName {
-  const config = getModelConfigFromSettings()
-  const override = config[category]
-  if (override) return override
-  // Fork agents use the main model on non-Copilot (prompt cache benefit)
-  // but FREE model on Copilot (no prompt caching → pure waste)
-  if (category === 'forkAgent' && getAPIProvider() === 'copilot') {
-    return COPILOT_FREE_SMALL_MODEL
-  }
-  // On Copilot, medium-tier tasks (permission, autoModeCritique) use
-  // claude-haiku-4.5 (0.33x) instead of Sonnet (1x) for cost savings.
-  // Haiku is a Claude model with good safety classification ability.
-  if (getAPIProvider() === 'copilot' && TASK_CATEGORIES[category].defaultTier === 'medium') {
-    return 'claude-haiku-4.5'
-  }
-  return getDefaultModelForTier(TASK_CATEGORIES[category].defaultTier)
+  return getTaskRoute(category).model
+}
+
+export function getProviderForTask(category: TaskCategory): SupportedTaskProvider {
+  return getTaskRoute(category).provider
 }
 
 export function getCurrentModelForCategory(category: TaskCategory): {
   model: ModelName
+  provider: SupportedTaskProvider
   isOverridden: boolean
   tier: string
 } {
-  const config = getModelConfigFromSettings()
-  const override = config[category]
-  const tier = TASK_CATEGORIES[category].defaultTier
-  if (override) {
-    return { model: override, isOverridden: true, tier }
-  }
-  return { model: getDefaultModelForTier(tier), isOverridden: false, tier }
+  const route = getTaskRoute(category)
+  return route
 }

@@ -7,7 +7,7 @@ import { errorMessage } from '../../utils/errors.js'
 import {
   parseUserSpecifiedModel,
 } from '../../utils/model/model.js'
-import { getModelForTask } from '../../utils/model/taskModels.js'
+import { getModelForTask, getProviderForTask } from '../../utils/model/taskModels.js'
 import {
   type AutoModeRules,
   buildDefaultExternalSystemPrompt,
@@ -115,6 +115,7 @@ export async function autoModeCritiqueHandler(options: {
     response = await sideQuery({
       querySource: 'auto_mode_critique',
       model,
+      ...(options.model ? {} : { provider: getProviderForTask('autoModeCritique') }),
       system: CRITIQUE_SYSTEM_PROMPT,
       skipSystemPromptPrefix: true,
       max_tokens: 4096,

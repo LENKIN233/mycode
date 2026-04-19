@@ -11,7 +11,7 @@ import type { HookResult } from '../hooks.js'
 import { safeParseJSON } from '../json.js'
 import { createUserMessage, extractTextContent } from '../messages.js'
 import { getSmallFastModel } from '../model/model.js'
-import { getModelForTask } from '../model/taskModels.js'
+import { getModelForTask, getProviderForTask } from '../model/taskModels.js'
 import type { PromptHook } from '../settings/types.js'
 import { asSystemPrompt } from '../systemPromptType.js'
 import { addArgumentsToPrompt, hookResponseSchema } from './hookHelpers.js'
@@ -78,6 +78,7 @@ Your response must be a JSON object matching one of the following schemas:
             return appState.toolPermissionContext
           },
           model: hook.model ?? getModelForTask('hooks'),
+          ...(hook.model ? {} : { provider: getProviderForTask('hooks') }),
           toolChoice: undefined,
           isNonInteractiveSession: true,
           hasAppendSystemPrompt: false,

@@ -619,6 +619,7 @@ async function* queryLoop(
                 return appState.toolPermissionContext
               },
               model: currentModel,
+              provider: toolUseContext.options.mainLoopProvider,
               ...(config.gates.fastModeEnabled && {
                 fastMode: appState.fastMode,
               }),

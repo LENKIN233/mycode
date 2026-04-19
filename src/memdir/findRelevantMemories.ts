@@ -4,6 +4,7 @@ import { logForDebugging } from '../utils/debug.js'
 import { errorMessage } from '../utils/errors.js'
 import { getDefaultSonnetModel } from '../utils/model/model.js'
 import { getAPIProvider } from '../utils/model/providers.js'
+import { getProviderForTask } from '../utils/model/taskModels.js'
 import { getModelForTask } from '../utils/model/taskModels.js'
 import { sideQuery } from '../utils/sideQuery.js'
 import { jsonParse } from '../utils/slowOperations.js'
@@ -119,6 +120,7 @@ async function selectRelevantMemories(
   try {
     const result = await sideQuery({
       model: getAPIProvider() === 'copilot' ? getModelForTask('analysis') : getModelForTask('memory'),
+      provider: getAPIProvider() === 'copilot' ? getProviderForTask('analysis') : getProviderForTask('memory'),
       system: SELECT_MEMORIES_SYSTEM_PROMPT,
       skipSystemPromptPrefix: true,
       messages: [

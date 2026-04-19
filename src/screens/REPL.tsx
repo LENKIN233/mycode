@@ -145,6 +145,7 @@ import type { AgentDefinition } from '../tools/AgentTool/loadAgentsDir.js';
 import { resolveAgentTools } from '../tools/AgentTool/agentToolUtils.js';
 import { resumeAgentBackground } from '../tools/AgentTool/resumeAgent.js';
 import { useMainLoopModel } from '../hooks/useMainLoopModel.js';
+import { getProviderForTask } from '../utils/model/taskModels.js';
 import { useAppState, useSetAppState, useAppStateStore } from '../state/AppState.js';
 import type { ContentBlockParam, ImageBlockParam } from '@ai/sdk/resources/messages.mjs';
 import type { ProcessUserInputContext } from '../utils/processUserInput/processUserInput.js';
@@ -2211,6 +2212,7 @@ export function REPL({
         debug,
         verbose: s.verbose,
         mainLoopModel,
+        mainLoopProvider: getProviderForTask('mainLoop'),
         thinkingConfig: s.thinkingEnabled !== false ? thinkingConfig : {
           type: 'disabled'
         },

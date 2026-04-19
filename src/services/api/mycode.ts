@@ -35,7 +35,7 @@ import {
   getSmallFastModel,
   isNonCustomOpusModel,
 } from '../../utils/model/model.js'
-import { getModelForTask, type TaskCategory } from '../../utils/model/taskModels.js'
+import { getModelForTask, getTaskRoute, type TaskCategory } from '../../utils/model/taskModels.js'
 import {
   asSystemPrompt,
   type SystemPrompt,
@@ -178,6 +178,7 @@ import {
   normalizeModelStringForAPI,
   parseUserSpecifiedModel,
 } from '../../utils/model/model.js'
+import type { APIProvider } from '../../utils/model/providers.js'
 import {
   startSessionActivity,
   stopSessionActivity,
@@ -481,6 +482,7 @@ export async function verifyApiKey(
             apiKey,
             maxRetries: 3,
             model,
+            provider: 'firstParty',
             source: 'verify_api_key',
           }),
         async anthropic => {
@@ -610,6 +612,7 @@ export function assistantMessageToMessageParam(
 export type Options = {
   getToolPermissionContext: () => Promise<ToolPermissionContext>
   model: string
+  provider?: APIProvider
   toolChoice?: BetaToolChoiceTool | BetaToolChoiceAuto | undefined
   isNonInteractiveSession: boolean
   extraToolSchemas?: BetaToolUnion[]
@@ -752,6 +755,7 @@ function getNonstreamingFallbackTimeoutMs(): number {
 export async function* executeNonStreamingRequest(
   clientOptions: {
     model: string
+    provider?: APIProvider
     fetchOverride?: Options['fetchOverride']
     source: string
   },
@@ -779,6 +783,7 @@ export async function* executeNonStreamingRequest(
       getAiClient({
         maxRetries: 0,
         model: clientOptions.model,
+        provider: clientOptions.provider,
         fetchOverride: clientOptions.fetchOverride,
         source: clientOptions.source,
       }),
@@ -1639,6 +1644,7 @@ async function* queryModel(
         getAiClient({
           maxRetries: 0, // Disabled auto-retry in favor of manual implementation
           model: options.model,
+          provider: options.provider,
           fetchOverride: options.fetchOverride,
           source: options.querySource,
         }),
@@ -3076,6 +3082,7 @@ export async function queryTaskModel({
         }),
       ]
 
+      const taskRoute = taskCategory ? getTaskRoute(taskCategory) : getTaskRoute('analysis')
       const result = await queryModelWithoutStreaming({
         messages,
         systemPrompt,
@@ -3084,7 +3091,8 @@ export async function queryTaskModel({
         signal,
         options: {
           ...options,
-          model: taskCategory ? getModelForTask(taskCategory) : getModelForTask('analysis'),
+          model: taskRoute.model,
+          provider: taskRoute.provider,
           enablePromptCaching: options.enablePromptCaching ?? false,
           outputFormat,
           async getToolPermissionContext() {

@@ -7,7 +7,7 @@ import { logForDebugging } from '../debug.js'
 import { errorMessage } from '../errors.js'
 import { lazySchema } from '../lazySchema.js'
 import { logError } from '../log.js'
-import { getModelForTask } from '../model/taskModels.js'
+import { getModelForTask, getProviderForTask } from '../model/taskModels.js'
 import { sideQuery } from '../sideQuery.js'
 import { jsonStringify } from '../slowOperations.js'
 
@@ -177,6 +177,7 @@ Explain this command in context.`
     // Use sideQuery with forced tool choice for guaranteed structured output
     const response = await sideQuery({
       model,
+      provider: getProviderForTask('permission'),
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userPrompt }],
       tools: [EXPLAIN_COMMAND_TOOL],

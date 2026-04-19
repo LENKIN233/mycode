@@ -3,7 +3,7 @@ import { count } from './array.js'
 import { logForDebugging } from './debug.js'
 import { getLogDisplayTitle, logError } from './log.js'
 import { getSmallFastModel } from './model/model.js'
-import { getModelForTask } from './model/taskModels.js'
+import { getModelForTask, getProviderForTask } from './model/taskModels.js'
 import { isLiteLog, loadFullLog } from './sessionStorage.js'
 import { sideQuery } from './sideQuery.js'
 import { jsonParse } from './slowOperations.js'
@@ -264,6 +264,7 @@ Find the sessions that are most relevant to this query.`
 
     const response = await sideQuery({
       model,
+      provider: getProviderForTask('memory'),
       system: SESSION_SEARCH_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }],
       signal,

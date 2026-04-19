@@ -17,6 +17,7 @@ import { getAiClient } from '../services/api/client.js'
 import { getModelBetas, modelSupportsStructuredOutputs } from './betas.js'
 import { computeFingerprint } from './fingerprint.js'
 import { normalizeModelStringForAPI } from './model/model.js'
+import type { APIProvider } from './model/providers.js'
 
 type MessageParam = Anthropic.MessageParam
 type TextBlockParam = Anthropic.TextBlockParam
@@ -29,6 +30,8 @@ type BetaThinkingConfigParam = Anthropic.Beta.Messages.BetaThinkingConfigParam
 export type SideQueryOptions = {
   /** Model to use for the query */
   model: string
+  /** Optional per-request provider override */
+  provider?: APIProvider
   /**
    * System prompt - string or array of text blocks (will be prefixed with CLI attribution).
    *
@@ -125,6 +128,7 @@ export async function sideQuery(opts: SideQueryOptions): Promise<BetaMessage> {
     maxRetries,
     model,
     source: opts.querySource ?? 'side_query',
+    provider: opts.provider,
   })
   const betas = [...getModelBetas(model)]
   // Add structured-outputs beta if using output_format and provider supports it

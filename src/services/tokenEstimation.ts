@@ -19,7 +19,7 @@ import {
   getDefaultSonnetModel,
   normalizeModelStringForAPI,
 } from '../utils/model/model.js'
-import { getModelForTask } from '../utils/model/taskModels.js'
+import { getModelForTask, getProviderForTask } from '../utils/model/taskModels.js'
 import { jsonStringify } from '../utils/slowOperations.js'
 import { isToolReferenceBlock } from '../utils/toolSearch.js'
 import { getAPIMetadata, getExtraBodyParams } from './api/mycode.js'
@@ -160,6 +160,7 @@ export async function countMessagesTokensWithAPI(
       const anthropic = await getAiClient({
         maxRetries: 1,
         model,
+        provider: getProviderForTask('tokenCount'),
         source: 'count_tokens',
       })
 
@@ -288,6 +289,7 @@ export async function countTokensViaHaikuFallback(
   const anthropic = await getAiClient({
     maxRetries: 1,
     model,
+    provider: getProviderForTask('tokenCountFallback'),
     source: 'count_tokens',
   })
 

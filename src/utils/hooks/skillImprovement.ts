@@ -20,7 +20,7 @@ import {
   extractTextContent,
 } from '../messages.js'
 import { getSmallFastModel } from '../model/model.js'
-import { getModelForTask } from '../model/taskModels.js'
+import { getModelForTask, getProviderForTask } from '../model/taskModels.js'
 import { jsonParse } from '../slowOperations.js'
 import { asSystemPrompt } from '../systemPromptType.js'
 import {
@@ -233,6 +233,7 @@ Rules:
     options: {
       getToolPermissionContext: async () => getEmptyToolPermissionContext(),
       model: getModelForTask('hooks'),
+      provider: getProviderForTask('hooks'),
       toolChoice: undefined,
       isNonInteractiveSession: false,
       hasAppendSystemPrompt: false,

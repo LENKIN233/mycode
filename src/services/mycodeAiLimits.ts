@@ -203,6 +203,7 @@ async function makeTestQuery() {
   const anthropic = await getAiClient({
     maxRetries: 0,
     model,
+    provider: 'firstParty',
     source: 'quota_check',
   })
   const messages: MessageParam[] = [{ role: 'user', content: 'quota' }]

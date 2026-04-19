@@ -1,4 +1,5 @@
 import type { AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from '../../services/analytics/index.js'
+import { getSettings_DEPRECATED } from '../settings/settings.js'
 
 // Other provider types are kept for type compatibility with imported SDK code
 export type APIProvider = 'firstParty' | 'bedrock' | 'vertex' | 'foundry' | 'copilot'
@@ -8,7 +9,7 @@ const SUPPORTED_PROVIDERS = new Set<APIProvider>(['firstParty', 'copilot'])
 // Runtime override — set by /provider command or --copilot-login
 let runtimeProviderOverride: APIProvider | null = null
 
-function normalizeSupportedProvider(value: string | undefined): APIProvider | null {
+export function normalizeSupportedProvider(value: string | undefined): APIProvider | null {
   switch (value?.trim().toLowerCase()) {
     case 'api':
     case 'anthropic':
@@ -58,6 +59,13 @@ export function getAPIProvider(): APIProvider {
   const envProvider = normalizeSupportedProvider(process.env.MYCODE_API_PROVIDER)
   if (envProvider) {
     return envProvider
+  }
+
+  const settingsProvider = normalizeSupportedProvider(
+    (getSettings_DEPRECATED() as { apiProvider?: string } | undefined)?.apiProvider,
+  )
+  if (settingsProvider) {
+    return settingsProvider
   }
 
   if (

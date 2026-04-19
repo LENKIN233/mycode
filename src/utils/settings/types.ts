@@ -34,6 +34,16 @@ export const EnvironmentVariablesSchema = lazySchema(() =>
   z.record(z.string(), z.coerce.string()),
 )
 
+const SupportedPersonalProviderSchema = z.enum(['firstParty', 'copilot'])
+
+const TaskModelOverrideSchema = z.union([
+  z.string(),
+  z.object({
+    model: z.string(),
+    provider: SupportedPersonalProviderSchema.optional(),
+  }),
+])
+
 /**
  * Schema for permissions section
  */
@@ -362,13 +372,18 @@ export const SettingsSchema = lazySchema(() =>
         .string()
         .optional()
         .describe('Override the default model used by MyCode'),
+      apiProvider: SupportedPersonalProviderSchema
+        .optional()
+        .describe(
+          'Default API provider for this fork. Supported values: "copilot", "firstParty".',
+        ),
       modelConfig: z
-        .record(z.string(), z.string())
+        .record(z.string(), TaskModelOverrideSchema)
         .optional()
         .describe(
           'Per-task model overrides for auxiliary requests. ' +
             'Keys: mainLoop, title, summary, analysis, utility, memory, permission, insights, hooks, quotaCheck, verifyApiKey, tokenCount, tokenCountFallback, autoModeCritique. ' +
-            'Values: model ID strings (e.g. "gpt-4.1", "claude-haiku-4.5").',
+            'Values: either model ID strings (legacy format) or objects like {"provider":"copilot","model":"gpt-5-mini"}.',
         ),
       // Enterprise allowlist of models
       availableModels: z

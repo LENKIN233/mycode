@@ -67,11 +67,22 @@ export function getUserSpecifiedModelSetting(): ModelSetting | undefined {
     specifiedModel = modelOverride
   } else {
     const settings = getSettings_DEPRECATED() || {}
+    const mainLoopConfig = settings.modelConfig?.mainLoop
+    const legacyMainLoopConfig = settings.modelConfig?.main_loop
+    const configuredMainLoopModel =
+      typeof mainLoopConfig === 'string'
+        ? mainLoopConfig
+        : typeof mainLoopConfig?.model === 'string'
+          ? mainLoopConfig.model
+          : typeof legacyMainLoopConfig === 'string'
+            ? legacyMainLoopConfig
+            : typeof legacyMainLoopConfig?.model === 'string'
+              ? legacyMainLoopConfig.model
+              : undefined
     specifiedModel =
       process.env.ANTHROPIC_MODEL ||
       settings.model ||
-      settings.modelConfig?.mainLoop ||
-      settings.modelConfig?.main_loop ||
+      configuredMainLoopModel ||
       undefined
   }
 

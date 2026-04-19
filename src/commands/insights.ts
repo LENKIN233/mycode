@@ -26,7 +26,7 @@ import { execFileNoThrow } from '../utils/execFileNoThrow.js'
 import { logError } from '../utils/log.js'
 import { extractTextContent } from '../utils/messages.js'
 import { getDefaultOpusModel } from '../utils/model/model.js'
-import { getModelForTask } from '../utils/model/taskModels.js'
+import { getModelForTask, getProviderForTask } from '../utils/model/taskModels.js'
 import {
   getProjectsDir,
   getSessionFilesWithMtime,
@@ -46,6 +46,10 @@ function getAnalysisModel(): string {
 // Model for narrative insights
 function getInsightsModel(): string {
   return getModelForTask('insights')
+}
+
+function getInsightsProvider() {
+  return getProviderForTask('insights')
 }
 
 // ============================================================================
@@ -887,6 +891,7 @@ async function summarizeTranscriptChunk(chunk: string): Promise<string> {
       signal: new AbortController().signal,
       options: {
         model: getAnalysisModel(),
+        provider: getInsightsProvider(),
         querySource: 'insights',
         agents: [],
         isNonInteractiveSession: true,
@@ -1030,6 +1035,7 @@ RESPOND WITH ONLY A VALID JSON OBJECT matching this schema:
       signal: new AbortController().signal,
       options: {
         model: getAnalysisModel(),
+        provider: getInsightsProvider(),
         querySource: 'insights',
         agents: [],
         isNonInteractiveSession: true,
@@ -1581,6 +1587,7 @@ async function generateSectionInsight(
       signal: new AbortController().signal,
       options: {
         model: getInsightsModel(),
+        provider: getInsightsProvider(),
         querySource: 'insights',
         agents: [],
         isNonInteractiveSession: true,

@@ -7,7 +7,7 @@ import {
   getAssistantMessageText,
 } from '../utils/messages.js'
 import { getSmallFastModel } from '../utils/model/model.js'
-import { getModelForTask } from '../utils/model/taskModels.js'
+import { getModelForTask, getProviderForTask } from '../utils/model/taskModels.js'
 import { asSystemPrompt } from '../utils/systemPromptType.js'
 import { queryModelWithoutStreaming } from './api/mycode.js'
 import { getSessionMemoryContent } from './SessionMemory/sessionMemoryUtils.js'
@@ -48,6 +48,7 @@ export async function generateAwaySummary(
       options: {
         getToolPermissionContext: async () => getEmptyToolPermissionContext(),
         model: getModelForTask('summary'),
+        provider: getProviderForTask('summary'),
         toolChoice: undefined,
         isNonInteractiveSession: false,
         hasAppendSystemPrompt: false,

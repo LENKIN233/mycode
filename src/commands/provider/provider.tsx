@@ -2,6 +2,7 @@ import chalk from 'chalk'
 import type { LocalJSXCommandContext, LocalJSXCommandOnDone } from '../../types/command.js'
 import { getAPIProvider, setAPIProviderOverride, type APIProvider } from '../../utils/model/providers.js'
 import { hasCopilotCredentials, copilotLogin } from '../../services/copilot/index.js'
+import { updateSettingsForSource } from '../../utils/settings/settings.js'
 
 const PROVIDER_LABELS: Record<APIProvider, string> = {
   copilot: 'GitHub Copilot',
@@ -26,6 +27,12 @@ const PROVIDER_ALIASES: Record<string, APIProvider> = {
   copilot: 'copilot',
   'github-copilot': 'copilot',
   github: 'copilot',
+}
+
+function persistProviderSelection(provider: APIProvider): void {
+  updateSettingsForSource('userSettings', {
+    apiProvider: provider,
+  })
 }
 
 export async function call(
@@ -63,6 +70,7 @@ export async function call(
     try {
       await copilotLogin()
       setAPIProviderOverride('copilot')
+      persistProviderSelection('copilot')
       context.onChangeAPIKey()
       onDone(
         `${chalk.green('✓')} Copilot login successful! Provider switched to ${chalk.bold('GitHub Copilot')}`,
@@ -105,6 +113,7 @@ export async function call(
 
   const previousLabel = PROVIDER_LABELS[current]
   setAPIProviderOverride(provider)
+  persistProviderSelection(provider)
   const newLabel = PROVIDER_LABELS[provider]
 
   // Trigger API key reverification so the REPL status updates

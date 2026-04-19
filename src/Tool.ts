@@ -10,6 +10,7 @@ import type { UUID } from 'crypto'
 import type { z } from 'zod/v4'
 import type { Command } from './commands.js'
 import type { CanUseToolFn } from './hooks/useCanUseTool.js'
+import type { APIProvider } from './utils/model/providers.js'
 import type { ThinkingConfig } from './utils/thinking.js'
 
 export type ToolInputJSONSchema = {
@@ -160,6 +161,7 @@ export type ToolUseContext = {
     commands: Command[]
     debug: boolean
     mainLoopModel: string
+    mainLoopProvider?: APIProvider
     tools: Tools
     verbose: boolean
     thinkingConfig: ThinkingConfig

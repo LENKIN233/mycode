@@ -12,9 +12,9 @@ import {
   TASK_CATEGORY_KEYS,
   getCurrentModelForCategory,
   type TaskCategory,
+  type SupportedTaskProvider,
 } from '../../utils/model/taskModels.js'
-import { getAPIProvider } from '../../utils/model/providers.js'
-import { getModelOptions } from '../../utils/model/modelOptions.js'
+import { getDefaultOpusModel, getDefaultSonnetModel, getSmallFastModel } from '../../utils/model/model.js'
 
 type Props = {
   onDone: (
@@ -23,53 +23,116 @@ type Props = {
   ) => void
 }
 
-function formatModelDisplay(model: string, isOverridden: boolean): string {
+type PersistedTaskConfig = {
+  provider: SupportedTaskProvider
+  model: string
+}
+
+const COPILOT_MODEL_CHOICES: Array<{ model: string; label: string; description: string }> = [
+  { model: 'claude-sonnet-4.6', label: 'Claude Sonnet 4.6', description: 'Best for everyday tasks · 1x' },
+  { model: 'claude-opus-4.6', label: 'Claude Opus 4.6', description: 'Most capable for complex work · 3x' },
+  { model: 'claude-haiku-4.5', label: 'Claude Haiku 4.5', description: 'Fastest Claude · 0.33x' },
+  { model: 'gpt-4.1', label: 'GPT 4.1', description: 'FREE · General purpose' },
+  { model: 'gpt-4o', label: 'GPT 4o', description: 'FREE · Multimodal' },
+  { model: 'gpt-5-mini', label: 'GPT 5 Mini', description: 'FREE · Small & fast' },
+  { model: 'gpt-5.4', label: 'GPT 5.4', description: 'Most capable GPT · 1x' },
+  { model: 'gpt-5.4-mini', label: 'GPT 5.4 Mini', description: '0.33x' },
+  { model: 'gpt-5.3-codex', label: 'GPT 5.3 Codex', description: 'Code-optimized · 1x' },
+  { model: 'gpt-5.2-codex', label: 'GPT 5.2 Codex', description: 'Code-optimized · 1x' },
+  { model: 'gpt-5.2', label: 'GPT 5.2', description: '1x' },
+  { model: 'gpt-5.1', label: 'GPT 5.1', description: '1x' },
+  { model: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', description: '1x' },
+  { model: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', description: 'Preview · 1x' },
+  { model: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', description: 'Preview · 0.33x' },
+  { model: 'claude-sonnet-4.5', label: 'Claude Sonnet 4.5', description: '1x' },
+  { model: 'claude-sonnet-4', label: 'Claude Sonnet 4', description: '1x' },
+  { model: 'claude-opus-4.6-fast', label: 'Claude Opus 4.6 Fast', description: 'Lower latency · 3x' },
+  { model: 'claude-opus-4.5', label: 'Claude Opus 4.5', description: '3x' },
+  { model: 'grok-code-fast-1', label: 'Grok Code Fast', description: '0.25x' },
+]
+
+function formatModelDisplay(provider: SupportedTaskProvider, model: string, isOverridden: boolean): string {
+  const rendered = `${provider === 'copilot' ? 'copilot' : 'api'}:${model}`
   if (isOverridden) {
-    return chalk.green(model)
+    return chalk.green(rendered)
   }
-  return chalk.dim(model + ' (default)')
+  return chalk.dim(rendered + ' (default)')
 }
 
 function getCategoryOptions(): OptionWithDescription[] {
   return TASK_CATEGORY_KEYS.map(key => {
     const cat = TASK_CATEGORIES[key]
-    const { model, isOverridden } = getCurrentModelForCategory(key)
+    const { provider, model, isOverridden } = getCurrentModelForCategory(key)
     return {
       label: cat.label,
-      description: `${formatModelDisplay(model, isOverridden)} · ${cat.description}`,
+      description: `${formatModelDisplay(provider, model, isOverridden)} · ${cat.description}`,
       value: key,
     }
   })
 }
 
-function getModelChoices(category: TaskCategory): OptionWithDescription[] {
-  const provider = getAPIProvider()
+function getModelChoices(_category: TaskCategory): OptionWithDescription[] {
   const choices: OptionWithDescription[] = [
-    { label: 'Reset to default', description: 'Use the tier default for this task', value: '__reset__' },
+    { label: 'Reset to default', description: 'Use the default provider/model route for this task', value: '__reset__' },
   ]
 
-  if (provider === 'copilot') {
-    // Show copilot model options
-    const modelOpts = getModelOptions()
-    for (const opt of modelOpts) {
-      if (opt.value) {
-        choices.push({
-          label: opt.label,
-          description: opt.description ?? '',
-          value: opt.value,
-        })
-      }
-    }
-  } else {
-    // Non-copilot: show common model aliases
-    choices.push(
-      { label: 'Haiku 4.5', description: 'Small & fast', value: 'claude-haiku-4-5-20251001' },
-      { label: 'Sonnet 4.6', description: 'Balanced', value: 'claude-sonnet-4-6-20250514' },
-      { label: 'Opus 4.6', description: 'Most capable', value: 'claude-opus-4-6-20250522' },
-    )
+  for (const opt of COPILOT_MODEL_CHOICES) {
+    choices.push({
+      label: `[copilot] ${opt.label}`,
+      description: opt.description,
+      value: `copilot::${opt.model}`,
+    })
+  }
+
+  const apiModels = [
+    getDefaultSonnetModel(),
+    getDefaultOpusModel(),
+    getSmallFastModel(),
+    process.env.ANTHROPIC_MODEL,
+    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL,
+    process.env.ANTHROPIC_DEFAULT_OPUS_MODEL,
+    process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL,
+  ].filter((value, index, list): value is string => !!value && list.indexOf(value) === index)
+
+  for (const model of apiModels) {
+    choices.push({
+      label: `[api] ${model}`,
+      description: 'Manual API / compatible endpoint',
+      value: `firstParty::${model}`,
+    })
   }
 
   return choices
+}
+
+function parseTaskChoice(value: string): PersistedTaskConfig | null {
+  const separatorIndex = value.indexOf('::')
+  if (separatorIndex === -1) {
+    return null
+  }
+  const provider = value.slice(0, separatorIndex)
+  const model = value.slice(separatorIndex + 2)
+  if ((provider !== 'copilot' && provider !== 'firstParty') || !model) {
+    return null
+  }
+  return {
+    provider,
+    model,
+  }
+}
+
+function buildPersistedModelConfig(excluding?: TaskCategory): Record<string, PersistedTaskConfig> | undefined {
+  const currentConfig: Record<string, PersistedTaskConfig> = {}
+  for (const key of TASK_CATEGORY_KEYS) {
+    if (key === excluding) {
+      continue
+    }
+    const { provider, model, isOverridden } = getCurrentModelForCategory(key)
+    if (isOverridden) {
+      currentConfig[key] = { provider, model }
+    }
+  }
+  return Object.keys(currentConfig).length > 0 ? currentConfig : undefined
 }
 
 function ModelConfigPicker({ onDone }: Props): React.ReactNode {
@@ -81,27 +144,23 @@ function ModelConfigPicker({ onDone }: Props): React.ReactNode {
 
   const handleModelSelect = useCallback((value: string) => {
     const category = selectedCategory!
-    const modelValue = value === '__reset__' ? undefined : value
+    const selectedRoute = value === '__reset__' ? null : parseTaskChoice(value)
 
-    // Save to user settings
     const catKey = category as string
-    if (modelValue) {
-      updateSettingsForSource('userSettings', { modelConfig: { [catKey]: modelValue } } as any)
+    if (selectedRoute) {
+      updateSettingsForSource('userSettings', {
+        modelConfig: {
+          ...(buildPersistedModelConfig(category) ?? {}),
+          [catKey]: selectedRoute,
+        },
+      } as any)
     } else {
-      // Reset: rebuild modelConfig without this category
-      const currentConfig: Record<string, string> = {}
-      for (const key of TASK_CATEGORY_KEYS) {
-        const { model, isOverridden } = getCurrentModelForCategory(key)
-        if (isOverridden && key !== category) {
-          currentConfig[key] = model
-        }
-      }
-      updateSettingsForSource('userSettings', { modelConfig: Object.keys(currentConfig).length > 0 ? currentConfig : undefined } as any)
+      updateSettingsForSource('userSettings', {
+        modelConfig: buildPersistedModelConfig(category),
+      } as any)
     }
 
-    const label = TASK_CATEGORIES[category].label
-    const displayModel = modelValue ?? 'default'
-    setSelectedCategory(null) // return to category list
+    setSelectedCategory(null)
   }, [selectedCategory])
 
   const handleCancel = useCallback(() => {
@@ -114,7 +173,7 @@ function ModelConfigPicker({ onDone }: Props): React.ReactNode {
 
   if (selectedCategory) {
     const cat = TASK_CATEGORIES[selectedCategory]
-    const { model } = getCurrentModelForCategory(selectedCategory)
+    const { provider, model } = getCurrentModelForCategory(selectedCategory)
     return (
       <Pane color="permission">
         <Box flexDirection="column">
@@ -122,7 +181,7 @@ function ModelConfigPicker({ onDone }: Props): React.ReactNode {
             Select model for: {cat.label}
           </Text>
           <Text dimColor>
-            Current: {model} · {cat.description}
+            Current: {provider === 'copilot' ? 'copilot' : 'api'}:{model} · {cat.description}
           </Text>
           <Box marginTop={1}>
             <Select
@@ -145,8 +204,7 @@ function ModelConfigPicker({ onDone }: Props): React.ReactNode {
           Request Model Configuration
         </Text>
         <Text dimColor>
-          Configure which model is used for each type of request path.
-          {getAPIProvider() === 'copilot' ? ' Tip: use FREE models (gpt-4.1, gpt-4o, gpt-5-mini) to save premium requests.' : ''}
+          Configure which provider and model each request path should use.
         </Text>
         <Box marginTop={1}>
           <Select
