@@ -1,12 +1,12 @@
-import * as React from 'react';
-// Grove component removed — inlined no-ops\ntype GroveDecision = 'accept' | 'reject';\nconst GroveDialog = (_props: any) => null;\nconst PrivacySettingsDialog = (_props: any) => null;
+import * as React from 'react'; sourceMappingURL=data:application/json[^
+]*z Grove component removed — inlined no-ops\ntype GroveDecision = 'accept' | 'reject';\nconst GroveDialog = (_props: any) => null;\nconst PrivacySettingsDialog = (_props: any) => null;
 import { type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS, logEvent } from '../../services/analytics/index.js';
 // Grove API removed — inlined no-ops
 const getGroveNoticeConfig: any = () => ({ shouldShow: false });
 const getGroveSettings: any = () => Promise.resolve(null);
 const isQualifiedForGrove = async () => false;
 import type { LocalJSXCommandOnDone } from '../../types/command.js';
-const FALLBACK_MESSAGE = 'Review and manage your privacy settings at https://mycode.ai/settings/data-privacy-controls';
+const FALLBACK_MESSAGE = 'Review and manage your privacy settings at https://claude.ai/settings/data-privacy-controls';
 export async function call(onDone: LocalJSXCommandOnDone): Promise<React.ReactNode | null> {
   const qualified = await isQualifiedForGrove();
   if (!qualified) {

@@ -1,6 +1,12 @@
 import Anthropic, { type ClientOptions } from '@ai/sdk'
+import { getOauthConfig } from 'src/constants/oauth.js'
 import { getUserAgent } from 'src/utils/http.js'
 import { getProxyFetchOptions } from 'src/utils/proxy.js'
+import {
+  getApiKeyFromApiKeyHelper,
+  getApiKeyWithSource,
+} from 'src/utils/auth.js'
+import { getAPIProvider } from 'src/utils/model/providers.js'
 import {
   getIsNonInteractiveSession,
   getSessionId,
@@ -62,11 +68,7 @@ export async function getAiClient({
     defaultHeaders['x-anthropic-additional-protection'] = 'true'
   }
 
-  const { createCopilotFetch } = await import('../../services/copilot/proxy.js')
-  const copilotFetch = createCopilotFetch()
-  return new Anthropic({
-    apiKey: 'copilot-proxy',
-    baseURL: 'https://api.githubcopilot.com/v1',
+  const commonArgs = {
     defaultHeaders,
     maxRetries,
     timeout: parseInt(process.env.API_TIMEOUT_MS || String(600 * 1000), 10),
@@ -74,8 +76,39 @@ export async function getAiClient({
     fetchOptions: getProxyFetchOptions({
       forAnthropicAPI: true,
     }) as ClientOptions['fetchOptions'],
-    fetch: copilotFetch,
     ...(isDebugToStdErr() && { logger: createStderrLogger() }),
+  } satisfies Partial<ClientOptions>
+
+  if (getAPIProvider() === 'copilot') {
+    const { createCopilotFetch } = await import('../../services/copilot/proxy.js')
+    const copilotFetch = createCopilotFetch()
+    return new Anthropic({
+      apiKey: 'copilot-proxy',
+      baseURL: 'https://api.githubcopilot.com/v1',
+      ...commonArgs,
+      fetch: copilotFetch,
+    })
+  }
+
+  const { key: cachedApiKey, source: apiKeySource } = getApiKeyWithSource()
+  const resolvedApiKey =
+    apiKey ||
+    cachedApiKey ||
+    (apiKeySource === 'apiKeyHelper'
+      ? await getApiKeyFromApiKeyHelper(getIsNonInteractiveSession())
+      : null)
+
+  if (!resolvedApiKey) {
+    throw new Error(
+      'No API key configured for API provider. Set ANTHROPIC_API_KEY or apiKeyHelper, or switch to /provider copilot.',
+    )
+  }
+
+  return new Anthropic({
+    apiKey: resolvedApiKey,
+    baseURL: process.env.ANTHROPIC_BASE_URL || getOauthConfig().BASE_API_URL,
+    ...commonArgs,
+    ...(fetchOverride && { fetch: fetchOverride }),
   })
 }
 

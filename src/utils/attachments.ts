@@ -1,4 +1,5 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+import { feature } from 'bun:bundle'
 import {
   logEvent,
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -92,7 +93,14 @@ import type { DiscoverySignal } from '../services/skillSearch/signals.js'
 // the skill_listing suppression check (uses the same skillSearchModules null
 // check). The type-only DiscoverySignal import above is erased at compile time.
 /* eslint-disable @typescript-eslint/no-require-imports */
-const skillSearchModules = null
+const skillSearchModules = feature('EXPERIMENTAL_SKILL_SEARCH')
+  ? {
+      featureCheck:
+        require('../services/skillSearch/featureCheck.js') as typeof import('../services/skillSearch/featureCheck.js'),
+      prefetch:
+        require('../services/skillSearch/prefetch.js') as typeof import('../services/skillSearch/prefetch.js'),
+    }
+  : null
 const autoModeStateModule = null
 /* eslint-enable @typescript-eslint/no-require-imports */
 import {
@@ -781,7 +789,19 @@ export async function getAttachments(
         // but that content is NOT user intent and must not trigger discovery.
         // Without this gate, a 110KB SKILL.md fires ~3.3s of chunked AKI
         // queries on every skill invocation (session 13a9afae).
-        ...[],
+        ...(feature('EXPERIMENTAL_SKILL_SEARCH') &&
+        skillSearchModules &&
+        !options?.skipSkillDiscovery
+          ? [
+              maybe('skill_discovery', () =>
+                skillSearchModules.prefetch.getTurnZeroSkillDiscovery(
+                  input,
+                  messages ?? [],
+                  context,
+                ),
+              ),
+            ]
+          : []),
       ]
     : []
 

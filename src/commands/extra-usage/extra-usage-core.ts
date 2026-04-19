@@ -82,8 +82,8 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
   }
 
   const url = isTeamOrEnterprise
-    ? 'https://mycode.ai/admin-settings/usage'
-    : 'https://mycode.ai/settings/usage'
+    ? 'https://claude.ai/admin-settings/usage'
+    : 'https://claude.ai/settings/usage'
 
   try {
     const opened = await openBrowser(url)

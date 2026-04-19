@@ -14,9 +14,9 @@ const DESKTOP_DOCS_URL = '';
 export function getDownloadUrl(): string {
   switch (process.platform) {
     case 'win32':
-      return 'https://mycode.ai/api/desktop/win32/x64/exe/latest/redirect';
+      return 'https://claude.ai/api/desktop/win32/x64/exe/latest/redirect';
     default:
-      return 'https://mycode.ai/api/desktop/darwin/universal/dmg/latest/redirect';
+      return 'https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect';
   }
 }
 type DesktopHandoffState = 'checking' | 'prompt-download' | 'flushing' | 'opening' | 'success' | 'error';

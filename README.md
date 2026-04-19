@@ -29,10 +29,13 @@ bun install
 
 ### 认证
 
-MyCode 仅支持 **GitHub Copilot** 作为 API 后端。
+MyCode 目前支持两种后端：
+
+- **GitHub Copilot**
+- **手工 API / 兼容端点**，通过 `ANTHROPIC_API_KEY` 和可选的 `ANTHROPIC_BASE_URL`
 
 ```bash
-# 第一次使用，先登录（会打开浏览器进行 GitHub 设备授权）
+# 第一次使用 Copilot，先登录（会打开浏览器进行 GitHub 设备授权）
 bun run dev --copilot-login
 
 # 之后直接使用
@@ -40,6 +43,23 @@ bun run dev
 ```
 
 登录后令牌缓存到 `~/.mycode/copilot_token.json`，后续无需重复登录。令牌过期时会自动提示重新授权。
+
+如果你想使用手工 API：
+
+```bash
+export ANTHROPIC_API_KEY=your_api_key
+# 可选：兼容网关或自定义后端
+export ANTHROPIC_BASE_URL=https://your-gateway.example/v1
+
+bun run dev --provider api
+```
+
+交互模式下也可以随时切换：
+
+```text
+/provider copilot
+/provider api
+```
 
 配置与会话数据默认存放在 `~/.mycode/`（`config.json`、`projects/`、`sessions/`、`history.jsonl` 等）。
 
@@ -83,6 +103,8 @@ bun run version
 | `/model <name>` | 直接切换到指定模型 |
 | `/usage` | 查看当前会话用量统计 |
 | `/provider login` | 触发 Copilot 重新授权 |
+| `/provider api` | 切换到手工 API / 兼容端点 |
+| `/provider copilot` | 切换回 GitHub Copilot |
 
 ## 项目结构
 
@@ -111,13 +133,16 @@ vendor/                   # 原生扩展源码
 | 运行时 | Bun |
 | 语言 | TypeScript |
 | UI 框架 | Ink (React for CLI) |
-| AI 后端 | GitHub Copilot |
+| AI 后端 | GitHub Copilot / 手工 API |
 | 协议 | MCP (Model Context Protocol) |
 
-## 计划中的 API 支持
+## 兼容端点说明
 
-- [ ] OpenRouter
-- [ ] 硅基流动（SiliconFlow）
+手工 API 模式优先适合个人自用场景：
+
+- 直连 Anthropic API
+- 通过兼容网关转发到你自己的后端
+- 保留 Copilot 作为另一条 provider 路径
 
 ## 许可证
 

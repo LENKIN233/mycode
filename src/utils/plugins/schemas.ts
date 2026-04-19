@@ -7,7 +7,7 @@ import { lazySchema } from '../lazySchema.js'
  * First-layer defense against official marketplace impersonation.
  *
  * This validation blocks direct impersonation attempts like "anthropic-official",
- * "mycode-marketplace", etc. Indirect variations (e.g., "my-mycode-marketplace")
+ * "claude-code-marketplace", etc. Indirect variations (e.g., "my-claude-code-marketplace")
  * are not blocked intentionally to avoid false positives on legitimate names.
  * Source org verification provides additional protection at registration/install time.
  */
@@ -17,7 +17,7 @@ import { lazySchema } from '../lazySchema.js'
  * These names are allowed ONLY for official marketplaces and blocked for third parties.
  */
 export const ALLOWED_OFFICIAL_MARKETPLACE_NAMES = new Set([
-  'mycode-marketplace',
+  'claude-code-marketplace',
   'mycode-plugins',
   'mycode-plugins-official',
   'anthropic-marketplace',

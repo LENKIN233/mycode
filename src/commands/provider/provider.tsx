@@ -4,28 +4,28 @@ import { getAPIProvider, setAPIProviderOverride, type APIProvider } from '../../
 import { hasCopilotCredentials, copilotLogin } from '../../services/copilot/index.js'
 
 const PROVIDER_LABELS: Record<APIProvider, string> = {
-  firstParty: 'Anthropic API',
-  bedrock: 'AWS Bedrock',
-  vertex: 'Google Vertex',
-  foundry: 'Azure Foundry',
   copilot: 'GitHub Copilot',
+  firstParty: 'Manual API / Compatible Endpoint',
+  bedrock: 'Unsupported',
+  vertex: 'Unsupported',
+  foundry: 'Unsupported',
 }
 
+const AVAILABLE_PROVIDER_OPTIONS = [
+  { id: 'copilot', provider: 'copilot' as const },
+  { id: 'api', provider: 'firstParty' as const },
+]
+
 const PROVIDER_ALIASES: Record<string, APIProvider> = {
+  api: 'firstParty',
+  anthropic: 'firstParty',
+  manual: 'firstParty',
+  local: 'firstParty',
+  'first-party': 'firstParty',
+  firstparty: 'firstParty',
   copilot: 'copilot',
   'github-copilot': 'copilot',
   github: 'copilot',
-  anthropic: 'firstParty',
-  'first-party': 'firstParty',
-  firstparty: 'firstParty',
-  default: 'firstParty',
-  bedrock: 'bedrock',
-  aws: 'bedrock',
-  vertex: 'vertex',
-  gcp: 'vertex',
-  google: 'vertex',
-  foundry: 'foundry',
-  azure: 'foundry',
 }
 
 export async function call(
@@ -43,12 +43,15 @@ export async function call(
       '',
       'Available providers:',
     ]
-    for (const [id, label] of Object.entries(PROVIDER_LABELS)) {
-      const marker = id === current ? chalk.green(' ← active') : ''
-      lines.push(`  ${chalk.bold(id.padEnd(12))} ${label}${marker}`)
+    for (const option of AVAILABLE_PROVIDER_OPTIONS) {
+      const marker = option.provider === current ? chalk.green(' ← active') : ''
+      lines.push(
+        `  ${chalk.bold(option.id.padEnd(12))} ${PROVIDER_LABELS[option.provider]}${marker}`,
+      )
     }
     lines.push('')
-    lines.push(`Usage: ${chalk.cyan('/provider copilot')} or ${chalk.cyan('/provider anthropic')}`)
+    lines.push(`Usage: ${chalk.cyan('/provider copilot')} or ${chalk.cyan('/provider api')}`)
+    lines.push(`API mode uses ${chalk.bold('ANTHROPIC_API_KEY')} and optional ${chalk.bold('ANTHROPIC_BASE_URL')}`)
     onDone(lines.join('\n'), { display: 'system' })
     return
   }

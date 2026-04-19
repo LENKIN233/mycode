@@ -1,4 +1,5 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+import { feature } from 'bun:bundle'
 import addDir from './commands/add-dir/index.js'
 import btw from './commands/btw/index.js'
 import goodMyCode from './commands/good-mycode/index.js'
@@ -21,7 +22,6 @@ import ide from './commands/ide/index.js'
 import init from './commands/init.js'
 import initVerifiers from './commands/init-verifiers.js'
 import keybindings from './commands/keybindings/index.js'
-import installGitHubApp from './commands/install-github-app/index.js'
 import installSlackApp from './commands/install-slack-app/index.js'
 import breakCache from './commands/break-cache/index.js'
 import mcp from './commands/mcp/index.js'
@@ -59,7 +59,11 @@ const optionalRequire = <T>(modulePath: string): T | null => {
 
 const briefCommand = null
 const bridge = null
-const clearSkillIndexCache = null
+const clearSkillIndexCache = feature('EXPERIMENTAL_SKILL_SEARCH')
+  ? (
+      require('./services/skillSearch/localSearch.js') as typeof import('./services/skillSearch/localSearch.js')
+    ).clearSkillIndexCache
+  : null
 const ultraplan = null
 const forceSnip = null
 /* eslint-enable @typescript-eslint/no-require-imports */
@@ -223,7 +227,6 @@ const COMMANDS = memoize((): Command[] => [
   ide,
   init,
   keybindings,
-  installGitHubApp,
   installSlackApp,
   mcp,
   memory,
@@ -468,6 +471,14 @@ export function clearCommandsCache(): void {
 export function getMcpSkillCommands(
   mcpCommands: readonly Command[],
 ): readonly Command[] {
+  if (feature('MCP_SKILLS')) {
+    return mcpCommands.filter(
+      cmd =>
+        cmd.type === 'prompt' &&
+        cmd.loadedFrom === 'mcp' &&
+        !cmd.disableModelInvocation,
+    )
+  }
   return []
 }
 

@@ -2,7 +2,7 @@ import type { Command } from '../../commands.js'
 import { getAPIProvider } from '../../utils/model/providers.js'
 
 const PROVIDER_LABELS: Record<string, string> = {
-  firstParty: 'Anthropic API',
+  firstParty: 'Manual API / Compatible Endpoint',
   bedrock: 'AWS Bedrock',
   vertex: 'Google Vertex',
   foundry: 'Azure Foundry',
@@ -16,7 +16,7 @@ export default {
     const current = PROVIDER_LABELS[getAPIProvider()] ?? getAPIProvider()
     return `Switch API provider (currently ${current})`
   },
-  argumentHint: '[copilot|anthropic]',
+  argumentHint: '[copilot|api]',
   immediate: true,
   load: () => import('./provider.js'),
 } satisfies Command

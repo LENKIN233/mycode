@@ -196,7 +196,7 @@ export const SOURCES = [
 
 /**
  * The JSON Schema URL for MyCode settings
- * You can edit the contents at https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/mycode-settings.json
+ * You can edit the contents at https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/claude-code-settings.json
  */
 export const MYCODE_SETTINGS_SCHEMA_URL =
-  'https://json.schemastore.org/mycode-settings.json'
+  'https://json.schemastore.org/claude-code-settings.json'

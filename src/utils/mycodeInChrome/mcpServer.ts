@@ -21,7 +21,7 @@ import { isEnvTruthy } from '../envUtils.js'
 import { sideQuery } from '../sideQuery.js'
 import { getAllSocketPaths, getSecureSocketPath } from './common.js'
 
-const EXTENSION_DOWNLOAD_URL = 'https://mycode.ai/chrome'
+const EXTENSION_DOWNLOAD_URL = 'https://claude.ai/chrome'
 // Upstream BUG_REPORT_URL pointed to github.com/anthropics/claude-code — not available in this fork
 const BUG_REPORT_URL = ''
 

@@ -20,7 +20,7 @@ export const CONSOLE_OAUTH_SCOPES = [
 export const MYCODE_AI_OAUTH_SCOPES = [
   MYCODE_AI_PROFILE_SCOPE,
   MYCODE_AI_INFERENCE_SCOPE,
-  'user:sessions:mycode',
+  'user:sessions:claude_code',
   'user:mcp_servers',
   'user:file_upload',
 ] as const
@@ -37,10 +37,10 @@ type OauthConfig = {
   CONSOLE_AUTHORIZE_URL: string
   MYCODE_AI_AUTHORIZE_URL: string
   /**
-   * The mycode.ai web origin. Separate from MYCODE_AI_AUTHORIZE_URL because
-   * that now routes through mycode.com/cai/* for attribution — deriving
-   * .origin from it would give mycode.com, breaking links to /code,
-   * /settings/connectors, and other mycode.ai web pages.
+   * The claude.ai web origin. Separate from MYCODE_AI_AUTHORIZE_URL because
+   * that now routes through claude.com/cai/* for attribution — deriving
+   * .origin from it would give claude.com, breaking links to /code,
+   * /settings/connectors, and other claude.ai web pages.
    */
   MYCODE_AI_ORIGIN: string
   TOKEN_URL: string
@@ -59,19 +59,19 @@ type OauthConfig = {
 const PROD_OAUTH_CONFIG = {
   // Localized: read from env var, fall back to Anthropic API only as last resort
   BASE_API_URL: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com',
-  CONSOLE_AUTHORIZE_URL: 'https://platform.mycode.com/oauth/authorize',
-  // Bounces through mycode.com/cai/* so CLI sign-ins connect to mycode.com
-  // visits for attribution. 307s to mycode.ai/oauth/authorize in two hops.
-  MYCODE_AI_AUTHORIZE_URL: 'https://mycode.com/cai/oauth/authorize',
-  MYCODE_AI_ORIGIN: 'https://mycode.ai',
-  TOKEN_URL: 'https://platform.mycode.com/v1/oauth/token',
+  CONSOLE_AUTHORIZE_URL: 'https://platform.claude.com/oauth/authorize',
+  // Bounces through claude.com/cai/* so CLI sign-ins connect to claude.com
+  // visits for attribution. 307s to claude.ai/oauth/authorize in two hops.
+  MYCODE_AI_AUTHORIZE_URL: 'https://claude.com/cai/oauth/authorize',
+  MYCODE_AI_ORIGIN: 'https://claude.ai',
+  TOKEN_URL: 'https://platform.claude.com/v1/oauth/token',
   API_KEY_URL: 'https://api.anthropic.com/api/oauth/claude_cli/create_api_key',
   ROLES_URL: 'https://api.anthropic.com/api/oauth/claude_cli/roles',
   CONSOLE_SUCCESS_URL:
-    'https://platform.mycode.com/buy_credits?returnUrl=/oauth/code/success%3Fapp%3Dmycode',
+    'https://platform.claude.com/buy_credits?returnUrl=/oauth/code/success%3Fapp%3Dclaude-code',
   MYCODEAI_SUCCESS_URL:
-    'https://platform.mycode.com/oauth/code/success?app=mycode',
-  MANUAL_REDIRECT_URL: 'https://platform.mycode.com/oauth/code/callback',
+    'https://platform.claude.com/oauth/code/success?app=claude-code',
+  MANUAL_REDIRECT_URL: 'https://platform.claude.com/oauth/code/callback',
   CLIENT_ID: '9d1c250a-e61b-44d9-88ed-5944d1962f5e',
   // No suffix for production config
   OAUTH_FILE_SUFFIX: '',
@@ -87,15 +87,15 @@ const PROD_OAUTH_CONFIG = {
  * See: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-00
  */
 export const MCP_CLIENT_METADATA_URL =
-  'https://mycode.ai/oauth/mycode-client-metadata'
+  'https://claude.ai/oauth/claude-code-client-metadata'
 
 // Allowed base URLs for MYCODE_CUSTOM_OAUTH_URL override.
 // Only FedStart/PubSec deployments are permitted to prevent OAuth tokens
 // from being sent to arbitrary endpoints.
 const ALLOWED_OAUTH_BASE_URLS = [
-  'https://beacon.mycode-ai.staging.ant.dev',
-  'https://mycode.fedstart.com',
-  'https://mycode-staging.fedstart.com',
+  'https://beacon.claude-ai.staging.ant.dev',
+  'https://claude.fedstart.com',
+  'https://claude-staging.fedstart.com',
 ]
 
 export function getOauthConfig(): OauthConfig {

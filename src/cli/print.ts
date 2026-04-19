@@ -1,4 +1,5 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+import { feature } from 'bun:bundle'
 import { readFile, stat } from 'fs/promises'
 import { dirname } from 'path'
 import { StructuredIO } from 'src/cli/structuredIO.js'
@@ -11,6 +12,7 @@ import {
 import { createStreamlinedTransformer } from 'src/utils/streamlinedTransform.js'
 import { installStreamJsonStdoutGuard } from 'src/utils/streamJsonStdoutGuard.js'
 import type { ToolPermissionContext } from 'src/Tool.js'
+import { isExtractModeActive } from 'src/memdir/paths.js'
 import type { ThinkingConfig } from 'src/utils/thinking.js'
 import { assembleToolPool, filterToolsByDenyRules } from 'src/tools.js'
 import uniqBy from 'lodash-es/uniqBy.js'
@@ -217,6 +219,13 @@ import {
   ElicitRequestSchema,
   ElicitationCompleteNotificationSchema,
 } from '@modelcontextprotocol/sdk/types.js'
+/* eslint-disable @typescript-eslint/no-require-imports */
+const extractMemoriesModule = feature('EXTRACT_MEMORIES')
+  ? (
+      require('../services/extractMemories/extractMemories.js') as typeof import('../services/extractMemories/extractMemories.js')
+    )
+  : null
+/* eslint-enable @typescript-eslint/no-require-imports */
 import { getMcpPrefix } from 'src/services/mcp/mcpStringUtils.js'
 import {
   commandBelongsToServer,
@@ -771,7 +780,12 @@ export async function runHeadless(
   let lastMessage: SDKMessage | undefined
   // Streamlined mode transforms messages when MYCODE_STREAMLINED_OUTPUT=true and using stream-json
   // Build flag gates this out of external builds; env var is the runtime opt-in for ant builds
-  const transformToStreamlined = null
+  const transformToStreamlined =
+    feature('STREAMLINED_OUTPUT') &&
+    isEnvTruthy(process.env.MYCODE_STREAMLINED_OUTPUT) &&
+    options.outputFormat === 'stream-json'
+      ? createStreamlinedTransformer()
+      : null
 
   headlessProfilerCheckpoint('before_runHeadlessStreaming')
   for await (const message of runHeadlessStreaming(
@@ -881,6 +895,9 @@ export async function runHeadless(
   // delays process exit so gracefulShutdownSync's 5s failsafe doesn't kill
   // the forked agent mid-flight. Gated by isExtractModeActive so the
   // tengu_slate_thimble flag controls non-interactive extraction end-to-end.
+  if (feature('EXTRACT_MEMORIES') && isExtractModeActive()) {
+    await extractMemoriesModule!.drainPendingExtraction()
+  }
   gracefulShutdownSync(
     lastMessage?.type === 'result' && lastMessage?.is_error ? 1 : 0,
   )

@@ -216,7 +216,7 @@ export async function openCurrentSessionInDesktop(): Promise<{
     return {
       success: false,
       error:
-        'MyCode Desktop is not installed. Install it from https://mycode.ai/download',
+        'MyCode Desktop is not installed. Install it from https://claude.ai/download',
     }
   }
 

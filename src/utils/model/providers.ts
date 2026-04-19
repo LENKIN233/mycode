@@ -3,24 +3,71 @@ import type { AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from 
 // Other provider types are kept for type compatibility with imported SDK code
 export type APIProvider = 'firstParty' | 'bedrock' | 'vertex' | 'foundry' | 'copilot'
 
+const SUPPORTED_PROVIDERS = new Set<APIProvider>(['firstParty', 'copilot'])
+
 // Runtime override — set by /provider command or --copilot-login
 let runtimeProviderOverride: APIProvider | null = null
 
+function normalizeSupportedProvider(value: string | undefined): APIProvider | null {
+  switch (value?.trim().toLowerCase()) {
+    case 'api':
+    case 'anthropic':
+    case 'firstparty':
+    case 'first-party':
+    case 'firstpartyapi':
+    case 'firstParty':
+      return 'firstParty'
+    case 'copilot':
+    case 'github-copilot':
+    case 'github':
+      return 'copilot'
+    default:
+      return null
+  }
+}
+
 export function setAPIProviderOverride(provider: APIProvider | null): void {
-  // Only copilot is supported
-  if (provider !== null && provider !== 'copilot') {
-    throw new Error(`Provider "${provider}" is not supported. Only "copilot" is available.`)
+  if (provider !== null && !SUPPORTED_PROVIDERS.has(provider)) {
+    throw new Error(
+      `Provider "${provider}" is not supported in this fork. Supported providers: ${[...SUPPORTED_PROVIDERS].join(', ')}`,
+    )
   }
   runtimeProviderOverride = provider
-  if (provider === 'copilot' || provider === null) {
-    process.env.MYCODE_USE_COPILOT = '1'
+
+  if (provider === null) {
+    delete process.env.MYCODE_API_PROVIDER
+  } else {
+    process.env.MYCODE_API_PROVIDER = provider
   }
+
+  if (provider === 'copilot') {
+    process.env.MYCODE_USE_COPILOT = '1'
+  } else {
+    delete process.env.MYCODE_USE_COPILOT
+  }
+
   // Re-initialize model strings for the new provider (lazy import to avoid circular dep)
   import('./modelStrings.js').then(m => m.reinitModelStrings()).catch(() => {})
 }
 
 export function getAPIProvider(): APIProvider {
-  // Only GitHub Copilot is supported
+  if (runtimeProviderOverride) {
+    return runtimeProviderOverride
+  }
+
+  const envProvider = normalizeSupportedProvider(process.env.MYCODE_API_PROVIDER)
+  if (envProvider) {
+    return envProvider
+  }
+
+  if (
+    process.env.ANTHROPIC_API_KEY ||
+    process.env.ANTHROPIC_AUTH_TOKEN ||
+    process.env.ANTHROPIC_BASE_URL
+  ) {
+    return 'firstParty'
+  }
+
   return 'copilot'
 }
 

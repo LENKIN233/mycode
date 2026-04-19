@@ -113,6 +113,7 @@ import { logError } from './utils/log.js';
 import { getModelDeprecationWarning } from './utils/model/deprecation.js';
 import { getDefaultMainLoopModel, getUserSpecifiedModelSetting, normalizeModelStringForAPI, parseUserSpecifiedModel } from './utils/model/model.js';
 import { ensureModelStringsInitialized } from './utils/model/modelStrings.js';
+import { setAPIProviderOverride } from './utils/model/providers.js';
 import { PERMISSION_MODES } from './utils/permissions/PermissionMode.js';
 import { checkAndDisableBypassPermissions, initializeToolPermissionContext, initialPermissionModeFromCLI, parseToolListFromCLI, removeDangerousPermissions } from './utils/permissions/permissionSetup.js';
 import { cleanupOrphanedPluginVersionsInBackground } from './utils/plugins/cacheUtils.js';
@@ -788,7 +789,7 @@ async function run(): Promise<CommanderCommand> {
   // `mcp` and `add` as paths, then choked on --transport as an unknown
   // top-level option. Single-value + collect accumulator means each
   // --plugin-dir takes exactly one arg; repeat the flag for multiple dirs.
-  .option('--plugin-dir <path>', 'Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B)', (val: string, prev: string[]) => [...prev, val], [] as string[]).option('--disable-slash-commands', 'Disable all skills', () => true).option('--chrome', 'Enable Browser Extension integration').option('--no-chrome', 'Disable Browser Extension integration').option('--copilot-login', 'Login to GitHub Copilot via device code flow', () => true).option('--provider <name>', 'Set API provider (only "copilot" is supported)').option('--file <specs...>', 'File resources to download at startup. Format: file_id:relative_path (e.g., --file file_abc:doc.txt file_def:img.png)').action(async (prompt, options) => {
+  .option('--plugin-dir <path>', 'Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B)', (val: string, prev: string[]) => [...prev, val], [] as string[]).option('--disable-slash-commands', 'Disable all skills', () => true).option('--chrome', 'Enable Browser Extension integration').option('--no-chrome', 'Disable Browser Extension integration').option('--copilot-login', 'Login to GitHub Copilot via device code flow', () => true).option('--provider <name>', 'Set API provider ("copilot" or "api")').option('--file <specs...>', 'File resources to download at startup. Format: file_id:relative_path (e.g., --file file_abc:doc.txt file_def:img.png)').action(async (prompt, options) => {
     profileCheckpoint('action_handler_start');
 
     // Handle --copilot-login: run the device code flow and exit
@@ -798,16 +799,29 @@ async function run(): Promise<CommanderCommand> {
       process.exit(0)
     }
 
-    // Handle --provider: only copilot is supported
+    // Handle --provider before model initialization and auth setup
     const providerOpt = (options as { provider?: string }).provider
     if (providerOpt) {
-      const COPILOT_ALIASES = new Set(['copilot', 'github-copilot', 'github'])
-      if (!COPILOT_ALIASES.has(providerOpt.toLowerCase())) {
+      const providerValue = providerOpt.toLowerCase()
+      const providerAliases = new Map([
+        ['copilot', 'copilot'],
+        ['github-copilot', 'copilot'],
+        ['github', 'copilot'],
+        ['api', 'firstParty'],
+        ['anthropic', 'firstParty'],
+        ['manual', 'firstParty'],
+        ['local', 'firstParty'],
+        ['first-party', 'firstParty'],
+        ['firstparty', 'firstParty'],
+      ] as const)
+      const normalizedProvider = providerAliases.get(providerValue)
+      if (!normalizedProvider) {
         process.stderr.write(
-          `Error: Provider "${providerOpt}" is not supported. Only "copilot" is available.\n`,
+          `Error: Provider "${providerOpt}" is not supported. Available providers: copilot, api.\n`,
         )
         process.exit(1)
       }
+      setAPIProviderOverride(normalizedProvider)
     }
 
     // --bare = one-switch minimal mode. Sets SIMPLE so all the existing

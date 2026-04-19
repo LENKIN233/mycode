@@ -1,4 +1,6 @@
+import { feature } from 'bun:bundle'
 import { getShortcutDisplay } from '../keybindings/shortcutFormat.js'
+import { isExtractModeActive } from '../memdir/paths.js'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
@@ -37,8 +39,14 @@ import { getTaskListId, listTasks } from '../utils/tasks.js'
 import { getAgentName, getTeamName, isTeammate } from '../utils/teammate.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const extractMemoriesModule = null
-const jobClassifierModule = null
+const extractMemoriesModule = feature('EXTRACT_MEMORIES')
+  ? (
+      require('../services/extractMemories/extractMemories.js') as typeof import('../services/extractMemories/extractMemories.js')
+    )
+  : null
+const jobClassifierModule = feature('TEMPLATES')
+  ? (require('../jobs/classifier.js') as typeof import('../jobs/classifier.js'))
+  : null
 
 /* eslint-enable @typescript-eslint/no-require-imports */
 
@@ -100,6 +108,29 @@ export async function* handleStopHooks(
   // require()-gated jobs/ import pattern above; spawn.test.ts asserts the
   // string matches.
 
+  const jobDir = process.env.MYCODE_JOB_DIR || process.env.CLAUDE_JOB_DIR
+  if (
+    feature('TEMPLATES') &&
+    jobDir &&
+    querySource.startsWith('repl_main_thread') &&
+    !toolUseContext.agentId
+  ) {
+    const turnAssistantMessages = stopHookContext.messages.filter(
+      (m): m is AssistantMessage => m.type === 'assistant',
+    )
+    const p = jobClassifierModule!
+      .classifyAndWriteState(jobDir, turnAssistantMessages)
+      .catch(err => {
+        logForDebugging(`[job] classifier error: ${errorMessage(err)}`, {
+          level: 'error',
+        })
+      })
+    await Promise.race([
+      p,
+      new Promise<void>(r => setTimeout(r, 60_000).unref()),
+    ])
+  }
+
   // --bare / SIMPLE: skip background bookkeeping (prompt suggestion,
   // memory extraction, auto-dream). Scripted -p calls don't want auto-memory
   // or forked agents contending for resources during shutdown.
@@ -107,6 +138,16 @@ export async function* handleStopHooks(
     // Inline env check for dead code elimination in external builds
     if (!isEnvDefinedFalsy(process.env.MYCODE_ENABLE_PROMPT_SUGGESTION)) {
       void executePromptSuggestion(stopHookContext)
+    }
+    if (
+      feature('EXTRACT_MEMORIES') &&
+      !toolUseContext.agentId &&
+      isExtractModeActive()
+    ) {
+      void extractMemoriesModule!.executeExtractMemories(
+        stopHookContext,
+        toolUseContext.appendSystemMessage,
+      )
     }
     if (!toolUseContext.agentId) {
       void executeAutoDream(stopHookContext, toolUseContext.appendSystemMessage)

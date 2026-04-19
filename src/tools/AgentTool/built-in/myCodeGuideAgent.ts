@@ -15,8 +15,8 @@ import type {
 } from '../loadAgentsDir.js'
 
 const MYCODE_DOCS_MAP_URL =
-  'https://code.mycode.com/docs/en/mycode_docs_map.md'
-const CDP_DOCS_MAP_URL = 'https://platform.mycode.com/llms.txt'
+  'https://code.claude.com/docs/en/claude_code_docs_map.md'
+const CDP_DOCS_MAP_URL = 'https://platform.claude.com/llms.txt'
 
 export const MYCODE_GUIDE_AGENT_TYPE = 'mycode-guide'
 

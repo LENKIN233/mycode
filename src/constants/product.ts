@@ -1,8 +1,8 @@
-export const PRODUCT_URL = 'https://mycode.com/mycode'
+export const PRODUCT_URL = 'https://claude.com/claude-code'
 
-// MyCode Remote session URLs
-export const MYCODE_AI_BASE_URL = 'https://mycode.ai'
-export const MYCODE_AI_STAGING_BASE_URL = 'https://mycode-ai.staging.ant.dev'
+// Remote session URLs. Keep MYCODE_* names for compatibility in this fork.
+export const MYCODE_AI_BASE_URL = 'https://claude.ai'
+export const MYCODE_AI_STAGING_BASE_URL = 'https://claude-ai.staging.ant.dev'
 export const MYCODE_AI_LOCAL_BASE_URL = 'http://localhost:4000'
 
 /**
@@ -34,7 +34,7 @@ export function isRemoteSessionLocal(
 }
 
 /**
- * Get the base URL for MyCode AI based on environment.
+ * Get the base URL for the web app based on environment.
  */
 export function getMyCodeAiBaseUrl(
   sessionId?: string,
@@ -54,7 +54,7 @@ export function getMyCodeAiBaseUrl(
  *
  * The cse_→session_ translation is a temporary shim gated by
  * tengu_bridge_repl_v2_cse_shim_enabled (see isCseShimEnabled). Worker
- * endpoints (/v1/code/sessions/{id}/worker/*) want `cse_*` but the mycode.ai
+ * endpoints (/v1/code/sessions/{id}/worker/*) want `cse_*` but the claude.ai
  * frontend currently routes on `session_*` (compat/convert.go:27 validates
  * TagSession). Same UUID body, different tag prefix. Once the server tags by
  * environment_kind and the frontend accepts `cse_*` directly, flip the gate

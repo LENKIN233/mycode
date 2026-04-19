@@ -22,7 +22,7 @@ Usage notes:
 \`\`\`
 # MYCODE.md
 
-This file provides guidance to MyCode (mycode.ai/code) when working with code in this repository.
+This file provides guidance to MyCode (claude.ai/code) when working with code in this repository.
 \`\`\``
 
 const NEW_INIT_PROMPT = `Set up a minimal MYCODE.md (and optionally skills and hooks) for this repo. MYCODE.md is loaded into every MyCode session, so it must be concise — only include what MyCode would get wrong without it.
@@ -125,7 +125,7 @@ Prefix the file with:
 \`\`\`
 # MYCODE.md
 
-This file provides guidance to MyCode (mycode.ai/code) when working with code in this repository.
+This file provides guidance to MyCode (claude.ai/code) when working with code in this repository.
 \`\`\`
 
 If MYCODE.md already exists: read it, propose specific changes as diffs, and explain why each change improves it. Do not silently overwrite.

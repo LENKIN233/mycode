@@ -205,6 +205,16 @@ export function stripImagesFromMessages(messages: Message[]): Message[] {
  * don't exist on external builds).
  */
 export function stripReinjectedAttachments(messages: Message[]): Message[] {
+  if (getFeatureValue_CACHED_MAY_BE_STALE('EXPERIMENTAL_SKILL_SEARCH')) {
+    return messages.filter(
+      m =>
+        !(
+          m.type === 'attachment' &&
+          (m.attachment.type === 'skill_discovery' ||
+            m.attachment.type === 'skill_listing')
+        ),
+    )
+  }
   return messages
 }
 

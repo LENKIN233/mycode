@@ -26,9 +26,9 @@ const MAX_RELEASE_NOTES_SHOWN = 5
  * 3. Next time the user starts MyCode, the cached changelog is available immediately
  */
 export const CHANGELOG_URL =
-  'https://github.com/LENKIN233/mycode/blob/main/CHANGELOG.md'
+  'https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md'
 const RAW_CHANGELOG_URL =
-  'https://raw.githubusercontent.com/LENKIN233/mycode/refs/heads/main/CHANGELOG.md'
+  'https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/CHANGELOG.md'
 
 /**
  * Get the path for the cached changelog file.

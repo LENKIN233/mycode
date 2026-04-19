@@ -1,4 +1,5 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+import { feature } from 'bun:bundle'
 import type {
   ToolResultBlockParam,
   ToolUseBlock,
@@ -11,8 +12,18 @@ import {
   type AutoCompactTrackingState,
 } from './services/compact/autoCompact.js'
 import { buildPostCompactMessages } from './services/compact/compact.js'
-const reactiveCompact = null
-const contextCollapse = null
+/* eslint-disable @typescript-eslint/no-require-imports */
+const reactiveCompact = feature('REACTIVE_COMPACT')
+  ? (
+      require('./services/compact/reactiveCompact.js') as typeof import('./services/compact/reactiveCompact.js')
+    )
+  : null
+const contextCollapse = feature('CONTEXT_COLLAPSE')
+  ? (
+      require('./services/contextCollapse/index.js') as typeof import('./services/contextCollapse/index.js')
+    )
+  : null
+/* eslint-enable @typescript-eslint/no-require-imports */
 import {
   logEvent,
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -55,8 +66,16 @@ import {
   getAttachmentMessages,
   startRelevantMemoryPrefetch,
 } from './utils/attachments.js'
-const skillPrefetch = null
-const jobClassifier = null
+/* eslint-disable @typescript-eslint/no-require-imports */
+const skillPrefetch = feature('EXPERIMENTAL_SKILL_SEARCH')
+  ? (
+      require('./services/skillSearch/prefetch.js') as typeof import('./services/skillSearch/prefetch.js')
+    )
+  : null
+const jobClassifier = feature('TEMPLATES')
+  ? (require('./jobs/classifier.js') as typeof import('./jobs/classifier.js'))
+  : null
+/* eslint-enable @typescript-eslint/no-require-imports */
 import {
   remove as removeFromQueue,
   getCommandsByMaxPriority,
@@ -486,7 +505,7 @@ async function* queryLoop(
 
     const assistantMessages: AssistantMessage[] = []
     const toolResults: (UserMessage | AttachmentMessage)[] = []
-    // @see https://docs.mycode.com/en/docs/build-with-mycode/tool-use
+    // @see https://docs.anthropic.com/en/docs/build-with-claude/tool-use
     // Note: stop_reason === 'tool_use' is unreliable -- it's not always set correctly.
     // Set during streaming whenever a tool_use block arrives — the sole
     // loop-exit signal. If false after streaming, we're done (modulo stop-hook retry).

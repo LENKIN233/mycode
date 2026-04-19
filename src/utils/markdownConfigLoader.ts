@@ -150,7 +150,7 @@ export function parseSlashCommandToolsFromFrontmatter(
  * Uses bigint: true to handle filesystems with large inodes (e.g., ExFAT)
  * that exceed JavaScript's Number precision (53 bits). Without bigint, different
  * large inodes can round to the same Number, causing false duplicate detection.
- * See: https://github.com/anthropics/mycode/issues/13893
+ * See: https://github.com/anthropics/claude-code/issues/13893
  *
  * @param filePath - Path to the file
  * @returns A string identifier "device:inode" or null if file can't be identified
@@ -462,7 +462,7 @@ async function findMarkdownFilesNative(
     // Cycle detection: track visited directories by device+inode
     // Uses bigint: true to handle filesystems with large inodes (e.g., ExFAT)
     // that exceed JavaScript's Number precision (53 bits).
-    // See: https://github.com/anthropics/mycode/issues/13893
+    // See: https://github.com/anthropics/claude-code/issues/13893
     try {
       const stats = await stat(currentDir, { bigint: true })
       if (stats.isDirectory()) {

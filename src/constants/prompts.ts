@@ -1,4 +1,5 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+import { feature } from 'bun:bundle'
 import { type as osType, version as osVersion, release as osRelease } from 'os'
 import { env } from '../utils/env.js'
 import { getIsGit } from '../utils/git.js'
@@ -62,8 +63,16 @@ import { CYBER_RISK_INSTRUCTION } from './cyberRiskInstruction.js'
 const getCachedMCConfigForFRC = null
 const BRIEF_PROACTIVE_SECTION: string | null = null
 const briefToolModule = null
-const DISCOVER_SKILLS_TOOL_NAME: string | null = null
-const skillSearchFeatureCheck = null
+const DISCOVER_SKILLS_TOOL_NAME: string | null = feature(
+  'EXPERIMENTAL_SKILL_SEARCH',
+)
+  ? (
+      require('../tools/DiscoverSkillsTool/prompt.js') as typeof import('../tools/DiscoverSkillsTool/prompt.js')
+    ).DISCOVER_SKILLS_TOOL_NAME
+  : null
+const skillSearchFeatureCheck = feature('EXPERIMENTAL_SKILL_SEARCH')
+  ? (require('../services/skillSearch/featureCheck.js') as typeof import('../services/skillSearch/featureCheck.js'))
+  : null
 import type { OutputStyleConfig } from './outputStyles.js'
 
 /**
@@ -285,6 +294,12 @@ function getAgentToolSection(): string {
  * along with the DISCOVER_SKILLS_TOOL_NAME interpolation.
  */
 function getDiscoverSkillsGuidance(): string | null {
+  if (
+    feature('EXPERIMENTAL_SKILL_SEARCH') &&
+    DISCOVER_SKILLS_TOOL_NAME !== null
+  ) {
+    return `Relevant skills are automatically surfaced each turn as "Skills relevant to your task:" reminders. If you're about to do something those don't cover — a mid-task pivot, an unusual workflow, a multi-step plan — call ${DISCOVER_SKILLS_TOOL_NAME} with a specific description of what you're doing. Skills already visible or loaded are filtered automatically. Skip this if the surfaced skills already cover your next action.`
+  }
   return null
 }
 // Session-variant guidance that would fragment the cacheScope:'global'

@@ -7,7 +7,7 @@ import { join } from 'path'
 export const getConfigHomeDir = memoize(
   (): string => {
     return (
-      process.env.MYCODE_CONFIG_DIR ?? join(homedir(), '.mycode')
+      process.env.MYCODE_CONFIG_DIR ?? join(homedir(), '.config', 'mycode')
     ).normalize('NFC')
   },
   () => process.env.MYCODE_CONFIG_DIR,
