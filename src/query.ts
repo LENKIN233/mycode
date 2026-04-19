@@ -401,6 +401,15 @@ async function* queryLoop(
     messagesForQuery = microcompactResult.messages
     queryCheckpoint('query_microcompact_end')
 
+    if (feature('CONTEXT_COLLAPSE') && contextCollapse) {
+      const collapseResult = await contextCollapse.applyCollapsesIfNeeded(
+        messagesForQuery,
+        toolUseContext,
+        querySource,
+      )
+      messagesForQuery = collapseResult.messages
+    }
+
     const fullSystemPrompt = asSystemPrompt(
       appendSystemContext(systemPrompt, systemContext),
     )
@@ -732,6 +741,17 @@ async function* queryLoop(
             // retry) can succeed. Still pushed to assistantMessages so the
             // recovery checks below find them.
             let withheld = false
+            if (feature('CONTEXT_COLLAPSE')) {
+              if (
+                contextCollapse?.isWithheldPromptTooLong(
+                  message,
+                  isPromptTooLongMessage,
+                  querySource,
+                )
+              ) {
+                withheld = true
+              }
+            }
             if (reactiveCompact?.isWithheldPromptTooLong(message)) {
               withheld = true
             }
@@ -964,6 +984,34 @@ async function* queryLoop(
       const isWithheldMedia =
         mediaRecoveryEnabled &&
         reactiveCompact?.isWithheldMediaSizeError(lastMessage)
+      if (
+        feature('CONTEXT_COLLAPSE') &&
+        contextCollapse &&
+        isWithheld413 &&
+        state.transition?.reason !== 'collapse_drain_retry'
+      ) {
+        const drained = contextCollapse.recoverFromOverflow(
+          messagesForQuery,
+          querySource,
+        )
+
+        if (drained.committed > 0) {
+          const next: State = {
+            messages: drained.messages,
+            toolUseContext,
+            autoCompactTracking: tracking,
+            maxOutputTokensRecoveryCount,
+            hasAttemptedReactiveCompact,
+            maxOutputTokensOverride: undefined,
+            pendingToolUseSummary: undefined,
+            stopHookActive: undefined,
+            turnCount,
+            transition: { reason: 'collapse_drain_retry' },
+          }
+          state = next
+          continue
+        }
+      }
       if ((isWithheld413 || isWithheldMedia) && reactiveCompact) {
         const compacted = await reactiveCompact.tryReactiveCompact({
           hasAttempted: hasAttemptedReactiveCompact,

@@ -1,5 +1,7 @@
 import { feature } from 'bun:bundle'
+import { randomUUID } from 'crypto'
 import type { ToolUseContext } from '../../Tool.js'
+import { getSessionId } from '../../bootstrap/state.js'
 import type { QuerySource } from '../../constants/querySource.js'
 import type { ContextCollapseCommitEntry } from '../../types/logs.js'
 import type { Message } from '../../types/message.js'
@@ -83,12 +85,12 @@ async function commitCollapse(
 
   const collapseId = getNextCollapseId()
   const summary = summarizeMessages(archived) || 'Earlier context collapsed.'
-  const summaryUuid = crypto.randomUUID()
+  const summaryUuid = randomUUID()
   const summaryContent = `<collapsed id="${collapseId}">${summary}</collapsed>`
 
   const commit: ContextCollapseCommitEntry = {
     type: 'marble-origami-commit',
-    sessionId: toolUseContext.getAppState().sessionId,
+    sessionId: getSessionId(),
     collapseId,
     summaryUuid,
     summaryContent,
@@ -160,16 +162,16 @@ export async function applyCollapsesIfNeeded(
     return { messages: projected, changed: projected !== messages }
   }
 
-  const effectiveWindow = getEffectiveContextWindowSize(
-    toolUseContext.options.mainLoopModel,
-  )
-  const tokenUsage = tokenCountWithEstimation(projected)
-
-  if (tokenUsage < effectiveWindow * PROACTIVE_COLLAPSE_RATIO) {
-    return { messages: projected, changed: projected !== messages }
-  }
-
   try {
+    const effectiveWindow = getEffectiveContextWindowSize(
+      toolUseContext.options.mainLoopModel,
+    )
+    const tokenUsage = tokenCountWithEstimation(projected)
+
+    if (tokenUsage < effectiveWindow * PROACTIVE_COLLAPSE_RATIO) {
+      return { messages: projected, changed: projected !== messages }
+    }
+
     return await commitCollapse(projected, toolUseContext)
   } catch (error) {
     recordSpawnAttempt({
@@ -211,21 +213,42 @@ export function recoverFromOverflow(
 
   const collapseId = getNextCollapseId()
   const summary = summarizeMessages(archived) || 'Earlier context collapsed.'
-  const summaryUuid = crypto.randomUUID()
+  const summaryUuid = randomUUID()
   const summaryContent = `<collapsed id="${collapseId}">${summary}</collapsed>`
-  appendCommit(
-    {
-      type: 'marble-origami-commit',
-      sessionId: messages[0]?.uuid as ContextCollapseCommitEntry['sessionId'],
-      collapseId,
-      summaryUuid,
-      summaryContent,
-      summary,
-      firstArchivedUuid: archived[0]!.uuid,
-      lastArchivedUuid: archived.at(-1)!.uuid,
-    },
-    archived.length,
-  )
+  const sessionId = getSessionId()
+  const commit: ContextCollapseCommitEntry = {
+    type: 'marble-origami-commit',
+    sessionId,
+    collapseId,
+    summaryUuid,
+    summaryContent,
+    summary,
+    firstArchivedUuid: archived[0]!.uuid,
+    lastArchivedUuid: archived.at(-1)!.uuid,
+  }
+  appendCommit(commit, archived.length)
+  void recordContextCollapseCommit({
+    collapseId,
+    summaryUuid,
+    summaryContent,
+    summary,
+    firstArchivedUuid: commit.firstArchivedUuid,
+    lastArchivedUuid: commit.lastArchivedUuid,
+  })
+  const lastSpawnTokens = tokenCountWithEstimation(messages)
+  const snapshot = {
+    type: 'marble-origami-snapshot' as const,
+    sessionId,
+    staged: [],
+    armed: false,
+    lastSpawnTokens,
+  }
+  setSnapshot(snapshot)
+  void recordContextCollapseSnapshot({
+    staged: [],
+    armed: false,
+    lastSpawnTokens,
+  })
   recordSpawnAttempt({ committed: true })
   return { messages: projectView(projected), committed: 1 }
 }
