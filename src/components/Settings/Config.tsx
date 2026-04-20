@@ -14,7 +14,6 @@ import { useTabHeaderFocus } from '../design-system/Tabs.js';
 import { useIsInsideModal } from '../../context/modalContext.js';
 import { isSupportedTerminal, hasAccessToIDEExtensionDiffFeature } from '../../utils/ide.js';
 import { getInitialSettings, getSettingsForSource, updateSettingsForSource } from '../../utils/settings/settings.js';
-import { getUserMsgOptIn } from '../../bootstrap/state.js';
 import { DEFAULT_OUTPUT_STYLE_NAME } from 'src/constants/outputStyles.js';
 import { isEnvTruthy } from 'src/utils/envUtils.js';
 import type { LocalJSXCommandContext, CommandResultDisplay } from '../../commands.js';
@@ -29,7 +28,6 @@ import { getConfigCoreSettings } from './configCoreSettings.js';
 import { getConfigIntegrationSettings } from './configIntegrationSettings.js';
 import { getConfigApiKeySetting } from './configApiKeySetting.js';
 import { applyMainModelConfigChange, applyVerboseConfigChange } from './configChangeHandlers.js';
-import { getConfigViewSettings } from './configViewSettings.js';
 import { teammateModelDisplayString } from './configLabels.js';
 import { getConfigToggleAction } from './configToggleAction.js';
 import { buildConfigChangeSummary } from './configChangeSummary.js';
@@ -97,15 +95,6 @@ export function Config({
   const thinkingEnabled = useAppState(s_1 => s_1.thinkingEnabled);
   const isFastMode = useAppState(s_2 => isFastModeEnabled() ? s_2.fastMode : false);
   const promptSuggestionEnabled = useAppState(s_3 => s_3.promptSuggestionEnabled);
-  // Show auto in the default-mode dropdown when the user has opted in OR the
-  // config is fully 'enabled' — even if currently circuit-broken ('disabled'),
-  // an opted-in user should still see it in settings (it's a temporary state).
-  const showAutoInDefaultModePicker = false;
-  // Chat/Transcript view picker is visible to entitled users (pass the GB
-  // gate) even if they haven't opted in this session — it IS the persistent
-  // opt-in. 'chat' written here is read at next startup by main.tsx which
-  // sets userMsgOptIn if still entitled.
-  const showDefaultViewPicker = false;
   const setAppState = useSetAppState();
   const [changes, setChanges] = useState<{
     [key: string]: unknown;
@@ -137,12 +126,6 @@ export function Config({
       settings: s_4.settings
     };
   });
-  // Bootstrap state snapshot — userMsgOptIn is outside AppState, so
-  // revertChanges needs to restore it separately. Without this, cycling
-  // defaultView to 'chat' then Escape leaves the tool active while the
-  // display filter reverts — the exact ambient-activation behavior this
-  // PR's entitlement/opt-in split is meant to prevent.
-  const [initialUserMsgOptIn] = useState(() => getUserMsgOptIn());
   // Set on first user-visible change; gates revertChanges() on Escape so
   // opening-then-closing doesn't trigger redundant disk writes.
   const isDirty = React.useRef(false);
@@ -230,7 +213,6 @@ export function Config({
     setGlobalConfig,
     setSettingsData,
     settingsData,
-    showAutoInDefaultModePicker,
     showPromptSuggestionSetting: getFeatureValue_CACHED_MAY_BE_STALE('tengu_chomp_inflection', false),
     thinkingEnabled,
   });
@@ -248,15 +230,8 @@ export function Config({
     globalConfig,
     setGlobalConfig,
   });
-  const viewSettingsItems = getConfigViewSettings({
-    setAppState,
-    setChanges,
-    setSettingsData,
-    settingsData,
-    showDefaultViewPicker,
-  });
   const settingsItems: Setting[] = [
-  ...coreSettingsItems, ...providerRoutingItems, ...displaySettingsItems, ...viewSettingsItems, ...integrationSettingsItems, ...apiKeySettingsItems];
+  ...coreSettingsItems, ...providerRoutingItems, ...displaySettingsItems, ...integrationSettingsItems, ...apiKeySettingsItems];
 
   // Filter settings based on search query
   const filteredSettingsItems = React.useMemo(() => {
@@ -312,13 +287,12 @@ export function Config({
       initialConfig: initialConfig.current,
       initialLocalSettings,
       initialThemeSetting: initialThemeSetting.current,
-      initialUserMsgOptIn,
       initialUserSettings,
       setAppState,
       setTheme,
       themeSetting,
     });
-  }, [themeSetting, setTheme, initialLocalSettings, initialUserSettings, initialAppState, initialUserMsgOptIn, setAppState]);
+  }, [themeSetting, setTheme, initialLocalSettings, initialUserSettings, initialAppState, setAppState]);
 
   // Escape: revert all changes (if any) and close.
   const handleEscape = useCallback(() => {

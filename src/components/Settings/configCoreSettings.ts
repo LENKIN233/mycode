@@ -38,7 +38,6 @@ type ConfigCoreSettingsArgs = {
   setGlobalConfig: Dispatch<SetStateAction<GlobalConfig>>
   setSettingsData: Dispatch<SetStateAction<SettingsJson | undefined>>
   settingsData: SettingsJson | undefined
-  showAutoInDefaultModePicker: boolean
   showPromptSuggestionSetting: boolean
   thinkingEnabled: boolean | undefined
 }
@@ -54,7 +53,6 @@ export function getConfigCoreSettings({
   setGlobalConfig,
   setSettingsData,
   settingsData,
-  showAutoInDefaultModePicker,
   showPromptSuggestionSetting,
   thinkingEnabled,
 }: ConfigCoreSettingsArgs): Setting[] {
@@ -182,10 +180,7 @@ export function getConfigCoreSettings({
       value: settingsData?.permissions?.defaultMode || 'default',
       options: (() => {
         const priorityOrder: PermissionMode[] = ['default', 'plan']
-        const excluded: PermissionMode[] = ['bypassPermissions']
-        if (!showAutoInDefaultModePicker) {
-          excluded.push('auto')
-        }
+        const excluded: PermissionMode[] = ['bypassPermissions', 'auto']
         return [
           ...priorityOrder,
           ...EXTERNAL_PERMISSION_MODES.filter(
@@ -227,38 +222,6 @@ export function getConfigCoreSettings({
         })
       },
     },
-    ...(showAutoInDefaultModePicker
-      ? [
-          {
-            id: 'useAutoModeDuringPlan',
-            label: 'Use auto mode during plan',
-            value: (settingsData as { useAutoModeDuringPlan?: boolean } | undefined)
-              ?.useAutoModeDuringPlan ?? true,
-            type: 'boolean' as const,
-            onChange(useAutoModeDuringPlan: boolean) {
-              updateSettingsForSource('userSettings', {
-                useAutoModeDuringPlan,
-              })
-              setSettingsData(prev => ({
-                ...prev,
-                useAutoModeDuringPlan,
-              }))
-              setAppState(prev => {
-                const next = transitionPlanAutoMode(prev.toolPermissionContext)
-                if (next === prev.toolPermissionContext) return prev
-                return {
-                  ...prev,
-                  toolPermissionContext: next,
-                }
-              })
-              setChanges(prev => ({
-                ...prev,
-                'Use auto mode during plan': useAutoModeDuringPlan,
-              }))
-            },
-          },
-        ]
-      : []),
     {
       id: 'respectGitignore',
       label: 'Respect .gitignore in file picker',

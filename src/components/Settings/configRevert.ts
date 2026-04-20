@@ -1,6 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { AppState } from '../../state/AppState.js'
-import { getUserMsgOptIn, setUserMsgOptIn } from '../../bootstrap/state.js'
 import { saveGlobalConfig, type GlobalConfig } from '../../utils/config.js'
 import { transitionPlanAutoMode } from '../../utils/permissions/permissionSetup.js'
 import { updateSettingsForSource } from '../../utils/settings/settings.js'
@@ -26,7 +25,6 @@ type ConfigRevertArgs = {
   initialConfig: GlobalConfig
   initialLocalSettings: SettingsJson | undefined
   initialThemeSetting: ThemeSetting
-  initialUserMsgOptIn: boolean
   initialUserSettings: SettingsJson | undefined
   setAppState: Dispatch<SetStateAction<AppState>>
   setTheme: (theme: ThemeSetting) => void
@@ -38,7 +36,6 @@ export function revertConfigChanges({
   initialConfig,
   initialLocalSettings,
   initialThemeSetting,
-  initialUserMsgOptIn,
   initialUserSettings,
   setAppState,
   setTheme,
@@ -53,7 +50,6 @@ export function revertConfigChanges({
   updateSettingsForSource('localSettings', {
     spinnerTipsEnabled: initialLocalSettings?.spinnerTipsEnabled,
     prefersReducedMotion: initialLocalSettings?.prefersReducedMotion,
-    defaultView: initialLocalSettings?.defaultView,
     outputStyle: initialLocalSettings?.outputStyle,
   })
 
@@ -64,8 +60,6 @@ export function revertConfigChanges({
     autoUpdatesChannel: initialUserSettings?.autoUpdatesChannel,
     minimumVersion: initialUserSettings?.minimumVersion,
     language: initialUserSettings?.language,
-    useAutoModeDuringPlan: (initialUserSettings as { useAutoModeDuringPlan?: boolean } | undefined)
-      ?.useAutoModeDuringPlan,
     syntaxHighlightingDisabled: initialUserSettings?.syntaxHighlightingDisabled,
     permissions:
       initialUserSettings?.permissions === undefined
@@ -90,8 +84,4 @@ export function revertConfigChanges({
     settings: initialAppState.settings,
     toolPermissionContext: transitionPlanAutoMode(prev.toolPermissionContext),
   }))
-
-  if (getUserMsgOptIn() !== initialUserMsgOptIn) {
-    setUserMsgOptIn(initialUserMsgOptIn)
-  }
 }

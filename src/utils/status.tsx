@@ -20,6 +20,7 @@ import { getSettingsWithAllErrors } from './settings/allErrors.js';
 import { getEnabledSettingSources, getSettingSourceDisplayNameCapitalized } from './settings/constants.js';
 import { getManagedFileSettingsPresence, getPolicySettingsOrigin, getSettingsForSource } from './settings/settings.js';
 import type { ThemeName } from './theme.js';
+import { PROVIDER_LABELS } from './model/providerSelection.js';
 export type Property = {
   label?: string;
   value: React.ReactNode | Array<string>;
@@ -240,18 +241,15 @@ export function buildAccountProperties(): Property[] {
 export function buildAPIProviderProperties(): Property[] {
   const apiProvider = getAPIProvider();
   const properties: Property[] = [];
-  if (apiProvider !== 'firstParty') {
-    const providerLabel = {
-      copilot: 'GitHub Copilot',
-      bedrock: 'AWS Bedrock',
-      vertex: 'Google Vertex AI',
-      foundry: 'Microsoft Foundry'
-    }[apiProvider];
-    properties.push({
-      label: 'API provider',
-      value: providerLabel
-    });
-  }
+  const providerLabel = apiProvider === 'firstParty' || apiProvider === 'copilot' ? PROVIDER_LABELS[apiProvider] : {
+    bedrock: 'AWS Bedrock',
+    vertex: 'Google Vertex AI',
+    foundry: 'Microsoft Foundry'
+  }[apiProvider];
+  properties.push({
+    label: 'API provider',
+    value: providerLabel
+  });
   if (apiProvider === 'firstParty') {
     const anthropicBaseUrl = process.env.ANTHROPIC_BASE_URL;
     if (anthropicBaseUrl) {
