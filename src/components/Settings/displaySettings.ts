@@ -11,8 +11,8 @@ import type { Setting } from './types.js'
 type DisplaySettingsArgs = {
   globalConfig: GlobalConfig
   setGlobalConfig: Dispatch<SetStateAction<GlobalConfig>>
-  settingsData: SettingsJson | null
-  setSettingsData: Dispatch<SetStateAction<SettingsJson | null>>
+  settingsData: SettingsJson | undefined
+  setSettingsData: Dispatch<SetStateAction<SettingsJson | undefined>>
   setAppState: Dispatch<SetStateAction<AppState>>
   themeSetting: string
   currentOutputStyle: OutputStyle
