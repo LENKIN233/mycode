@@ -1,3 +1,5 @@
+import type { DesignTemplate } from './helpers.js'
+
 const DEFAULT_TITLE = 'Design Artifact'
 
 function escapeHtml(value: string): string {
@@ -9,21 +11,12 @@ function escapeHtml(value: string): string {
     .replaceAll("'", '&#39;')
 }
 
-export function buildDesignStarterHtml(
-  title: string,
-  brief: string,
-  createdAt: string,
-): string {
-  const safeTitle = escapeHtml(title || DEFAULT_TITLE)
-  const safeBrief = escapeHtml(brief || 'No brief provided yet.')
-  const safeCreatedAt = escapeHtml(createdAt)
-
-  return `<!doctype html>
-<html lang="en">
+function buildHead(title: string): string {
+  return `
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${safeTitle}</title>
+    <title>${title}</title>
     <style>
       :root {
         --bg: #f4efe7;
@@ -37,16 +30,12 @@ export function buildDesignStarterHtml(
         --shadow: 0 24px 60px rgba(41, 27, 18, 0.14);
         --radius: 28px;
         --card-radius: 22px;
-        --canvas-gap: 24px;
         --density: 1;
       }
 
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
 
-      html,
-      body {
+      html, body {
         margin: 0;
         min-height: 100%;
         background:
@@ -62,48 +51,20 @@ export function buildDesignStarterHtml(
           serif;
       }
 
-      body.compact {
-        --density: 0.88;
-      }
+      body.compact { --density: 0.88; }
+      body.cool { --accent: #285c63; --accent-2: #385e96; }
+      a { color: inherit; }
 
-      body.cool {
-        --accent: #285c63;
-        --accent-2: #385e96;
-      }
-
-      a {
-        color: inherit;
-      }
-
-      .shell {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 320px;
-        gap: 24px;
-        min-height: 100vh;
-        padding: 28px;
-      }
-
-      .workspace {
-        min-width: 0;
-      }
-
-      .hero {
-        position: relative;
-        overflow: hidden;
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        background: linear-gradient(145deg, rgba(255, 251, 245, 0.92), rgba(250, 242, 232, 0.78));
-        box-shadow: var(--shadow);
-        padding: calc(32px * var(--density));
-      }
-
-      .hero::after {
-        content: '';
-        position: absolute;
-        inset: auto -8% -28% 38%;
-        height: 240px;
-        background: radial-gradient(circle, rgba(182, 90, 42, 0.18), transparent 64%);
-        pointer-events: none;
+      .eyebrow,
+      .meta-label,
+      .section-label,
+      .control,
+      .body-copy {
+        font-family:
+          'IBM Plex Sans',
+          'Avenir Next',
+          system-ui,
+          sans-serif;
       }
 
       .eyebrow {
@@ -115,179 +76,38 @@ export function buildDesignStarterHtml(
         background: rgba(255, 255, 255, 0.72);
         border: 1px solid rgba(31, 25, 20, 0.08);
         color: var(--muted);
-        font-family:
-          'IBM Plex Sans',
-          'Avenir Next',
-          system-ui,
-          sans-serif;
         font-size: 12px;
         letter-spacing: 0.12em;
         text-transform: uppercase;
       }
 
-      h1 {
-        margin: 18px 0 10px;
-        max-width: 12ch;
-        font-size: clamp(42px, 6vw, 76px);
-        line-height: 0.92;
-        letter-spacing: -0.05em;
-      }
-
-      .lede {
-        max-width: 58ch;
-        margin: 0;
-        color: var(--muted);
-        font-family:
-          'IBM Plex Sans',
-          'Avenir Next',
-          system-ui,
-          sans-serif;
-        font-size: 16px;
-        line-height: 1.65;
-      }
-
-      .meta {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
-        margin-top: 28px;
-      }
-
-      .meta-card,
-      .panel,
-      .concept-card {
-        border: 1px solid var(--line);
-        border-radius: var(--card-radius);
-        background: var(--surface);
-        backdrop-filter: blur(10px);
-      }
-
-      .meta-card {
-        padding: 16px 18px;
-      }
-
       .meta-label,
       .section-label {
-        font-family:
-          'IBM Plex Sans',
-          'Avenir Next',
-          system-ui,
-          sans-serif;
         font-size: 11px;
         letter-spacing: 0.12em;
         text-transform: uppercase;
         color: var(--muted);
       }
 
-      .meta-value {
-        margin-top: 8px;
-        font-size: 18px;
-      }
-
-      .canvas {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: var(--canvas-gap);
-        margin-top: 24px;
-      }
-
-      .concept-card {
-        padding: 18px;
+      .panel,
+      .card,
+      .surface {
+        border: 1px solid var(--line);
+        border-radius: var(--card-radius);
+        background: var(--surface);
+        backdrop-filter: blur(10px);
         box-shadow: 0 14px 30px rgba(26, 18, 13, 0.08);
-      }
-
-      .concept-preview {
-        aspect-ratio: 4 / 5;
-        border-radius: 18px;
-        overflow: hidden;
-        border: 1px solid rgba(31, 25, 20, 0.08);
-        background:
-          linear-gradient(140deg, rgba(255, 255, 255, 0.78), rgba(255, 244, 231, 0.66)),
-          linear-gradient(180deg, rgba(182, 90, 42, 0.18), rgba(40, 92, 99, 0.16));
-        position: relative;
-      }
-
-      .concept-preview::before,
-      .concept-preview::after {
-        content: '';
-        position: absolute;
-        border-radius: 999px;
-        filter: blur(8px);
-      }
-
-      .concept-preview::before {
-        inset: 18px auto auto 18px;
-        width: 48%;
-        height: 16px;
-        background: rgba(255, 255, 255, 0.86);
-      }
-
-      .concept-preview::after {
-        inset: auto 20px 20px auto;
-        width: 52%;
-        height: 38%;
-        background: rgba(255, 255, 255, 0.36);
-      }
-
-      .concept-card h2 {
-        margin: 16px 0 8px;
-        font-size: 24px;
-        letter-spacing: -0.04em;
-      }
-
-      .concept-card p {
-        margin: 0;
-        color: var(--muted);
-        font-family:
-          'IBM Plex Sans',
-          'Avenir Next',
-          system-ui,
-          sans-serif;
-        line-height: 1.6;
-      }
-
-      .sidebar {
-        position: sticky;
-        top: 28px;
-        height: fit-content;
-        display: grid;
-        gap: 18px;
-      }
-
-      .panel {
-        padding: 18px;
-      }
-
-      .panel h2 {
-        margin: 10px 0 8px;
-        font-size: 22px;
-        letter-spacing: -0.03em;
-      }
-
-      .panel p,
-      .panel li,
-      .control {
-        font-family:
-          'IBM Plex Sans',
-          'Avenir Next',
-          system-ui,
-          sans-serif;
-        color: var(--muted);
-        line-height: 1.55;
-      }
-
-      .panel ul {
-        margin: 10px 0 0;
-        padding-left: 18px;
       }
 
       .control {
         display: grid;
         gap: 6px;
         margin-top: 14px;
+        color: var(--muted);
       }
 
-      .control select {
+      .control select,
+      .nav button {
         border: 1px solid rgba(31, 25, 20, 0.14);
         border-radius: 12px;
         background: var(--surface-strong);
@@ -296,120 +116,183 @@ export function buildDesignStarterHtml(
         font: inherit;
       }
 
-      .footer-note {
-        margin-top: 22px;
-        font-family:
-          'IBM Plex Sans',
-          'Avenir Next',
-          system-ui,
-          sans-serif;
-        font-size: 13px;
+      .nav button[disabled] {
+        opacity: 0.45;
+      }
+
+      .body-copy {
         color: var(--muted);
+        line-height: 1.6;
       }
 
       @media (max-width: 1100px) {
-        .shell {
-          grid-template-columns: 1fr;
-        }
-
-        .sidebar {
-          position: static;
-        }
-
-        .canvas,
-        .meta {
-          grid-template-columns: 1fr;
+        .stack-mobile {
+          grid-template-columns: 1fr !important;
         }
       }
     </style>
-  </head>
+  </head>`
+}
+
+function buildCanvasBody(title: string, brief: string, createdAt: string): string {
+  return `
   <body>
-    <div class="shell">
-      <main class="workspace">
-        <section class="hero" data-screen-label="Design Canvas">
-          <div class="eyebrow">Claude Design Starter</div>
-          <h1>${safeTitle}</h1>
-          <p class="lede">
-            This starter is the first pass artifact for the local design workflow.
-            It is meant to be iterated, versioned, and replaced with a more specific
-            exploration once the design brief is clarified.
-          </p>
-          <div class="meta">
-            <div class="meta-card">
-              <div class="meta-label">Created</div>
-              <div class="meta-value">${safeCreatedAt}</div>
-            </div>
-            <div class="meta-card">
-              <div class="meta-label">Brief</div>
-              <div class="meta-value">Embedded locally</div>
-            </div>
-            <div class="meta-card">
-              <div class="meta-label">Output</div>
-              <div class="meta-value">Versioned HTML artifact</div>
-            </div>
+    <div class="shell stack-mobile" style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px;min-height:100vh;padding:28px;">
+      <main>
+        <section class="surface" data-screen-label="Design Canvas" style="position:relative;overflow:hidden;border-radius:28px;padding:32px;">
+          <div class="eyebrow">Canvas starter</div>
+          <h1 style="margin:18px 0 10px;max-width:12ch;font-size:clamp(42px,6vw,76px);line-height:0.92;letter-spacing:-0.05em;">${title}</h1>
+          <p class="body-copy" style="max-width:58ch;margin:0;">This starter is optimized for comparing multiple visual directions side-by-side before converging on one detailed solution.</p>
+          <div class="stack-mobile" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:28px;">
+            <div class="card" style="padding:16px 18px;"><div class="meta-label">Created</div><div style="margin-top:8px;font-size:18px;">${createdAt}</div></div>
+            <div class="card" style="padding:16px 18px;"><div class="meta-label">Template</div><div style="margin-top:8px;font-size:18px;">Canvas</div></div>
+            <div class="card" style="padding:16px 18px;"><div class="meta-label">Mode</div><div style="margin-top:8px;font-size:18px;">Three directions</div></div>
           </div>
         </section>
 
-        <section class="canvas" aria-label="Design directions">
-          <article class="concept-card">
-            <div class="concept-preview"></div>
-            <h2>Grounded</h2>
-            <p>
-              Closest to existing product language. Use this direction when the
-              user wants safe extension of current patterns and low interaction risk.
-            </p>
-          </article>
-          <article class="concept-card">
-            <div class="concept-preview"></div>
-            <h2>Editorial</h2>
-            <p>
-              Strong type, richer contrast, and more visual rhythm. Use this
-              when the work should feel more intentional without becoming novelty-first.
-            </p>
-          </article>
-          <article class="concept-card">
-            <div class="concept-preview"></div>
-            <h2>Expressive</h2>
-            <p>
-              Bolder composition, stronger accent treatment, and more motion-friendly
-              layout. Use this when the user explicitly wants variation and surprise.
-            </p>
-          </article>
+        <section class="stack-mobile" aria-label="Design directions" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-top:24px;">
+          ${['Grounded', 'Editorial', 'Expressive']
+            .map(
+              label => `
+            <article class="card" data-screen-label="${label}" style="padding:18px;">
+              <div style="aspect-ratio:4/5;border-radius:18px;overflow:hidden;border:1px solid rgba(31,25,20,0.08);background:linear-gradient(140deg,rgba(255,255,255,0.78),rgba(255,244,231,0.66)),linear-gradient(180deg,rgba(182,90,42,0.18),rgba(40,92,99,0.16));"></div>
+              <h2 style="margin:16px 0 8px;font-size:24px;letter-spacing:-0.04em;">${label}</h2>
+              <p class="body-copy" style="margin:0;">Replace this placeholder with a real direction that explores composition, hierarchy, and visual tone differently from the others.</p>
+            </article>`,
+            )
+            .join('')}
         </section>
       </main>
 
-      <aside class="sidebar">
-        <section class="panel">
+      <aside style="position:sticky;top:28px;height:fit-content;display:grid;gap:18px;">
+        <section class="panel" style="padding:18px;">
           <div class="section-label">Brief</div>
-          <h2>Working brief</h2>
-          <p id="brief-text">${safeBrief}</p>
+          <h2 style="margin:10px 0 8px;font-size:22px;letter-spacing:-0.03em;">Working brief</h2>
+          <p class="body-copy" style="margin:0;">${brief}</p>
         </section>
 
-        <section class="panel">
+        <section class="panel" style="padding:18px;">
           <div class="section-label">Tweaks</div>
-          <h2>Tweaks</h2>
-          <label class="control">
-            Palette
-            <select id="palette">
-              <option value="warm">Warm editorial</option>
-              <option value="cool">Cool product</option>
-            </select>
-          </label>
-          <label class="control">
-            Density
-            <select id="density">
-              <option value="relaxed">Relaxed</option>
-              <option value="compact">Compact</option>
-            </select>
-          </label>
-          <p class="footer-note">
-            The local workflow can keep iterating this file or fork it into
-            versioned revisions as the design direction becomes clearer.
-          </p>
+          <h2 style="margin:10px 0 8px;font-size:22px;letter-spacing:-0.03em;">Tweaks</h2>
+          <label class="control">Palette<select id="palette"><option value="warm">Warm editorial</option><option value="cool">Cool product</option></select></label>
+          <label class="control">Density<select id="density"><option value="relaxed">Relaxed</option><option value="compact">Compact</option></select></label>
         </section>
       </aside>
     </div>
+    ${buildSharedTweakScript()}
+  </body>`
+}
 
+function buildPrototypeBody(title: string, brief: string, createdAt: string): string {
+  return `
+  <body>
+    <div class="stack-mobile" style="display:grid;grid-template-columns:minmax(300px,420px) minmax(0,1fr) 320px;gap:24px;min-height:100vh;padding:28px;">
+      <section class="surface" data-screen-label="Phone Frame" style="padding:18px;border-radius:34px;">
+        <div style="border:1px solid rgba(31,25,20,0.14);border-radius:28px;background:rgba(255,251,245,0.92);padding:16px;min-height:760px;">
+          <div class="eyebrow">Prototype starter</div>
+          <h1 style="margin:18px 0 10px;font-size:36px;line-height:0.96;letter-spacing:-0.05em;">${title}</h1>
+          <p class="body-copy" style="margin:0 0 18px;">Use this structure for flows, onboarding, forms, and interaction-heavy design work.</p>
+          <div class="card" data-screen-label="Primary Screen" style="padding:18px;background:rgba(255,255,255,0.72);">
+            <div class="meta-label">Current step</div>
+            <h2 style="margin:10px 0 8px;font-size:28px;letter-spacing:-0.04em;">Welcome screen</h2>
+            <p class="body-copy" style="margin:0 0 18px;">Replace this placeholder with the main interaction for the flow and build additional screens as versioned or toggled states.</p>
+            <div style="display:grid;gap:12px;">
+              <div class="card" style="padding:14px;">Key action block</div>
+              <div class="card" style="padding:14px;">Supporting information block</div>
+              <div class="card" style="padding:14px;">Trust / explanation block</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <main style="display:grid;gap:24px;align-content:start;">
+        <section class="surface" data-screen-label="Flow Notes" style="padding:28px;">
+          <div class="section-label">Flow framing</div>
+          <h2 style="margin:10px 0 8px;font-size:30px;letter-spacing:-0.04em;">Interaction states to explore</h2>
+          <div class="stack-mobile" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;">
+            <article class="card" style="padding:16px;"><div class="meta-label">State 01</div><h3 style="margin:10px 0 8px;font-size:22px;">Entry</h3><p class="body-copy" style="margin:0;">What does the user see first, and what makes the value or next step obvious?</p></article>
+            <article class="card" style="padding:16px;"><div class="meta-label">State 02</div><h3 style="margin:10px 0 8px;font-size:22px;">Decision</h3><p class="body-copy" style="margin:0;">Where should the design create confidence, reduce friction, or explain tradeoffs?</p></article>
+            <article class="card" style="padding:16px;"><div class="meta-label">State 03</div><h3 style="margin:10px 0 8px;font-size:22px;">Confirmation</h3><p class="body-copy" style="margin:0;">How should success, next steps, and follow-through feel once the flow completes?</p></article>
+          </div>
+        </section>
+
+        <section class="surface" style="padding:20px;">
+          <div class="section-label">Brief</div>
+          <p class="body-copy" style="margin:10px 0 0;">${brief}</p>
+          <p class="body-copy" style="margin:10px 0 0;">Created: ${createdAt}</p>
+        </section>
+      </main>
+
+      <aside class="panel" style="padding:18px;height:fit-content;position:sticky;top:28px;">
+        <div class="section-label">Tweaks</div>
+        <h2 style="margin:10px 0 8px;font-size:22px;letter-spacing:-0.03em;">Tweaks</h2>
+        <label class="control">Palette<select id="palette"><option value="warm">Warm editorial</option><option value="cool">Cool product</option></select></label>
+        <label class="control">Density<select id="density"><option value="relaxed">Relaxed</option><option value="compact">Compact</option></select></label>
+      </aside>
+    </div>
+    ${buildSharedTweakScript()}
+  </body>`
+}
+
+function buildDeckBody(title: string, brief: string, createdAt: string): string {
+  return `
+  <body>
+    <div class="stack-mobile" style="min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) 300px;padding:24px;gap:18px;">
+      <main class="surface" style="padding:24px;border-radius:30px;display:grid;grid-template-rows:auto 1fr auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
+          <div class="eyebrow">Deck starter</div>
+          <div class="body-copy" id="slide-counter">1 / 3</div>
+        </div>
+        <section id="slides" style="position:relative;overflow:hidden;">
+          <article class="slide" data-screen-label="01 Title" style="display:grid;align-content:center;min-height:68vh;">
+            <div class="section-label">Slide 01</div>
+            <h1 style="margin:14px 0 12px;font-size:clamp(52px,7vw,88px);line-height:0.9;letter-spacing:-0.06em;">${title}</h1>
+            <p class="body-copy" style="max-width:60ch;font-size:18px;">Use this starter when the brief is really a presentation, pitch, storyboard, or slide sequence instead of a single screen.</p>
+          </article>
+          <article class="slide" data-screen-label="02 Problem" style="display:none;grid-template-columns:1.1fr .9fr;gap:24px;align-items:center;min-height:68vh;">
+            <div>
+              <div class="section-label">Slide 02</div>
+              <h2 style="margin:14px 0 12px;font-size:clamp(34px,5vw,58px);line-height:0.95;letter-spacing:-0.05em;">Frame the problem</h2>
+              <p class="body-copy" style="max-width:54ch;">Replace this slide with the key tension, opportunity, or user shift the deck should communicate.</p>
+            </div>
+            <div class="card" style="aspect-ratio:4/5;padding:20px;display:grid;place-items:center;">Visual placeholder</div>
+          </article>
+          <article class="slide" data-screen-label="03 Direction" style="display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start;min-height:68vh;">
+            <div class="card" style="padding:18px;"><div class="meta-label">Direction A</div><p class="body-copy">Grounded</p></div>
+            <div class="card" style="padding:18px;"><div class="meta-label">Direction B</div><p class="body-copy">Editorial</p></div>
+            <div class="card" style="padding:18px;"><div class="meta-label">Direction C</div><p class="body-copy">Expressive</p></div>
+          </article>
+        </section>
+        <div class="nav" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div class="body-copy">Brief: ${brief}</div>
+          <div style="display:flex;gap:10px;">
+            <button id="prev-slide" type="button">Previous</button>
+            <button id="next-slide" type="button">Next</button>
+          </div>
+        </div>
+      </main>
+
+      <aside style="display:grid;gap:18px;height:fit-content;position:sticky;top:24px;">
+        <section class="panel" style="padding:18px;display:grid;gap:8px;">
+          <div class="section-label">Tweaks</div>
+          <h2 style="margin:10px 0 8px;font-size:22px;letter-spacing:-0.03em;">Tweaks</h2>
+          <label class="control">Palette<select id="palette"><option value="warm">Warm editorial</option><option value="cool">Cool product</option></select></label>
+          <label class="control">Density<select id="density"><option value="relaxed">Relaxed</option><option value="compact">Compact</option></select></label>
+        </section>
+        <section class="panel" style="padding:18px;display:grid;gap:8px;">
+        <div class="section-label">Deck meta</div>
+        <div class="body-copy">Created: ${createdAt}</div>
+        <div class="body-copy">Template: Deck</div>
+        </section>
+      </aside>
+    </div>
+    ${buildSharedTweakScript()}
+    ${buildDeckScript()}
+  </body>`
+}
+
+function buildSharedTweakScript(): string {
+  return `
     <script>
       const palette = document.getElementById('palette')
       const density = document.getElementById('density')
@@ -421,15 +304,72 @@ export function buildDesignStarterHtml(
         localStorage.setItem('claude-design:density', density.value)
       }
 
-      palette.value = localStorage.getItem('claude-design:palette') || 'warm'
-      density.value = localStorage.getItem('claude-design:density') || 'relaxed'
+      if (palette && density) {
+        palette.value = localStorage.getItem('claude-design:palette') || 'warm'
+        density.value = localStorage.getItem('claude-design:density') || 'relaxed'
+        palette.addEventListener('change', applyTweaks)
+        density.addEventListener('change', applyTweaks)
+        applyTweaks()
+      }
+    </script>`
+}
 
-      palette.addEventListener('change', applyTweaks)
-      density.addEventListener('change', applyTweaks)
+function buildDeckScript(): string {
+  return `
+    <script>
+      const slides = Array.from(document.querySelectorAll('.slide'))
+      const counter = document.getElementById('slide-counter')
+      const prev = document.getElementById('prev-slide')
+      const next = document.getElementById('next-slide')
+      let index = Number(localStorage.getItem('claude-design:deck-index') || '0')
+      if (!Number.isFinite(index) || index < 0 || index >= slides.length) index = 0
 
-      applyTweaks()
-    </script>
-  </body>
-</html>
-`
+      function render() {
+        slides.forEach((slide, idx) => {
+          slide.style.display = idx === index ? (idx === 0 ? 'grid' : slide.getAttribute('data-screen-label') === '03 Direction' ? 'grid' : 'grid') : 'none'
+        })
+        counter.textContent = (index + 1) + ' / ' + slides.length
+        prev.disabled = index === 0
+        next.disabled = index === slides.length - 1
+        localStorage.setItem('claude-design:deck-index', String(index))
+      }
+
+      prev.addEventListener('click', () => {
+        if (index > 0) {
+          index -= 1
+          render()
+        }
+      })
+
+      next.addEventListener('click', () => {
+        if (index < slides.length - 1) {
+          index += 1
+          render()
+        }
+      })
+
+      render()
+    </script>`
+}
+
+export function buildDesignStarterHtml(
+  title: string,
+  brief: string,
+  createdAt: string,
+  template: DesignTemplate,
+): string {
+  const safeTitle = escapeHtml(title || DEFAULT_TITLE)
+  const safeBrief = escapeHtml(brief || 'No brief provided yet.')
+  const safeCreatedAt = escapeHtml(createdAt)
+
+  const body =
+    template === 'deck'
+      ? buildDeckBody(safeTitle, safeBrief, safeCreatedAt)
+      : template === 'prototype'
+        ? buildPrototypeBody(safeTitle, safeBrief, safeCreatedAt)
+        : buildCanvasBody(safeTitle, safeBrief, safeCreatedAt)
+
+  return `<!doctype html>
+<html lang="en">${buildHead(safeTitle)}${body}
+</html>`
 }
