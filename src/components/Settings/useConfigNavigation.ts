@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import type { KeyboardEvent } from '../../ink/events/keyboard-event.js'
 import { useKeybindings } from '../../keybindings/useKeybinding.js'
+import type { ConfigSubMenu } from './types.js'
 import {
   getAdjustedScrollOffset,
   getNextSelectionIndex,
@@ -9,7 +10,7 @@ import {
   isListToggleKey,
 } from './configNavigation.js'
 
-type Args = {
+type UseConfigNavigationArgs = {
   adjustScrollOffset: (newIndex: number) => void
   filteredSettingsLength: number
   headerFocused: boolean
@@ -22,7 +23,7 @@ type Args = {
   setSearchQuery: (value: string) => void
   setSelectedIndex: (value: number) => void
   setShowThinkingWarning: (value: boolean) => void
-  showSubmenu: string | null
+  showSubmenu: ConfigSubMenu | null
   toggleSetting: () => void
 }
 
@@ -41,7 +42,7 @@ export function useConfigNavigation({
   setShowThinkingWarning,
   showSubmenu,
   toggleSetting,
-}: Args): (e: KeyboardEvent) => void {
+}: UseConfigNavigationArgs): (e: KeyboardEvent) => void {
   const moveSelection = useCallback((delta: -1 | 1) => {
     setShowThinkingWarning(false)
     const newIndex = getNextSelectionIndex(selectedIndex, filteredSettingsLength, delta)

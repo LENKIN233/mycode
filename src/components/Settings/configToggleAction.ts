@@ -1,16 +1,16 @@
-import type { Setting } from './types.js'
+import type { AutoUpdateChannel, ConfigSubMenu, Setting } from './types.js'
 
 export type ToggleAction =
   | { kind: 'none' }
   | { kind: 'toggleBoolean' }
   | { kind: 'cycleEnum'; nextValue: string }
-  | { kind: 'openSubmenu'; submenu: string }
+  | { kind: 'openSubmenu'; submenu: ConfigSubMenu }
   | { kind: 'setLatestAutoUpdates' }
 
 export function getConfigToggleAction(args: {
   autoUpdaterDisabledReason: unknown
-  currentAutoUpdateChannel: 'latest' | 'stable'
-  managedSubmenu: string | undefined
+  currentAutoUpdateChannel: AutoUpdateChannel
+  managedSubmenu: ConfigSubMenu | undefined
   setting: Setting | undefined
 }): ToggleAction {
   const { autoUpdaterDisabledReason, currentAutoUpdateChannel, managedSubmenu, setting } = args

@@ -27,7 +27,7 @@ import {
 } from 'src/services/analytics/index.js'
 import type { Setting } from './types.js'
 
-type Args = {
+type ConfigCoreSettingsArgs = {
   autoUpdaterDisabledReason: unknown
   globalConfig: GlobalConfig
   isFastMode: boolean
@@ -57,7 +57,7 @@ export function getConfigCoreSettings({
   showAutoInDefaultModePicker,
   showPromptSuggestionSetting,
   thinkingEnabled,
-}: Args): Setting[] {
+}: ConfigCoreSettingsArgs): Setting[] {
   return [
     {
       id: 'autoCompactEnabled',

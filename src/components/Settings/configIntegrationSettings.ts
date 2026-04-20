@@ -11,7 +11,7 @@ import {
 } from 'src/services/analytics/index.js'
 import type { Setting } from './types.js'
 
-type Args = {
+type ConfigIntegrationSettingsArgs = {
   globalConfig: GlobalConfig
   isConnectedToIde: boolean
   isSupportedTerminal: boolean
@@ -31,7 +31,7 @@ export function getConfigIntegrationSettings({
   setGlobalConfig,
   shouldShowExternalIncludesToggle,
   teammateModelDisplayString,
-}: Args): Setting[] {
+}: ConfigIntegrationSettingsArgs): Setting[] {
   return [
     {
       id: 'prStatusFooterEnabled',

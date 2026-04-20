@@ -5,6 +5,7 @@ import { saveGlobalConfig, type GlobalConfig } from '../../utils/config.js'
 import { transitionPlanAutoMode } from '../../utils/permissions/permissionSetup.js'
 import { updateSettingsForSource } from '../../utils/settings/settings.js'
 import type { SettingsJson } from '../../utils/settings/types.js'
+import type { ThemeSetting } from '../../utils/theme.js'
 
 type InitialAppState = Pick<
   AppState,
@@ -20,16 +21,16 @@ type InitialAppState = Pick<
   | 'verbose'
 >
 
-type Args = {
+type ConfigRevertArgs = {
   initialAppState: InitialAppState
   initialConfig: GlobalConfig
   initialLocalSettings: SettingsJson | undefined
-  initialThemeSetting: string
+  initialThemeSetting: ThemeSetting
   initialUserMsgOptIn: boolean
   initialUserSettings: SettingsJson | undefined
   setAppState: Dispatch<SetStateAction<AppState>>
-  setTheme: (theme: string) => void
-  themeSetting: string
+  setTheme: (theme: ThemeSetting) => void
+  themeSetting: ThemeSetting
 }
 
 export function revertConfigChanges({
@@ -42,7 +43,7 @@ export function revertConfigChanges({
   setAppState,
   setTheme,
   themeSetting,
-}: Args): void {
+}: ConfigRevertArgs): void {
   if (themeSetting !== initialThemeSetting) {
     setTheme(initialThemeSetting)
   }

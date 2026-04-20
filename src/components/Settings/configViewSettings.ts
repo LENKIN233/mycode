@@ -9,7 +9,7 @@ import {
 } from 'src/services/analytics/index.js'
 import type { Setting } from './types.js'
 
-type Args = {
+type ConfigViewSettingsArgs = {
   setAppState: Dispatch<SetStateAction<AppState>>
   setChanges: Dispatch<SetStateAction<Record<string, unknown>>>
   setSettingsData: Dispatch<SetStateAction<SettingsJson | undefined>>
@@ -23,7 +23,7 @@ export function getConfigViewSettings({
   setSettingsData,
   settingsData,
   showDefaultViewPicker,
-}: Args): Setting[] {
+}: ConfigViewSettingsArgs): Setting[] {
   if (!showDefaultViewPicker) {
     return []
   }

@@ -6,7 +6,7 @@ import { getGlobalConfig, saveGlobalConfig, type GlobalConfig } from '../../util
 import { isRunningOnHomespace } from 'src/utils/envUtils.js'
 import type { Setting } from './types.js'
 
-type Args = {
+type ConfigApiKeySettingArgs = {
   globalConfig: GlobalConfig
   setGlobalConfig: Dispatch<SetStateAction<GlobalConfig>>
 }
@@ -14,7 +14,7 @@ type Args = {
 export function getConfigApiKeySetting({
   globalConfig,
   setGlobalConfig,
-}: Args): Setting[] {
+}: ConfigApiKeySettingArgs): Setting[] {
   const effectiveApiKey = isRunningOnHomespace() ? undefined : process.env.ANTHROPIC_API_KEY
 
   if (!effectiveApiKey) {

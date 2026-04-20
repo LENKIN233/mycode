@@ -8,7 +8,7 @@ import type { GlobalConfig, OutputStyle } from '../../utils/config.js'
 import type { SettingsJson } from '../../utils/settings/types.js'
 import { isRunningOnHomespace } from 'src/utils/envUtils.js'
 
-type Args = {
+type ConfigChangeSummaryArgs = {
   changes: Record<string, unknown>
   currentLanguage: string | undefined
   currentOutputStyle: OutputStyle
@@ -42,7 +42,7 @@ export function buildConfigChangeSummary({
   initialOutputStyle,
   initialSettingsData,
   settingsData,
-}: Args): string[] {
+}: ConfigChangeSummaryArgs): string[] {
   const formattedChanges = Object.entries(changes).map(([key, value]) => {
     logEvent('tengu_config_changed', {
       key: key as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,

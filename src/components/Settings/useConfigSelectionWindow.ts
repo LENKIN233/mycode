@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { getAdjustedScrollOffset } from './configNavigation.js'
 
-type Args = {
+type UseConfigSelectionWindowArgs = {
   filteredSettingsLength: number
   maxVisible: number
   selectedIndex: number
@@ -15,7 +15,7 @@ export function useConfigSelectionWindow({
   selectedIndex,
   setScrollOffset,
   setSelectedIndex,
-}: Args): (newIndex: number) => void {
+}: UseConfigSelectionWindowArgs): (newIndex: number) => void {
   useEffect(() => {
     if (selectedIndex >= filteredSettingsLength) {
       const newIndex = Math.max(0, filteredSettingsLength - 1)

@@ -10,8 +10,7 @@ import {
   getCurrentSelectableProvider,
   PROVIDER_LABELS,
 } from '../../utils/model/providerSelection.js'
-
-export type ProviderRoutingSubMenu = 'Provider' | 'TaskRouting'
+import type { ProviderRoutingSubMenu } from './types.js'
 
 export function isProviderRoutingSubMenu(value: string | null): value is ProviderRoutingSubMenu {
   return value === 'Provider' || value === 'TaskRouting'

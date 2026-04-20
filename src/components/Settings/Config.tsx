@@ -9,6 +9,7 @@ import { logEvent, type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPAT
 import { isBridgeEnabled } from '../../bridge/bridgeEnabled.js';
 import { useAppState, useSetAppState, useAppStateStore } from '../../state/AppState.js';
 import { getExternalMyCodeMdIncludes, getMemoryFiles, hasExternalMyCodeMdIncludes } from 'src/utils/mycodeMd.js';
+import type { ChannelDowngradeChoice } from '../ChannelDowngradeDialog.js';
 import { useTabHeaderFocus } from '../design-system/Tabs.js';
 import { useIsInsideModal } from '../../context/modalContext.js';
 import { isSupportedTerminal, hasAccessToIDEExtensionDiffFeature } from '../../utils/ide.js';
@@ -36,7 +37,7 @@ import { revertConfigChanges } from './configRevert.js';
 import { renderConfigSubmenuContent } from './configSubmenuContent.js';
 import { useConfigNavigation } from './useConfigNavigation.js';
 import { useConfigSelectionWindow } from './useConfigSelectionWindow.js';
-import type { Setting } from './types.js';
+import type { AutoUpdateChannel, ConfigSubMenu, Setting } from './types.js';
 type Props = {
   onClose: (result?: string, options?: {
     display?: CommandResultDisplay;
@@ -46,8 +47,7 @@ type Props = {
   onIsSearchModeChange?: (inSearchMode: boolean) => void;
   contentHeight?: number;
 };
-type SubMenu = 'Theme' | 'Model' | 'Provider' | 'TaskRouting' | 'TeammateModel' | 'ExternalIncludes' | 'OutputStyle' | 'ChannelDowngrade' | 'Language' | 'EnableAutoUpdates';
-const MANAGED_SETTING_SUBMENUS: Record<string, SubMenu> = {
+const MANAGED_SETTING_SUBMENUS: Record<string, ConfigSubMenu> = {
   theme: 'Theme',
   model: 'Model',
   provider: 'Provider',
@@ -147,7 +147,7 @@ export function Config({
   // opening-then-closing doesn't trigger redundant disk writes.
   const isDirty = React.useRef(false);
   const [showThinkingWarning, setShowThinkingWarning] = useState(false);
-  const [showSubmenu, setShowSubmenu] = useState<SubMenu | null>(null);
+  const [showSubmenu, setShowSubmenu] = useState<ConfigSubMenu | null>(null);
   const {
     query: searchQuery,
     setQuery: setSearchQuery,
@@ -182,7 +182,7 @@ export function Config({
       display: 'system'
     });
   }, [onClose]);
-  const openSubmenu = useCallback((submenu: SubMenu) => {
+  const openSubmenu = useCallback((submenu: ConfigSubMenu) => {
     setShowSubmenu(submenu);
     setTabsHidden(true);
   }, [setTabsHidden]);
@@ -377,7 +377,7 @@ export function Config({
     }
 
     if (toggleAction.kind === 'openSubmenu') {
-      openSubmenu(toggleAction.submenu as SubMenu);
+      openSubmenu(toggleAction.submenu);
       return;
     }
 
@@ -465,7 +465,7 @@ export function Config({
       model: model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
     });
   }, [closeSubmenu, globalConfig.teammateDefaultModel, setGlobalConfig]);
-  const handleEnableAutoUpdates = useCallback((channel: 'stable' | 'latest') => {
+  const handleEnableAutoUpdates = useCallback((channel: AutoUpdateChannel) => {
     isDirty.current = true;
     closeSubmenu();
     saveGlobalConfig(current_24 => ({
@@ -489,7 +489,7 @@ export function Config({
       channel: channel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
     });
   }, [closeSubmenu, setGlobalConfig, setSettingsData]);
-  const handleChannelDowngradeChoice = useCallback((choice: 'cancel' | 'downgrade' | 'stay') => {
+  const handleChannelDowngradeChoice = useCallback((choice: ChannelDowngradeChoice) => {
     closeSubmenu();
     if (choice === 'cancel') {
       return;

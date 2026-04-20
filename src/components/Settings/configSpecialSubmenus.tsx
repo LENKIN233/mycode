@@ -7,13 +7,7 @@ import { Select } from '../CustomSelect/index.js'
 import { KeyboardShortcutHint } from '../design-system/KeyboardShortcutHint.js'
 import { ConfigurableShortcutHint } from '../ConfigurableShortcutHint.js'
 import { Byline } from '../design-system/Byline.js'
-
-type SpecialSubMenu =
-  | 'TeammateModel'
-  | 'ExternalIncludes'
-  | 'EnableAutoUpdates'
-  | 'ChannelDowngrade'
-  | null
+import type { AutoUpdateChannel, ConfigSpecialSubMenu } from './types.js'
 
 type Props = {
   autoUpdaterDisabledReason: {
@@ -24,9 +18,9 @@ type Props = {
   currentVersion: string
   externalIncludes: string[]
   onChannelDowngradeChoice: (choice: ChannelDowngradeChoice) => void
-  onEnableAutoUpdates: (channel: 'latest' | 'stable') => void
+  onEnableAutoUpdates: (channel: AutoUpdateChannel) => void
   onTeammateModelSelected: (model: string | null) => void
-  submenu: SpecialSubMenu
+  submenu: ConfigSpecialSubMenu | null
   teammateDefaultModel: string | null | undefined
 }
 
@@ -118,7 +112,7 @@ export function renderConfigSpecialSubMenu({
               { label: 'Enable with stable channel', value: 'stable' },
             ]}
             onChange={(channel: string) => {
-              onEnableAutoUpdates(channel as 'latest' | 'stable')
+              onEnableAutoUpdates(channel as AutoUpdateChannel)
             }}
           />
         )}

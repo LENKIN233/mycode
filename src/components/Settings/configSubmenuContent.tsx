@@ -1,6 +1,9 @@
 import React from 'react'
 import { formatAutoUpdaterDisabledReason } from '../../utils/config.js'
 import type { LocalJSXCommandContext } from '../../commands.js'
+import type { ChannelDowngradeChoice } from '../ChannelDowngradeDialog.js'
+import type { OutputStyle } from '../../utils/config.js'
+import type { ThemeSetting } from '../../utils/theme.js'
 import {
   isBasicConfigSubMenu,
   renderBasicConfigSubMenu,
@@ -11,13 +14,14 @@ import {
   renderProviderRoutingSubMenu,
 } from './providerRoutingSettings.js'
 import { renderConfigSpecialSubMenu } from './configSpecialSubmenus.js'
+import type { AutoUpdateChannel, ConfigSubMenu } from './types.js'
 
 type Props = {
   autoUpdaterDisabledReason: unknown
   closeSubmenu: () => void
   context: LocalJSXCommandContext
   currentLanguage: string | undefined
-  currentOutputStyle: string
+  currentOutputStyle: OutputStyle
   currentVersion: string
   externalIncludes: string[]
   filteredSettingsItems: Parameters<typeof ConfigListView>[0]['filteredSettingsItems']
@@ -27,20 +31,20 @@ type Props = {
   isTerminalFocused: boolean
   maxVisible: number
   mainLoopModel: string | null
-  onChannelDowngradeChoice: (choice: 'cancel' | 'downgrade' | 'stay') => void
-  onEnableAutoUpdates: (channel: 'stable' | 'latest') => void
+  onChannelDowngradeChoice: (choice: ChannelDowngradeChoice) => void
+  onEnableAutoUpdates: (channel: AutoUpdateChannel) => void
   onLanguageSelected: (language: string | undefined) => void
   onModelSelected: (model: string | null) => void
-  onOutputStyleSelected: (style: string | undefined) => void
+  onOutputStyleSelected: (style: OutputStyle | undefined) => void
   onProviderRoutingDirty: () => void
   onTeammateModelSelected: (model: string | null) => void
-  onThemeSelected: (theme: string) => void
+  onThemeSelected: (theme: ThemeSetting) => void
   scrollOffset: number
   searchCursorOffset: number
   searchQuery: string
   selectedIndex: number
   showFastModeNotice: boolean
-  showSubmenu: string | null
+  showSubmenu: ConfigSubMenu | null
   showThinkingWarning: boolean
   teammateDefaultModel: string | null | undefined
 }

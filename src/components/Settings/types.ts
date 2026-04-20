@@ -1,5 +1,19 @@
 import type React from 'react'
 
+export type BasicConfigSubMenu = 'Theme' | 'Model' | 'OutputStyle' | 'Language'
+export type ProviderRoutingSubMenu = 'Provider' | 'TaskRouting'
+export type ConfigSpecialSubMenu =
+  | 'TeammateModel'
+  | 'ExternalIncludes'
+  | 'EnableAutoUpdates'
+  | 'ChannelDowngrade'
+export type ConfigSubMenu =
+  | BasicConfigSubMenu
+  | ProviderRoutingSubMenu
+  | ConfigSpecialSubMenu
+
+export type AutoUpdateChannel = 'latest' | 'stable'
+
 export type SettingBase =
   | {
       id: string

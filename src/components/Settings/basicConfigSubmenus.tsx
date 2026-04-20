@@ -9,8 +9,7 @@ import { LanguagePicker } from '../LanguagePicker.js'
 import { KeyboardShortcutHint } from '../design-system/KeyboardShortcutHint.js'
 import { ConfigurableShortcutHint } from '../ConfigurableShortcutHint.js'
 import { Byline } from '../design-system/Byline.js'
-
-export type BasicConfigSubMenu = 'Theme' | 'Model' | 'OutputStyle' | 'Language'
+import type { BasicConfigSubMenu } from './types.js'
 
 export function isBasicConfigSubMenu(value: string | null): value is BasicConfigSubMenu {
   return (
