@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { buildDesignStarterHtml } from './starter.js'
 import {
+  getDesignArtifactPreviewImagePath,
   inferDesignTemplateFromArtifactContent,
   verifyDesignArtifactContent,
 } from './verify.js'
@@ -47,5 +48,13 @@ describe('verifyDesignArtifactContent', () => {
     expect(inferDesignTemplateFromArtifactContent(prototypeHtml)).toBe(
       'prototype',
     )
+  })
+
+  test('derives preview image path next to artifact', () => {
+    expect(
+      getDesignArtifactPreviewImagePath(
+        '/tmp/artifacts/claude-design/sample-v2.html',
+      ),
+    ).toBe('/tmp/artifacts/claude-design/sample-v2.preview.png')
   })
 })

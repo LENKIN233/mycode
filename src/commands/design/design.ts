@@ -84,6 +84,17 @@ type ArtifactListProps = {
   onDone: Parameters<LocalJSXCommandCall>[0]
 }
 
+function buildBrowserVerificationSuffix(
+  verification: Awaited<ReturnType<typeof verifyDesignArtifactFile>>,
+): string {
+  const screenshotPath = verification.browser?.screenshotPath
+  if (!screenshotPath) {
+    return ''
+  }
+
+  return `\nSaved browser verification screenshot: ${screenshotPath}`
+}
+
 function relativeTimeLabel(timestamp: string): string {
   const parsed = new Date(timestamp)
   if (Number.isNaN(parsed.getTime())) {
@@ -192,10 +203,9 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
       (await inferDesignTemplateFromArtifactFile(targetArtifactPath))
     const title = titleFromDesignBrief(brief || relativeArtifactPath)
     const opened = await openPath(targetArtifactPath)
-    const verification = await verifyDesignArtifactFile(
-      targetArtifactPath,
-      template,
-    )
+    const verification = await verifyDesignArtifactFile(targetArtifactPath, template, {
+      includeBrowser: true,
+    })
     const metadata = await upsertDesignArtifactMetadata({
       cwd,
       relativeArtifactPath,
@@ -214,12 +224,13 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
       verification.warnings.length > 0
         ? `\nVerification warnings: ${verification.warnings.join('; ')}`
         : ''
+    const browserSuffix = buildBrowserVerificationSuffix(verification)
     const previewSuffix = opened
       ? '\nOpened preview'
       : '\nPreview did not open automatically'
 
     onDone(
-      `Opened existing ${template} design artifact: ${targetArtifactPath}${previewSuffix} and queued the design workflow.${warningSuffix}`,
+      `Opened existing ${template} design artifact: ${targetArtifactPath}${previewSuffix}${browserSuffix} and queued the design workflow.${warningSuffix}`,
       {
         display: 'system',
         nextInput: buildDesignFollowupPrompt(
@@ -253,7 +264,9 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
   })
 
   const opened = await openPath(artifactPath)
-  const verification = await verifyDesignArtifactFile(artifactPath, template)
+  const verification = await verifyDesignArtifactFile(artifactPath, template, {
+    includeBrowser: true,
+  })
   const metadata = await upsertDesignArtifactMetadata({
     cwd,
     relativeArtifactPath,
@@ -272,13 +285,14 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
     verification.warnings.length > 0
       ? `\nVerification warnings: ${verification.warnings.join('; ')}`
       : ''
+  const browserSuffix = buildBrowserVerificationSuffix(verification)
   const previewSuffix = opened
     ? '\nOpened preview'
     : '\nPreview did not open automatically'
 
   const message = brief
-    ? `Created ${template} design artifact starter: ${artifactPath}${previewSuffix} and queued the design workflow.${warningSuffix}`
-    : `Created ${template} design artifact starter: ${artifactPath}${previewSuffix}. Re-run /design with a brief to auto-start the design workflow.${warningSuffix}`
+    ? `Created ${template} design artifact starter: ${artifactPath}${previewSuffix}${browserSuffix} and queued the design workflow.${warningSuffix}`
+    : `Created ${template} design artifact starter: ${artifactPath}${previewSuffix}${browserSuffix}. Re-run /design with a brief to auto-start the design workflow.${warningSuffix}`
 
   onDone(message, {
     display: 'system',

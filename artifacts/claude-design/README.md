@@ -18,6 +18,8 @@ Conventions:
 - Main deliverables live directly in this folder as `.html` files.
 - Each artifact also gets a sidecar metadata file: `name.html.meta.json`.
 - `manifest.json` tracks the known artifacts in this directory.
+- If Playwright is installed, `/design` also saves a browser verification
+  screenshot next to the artifact as `name.preview.png`.
 - Significant revisions should use versioned filenames such as `foo-v2.html`.
 - Keep supporting assets next to the artifact or in a small subfolder when
   needed.
