@@ -12,6 +12,8 @@ import { formatNumber } from './format.js';
 import { getIdeClientName, type IDEExtensionInstallationStatus, isJetBrainsIde, toIDEDisplayName } from './ide.js';
 import { getMyCodeAiUserDefaultModelDescription, modelDisplayString } from './model/model.js';
 import { getAPIProvider } from './model/providers.js';
+import { getCachedAvailableCopilotModels } from '../services/copilot/models.js';
+import { getTaskRoute } from './model/taskModels.js';
 import { getMTLSConfig } from './mtls.js';
 import { checkInstall } from './nativeInstaller/index.js';
 import { getProxyUrl } from './proxy.js';
@@ -348,6 +350,22 @@ export function buildAPIProviderProperties(): Property[] {
       });
     }
   }
+  const availableCopilotModels = new Set(getCachedAvailableCopilotModels().map(model => model.id));
+  const routeSummary = [
+    ['Main loop', 'mainLoop'],
+    ['Title', 'title'],
+    ['Summary', 'summary'],
+    ['Hooks', 'hooks']
+  ].map(([label, category]) => {
+    const route = getTaskRoute(category as 'mainLoop' | 'title' | 'summary' | 'hooks');
+    const providerLabel = PROVIDER_LABELS[route.provider === 'firstParty' ? 'firstParty' : 'copilot'];
+    const unavailableSuffix = route.provider === 'copilot' && availableCopilotModels.size > 0 && !availableCopilotModels.has(route.model) ? ' (! unavailable on this account)' : '';
+    return `${label}: ${providerLabel} · ${route.model}${unavailableSuffix}`;
+  });
+  properties.push({
+    label: 'Task routes',
+    value: routeSummary
+  });
   return properties;
 }
 export function getModelDisplayLabel(mainLoopModel: string | null): string {

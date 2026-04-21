@@ -34,6 +34,10 @@ interface ModelsCache {
 let cache: ModelsCache | null = null
 let fetchPromise: Promise<Map<string, CopilotModelInfo>> | null = null
 
+export function isCopilotModelUsable(model: CopilotModelInfo): boolean {
+  return model.enabled && (model.supportsChatCompletions || model.supportsMessages)
+}
+
 function parseModel(raw: any): CopilotModelInfo {
   const limits = raw.capabilities?.limits
   const supports = raw.capabilities?.supports
@@ -101,6 +105,18 @@ export async function getCopilotModels(): Promise<Map<string, CopilotModelInfo>>
       })
   }
   return fetchPromise
+}
+
+export function getCachedCopilotModels(): Map<string, CopilotModelInfo> {
+  return cache?.models ?? new Map()
+}
+
+export async function getAvailableCopilotModels(): Promise<CopilotModelInfo[]> {
+  return [...(await getCopilotModels()).values()].filter(isCopilotModelUsable)
+}
+
+export function getCachedAvailableCopilotModels(): CopilotModelInfo[] {
+  return [...getCachedCopilotModels().values()].filter(isCopilotModelUsable)
 }
 
 /**

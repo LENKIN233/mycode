@@ -8,7 +8,12 @@
 
 import type { ClientOptions } from '@ai/sdk'
 import { getCopilotToken, requestCopilotReauth } from './auth.js'
-import { getCopilotModelMaxOutput, warmModelCache } from './models.js'
+import {
+  getAvailableCopilotModels,
+  getCopilotModelMaxOutput,
+  isCopilotModelUsable,
+  warmModelCache,
+} from './models.js'
 import { addToTotalModelRequests } from '../../bootstrap/state.js'
 import { saveSessionUsageSnapshot } from '../../usage-tracker.js'
 import { setClipboard } from '../../ink/termio/osc.js'
@@ -79,6 +84,17 @@ const LEGACY_MODEL_ALIASES: Record<string, string> = {
   'claude-3.5-haiku': 'claude-haiku-4.5',
   'claude-opus-4': 'claude-sonnet-4',
   'claude-opus-4.1': 'claude-sonnet-4',
+}
+
+function buildCopilotModelConfigGuidance(
+  model: string,
+  availableExamples: string[],
+): string {
+  const suggestion =
+    availableExamples.length > 0
+      ? ` Available models on this account include: ${availableExamples.join(', ')}.`
+      : ''
+  return `Copilot model "${model}" is not available for this account. Run \`/model-config\` to change the task route or reset it to default.${suggestion}`
 }
 
 function normalizeCopilotModel(model: string): string {
@@ -1313,6 +1329,32 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
 
     // Translate request
     const translated = translateRequest(anthropicBody)
+    const requestedModel = String(translated.body.model ?? COPILOT_DEFAULT_MODEL)
+
+    const availableModels = await getAvailableCopilotModels()
+    if (
+      availableModels.length > 0 &&
+      !availableModels.some(
+        model => model.id === requestedModel && isCopilotModelUsable(model),
+      )
+    ) {
+      return new Response(
+        JSON.stringify({
+          type: 'error',
+          error: {
+            type: 'invalid_request_error',
+            message: buildCopilotModelConfigGuidance(
+              requestedModel,
+              availableModels.slice(0, 5).map(model => model.id),
+            ),
+          },
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      )
+    }
 
     // Build Copilot request headers
     const copilotHeaders: Record<string, string> = {
@@ -1354,12 +1396,27 @@ export function createCopilotFetch(): NonNullable<ClientOptions['fetch']> {
 
       // Return other errors as Anthropic-formatted error
       const errorText = await copilotResponse.text()
+      const lowerErrorText = errorText.toLowerCase()
+      const modelRelatedError =
+        (copilotResponse.status === 400 ||
+          copilotResponse.status === 403 ||
+          copilotResponse.status === 404 ||
+          copilotResponse.status === 422) &&
+        lowerErrorText.includes('model')
+
+      const message = modelRelatedError
+        ? `${buildCopilotModelConfigGuidance(
+            requestedModel,
+            availableModels.slice(0, 5).map(model => model.id),
+          )} Copilot API error ${copilotResponse.status}: ${errorText}`
+        : `Copilot API error ${copilotResponse.status}: ${errorText}`
+
       return new Response(
         JSON.stringify({
           type: 'error',
           error: {
             type: 'api_error',
-            message: `Copilot API error ${copilotResponse.status}: ${errorText}`,
+            message,
           },
         }),
         {
