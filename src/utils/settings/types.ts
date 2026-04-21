@@ -375,7 +375,7 @@ export const SettingsSchema = lazySchema(() =>
       apiProvider: SupportedPersonalProviderSchema
         .optional()
         .describe(
-          'Default API provider for this fork. Supported values: "copilot", "firstParty".',
+          'Default API provider for this project. Supported values: "copilot", "firstParty".',
         ),
       modelConfig: z
         .record(z.string(), TaskModelOverrideSchema)

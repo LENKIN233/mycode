@@ -300,8 +300,8 @@ async function fetchWithRetry(
 async function fetchPolicyLimits(
   _cachedChecksum?: string,
 ): Promise<PolicyLimitsFetchResult> {
-  // Policy limits API calls api.anthropic.com — disabled in this fork
-  return { success: false, error: 'Policy limits not available in this fork', skipRetry: true }
+  // Policy limits API calls api.anthropic.com — disabled in this build
+  return { success: false, error: 'Policy limits not available in this build', skipRetry: true }
 }
 
 /**

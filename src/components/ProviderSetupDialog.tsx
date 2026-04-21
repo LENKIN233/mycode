@@ -65,7 +65,7 @@ export function ProviderSetupDialog({ onDone }: Props): React.ReactNode {
     >
       <Box flexDirection="column" gap={1}>
         <Text>
-          Pick how this fork should connect by default. You can switch later with `/provider`,
+          Pick how MyCode should connect by default. You can switch later with `/provider`,
           and route individual request types with `/model-config`.
         </Text>
         <Text dimColor>

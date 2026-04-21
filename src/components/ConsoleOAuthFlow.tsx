@@ -9,10 +9,10 @@ import { Box, Link, Text } from '../ink.js';
 import { useKeybinding } from '../keybindings/useKeybinding.js';
 import { getSSLErrorHint } from '../services/api/errorUtils.js';
 import { sendNotification } from '../services/notifier.js';
-// OAuth service deleted — inline stub (this fork uses API key auth only)
+// OAuth service deleted — inline stub (this build uses API key auth only)
 class OAuthService {
   startOAuthFlow(_onUrl: (url: string) => Promise<void>): Promise<{ accessToken: string; refreshToken: string }> {
-    throw new Error('OAuth not available in this fork')
+    throw new Error('OAuth not available in this build')
   }
   handleManualAuthCodeInput(_opts: { code: string }): void {}
   cleanup(): void {}

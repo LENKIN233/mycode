@@ -30,7 +30,7 @@ export function normalizeSupportedProvider(value: string | undefined): APIProvid
 export function setAPIProviderOverride(provider: APIProvider | null): void {
   if (provider !== null && !SUPPORTED_PROVIDERS.has(provider)) {
     throw new Error(
-      `Provider "${provider}" is not supported in this fork. Supported providers: ${[...SUPPORTED_PROVIDERS].join(', ')}`,
+      `Provider "${provider}" is not supported in this project. Supported providers: ${[...SUPPORTED_PROVIDERS].join(', ')}`,
     )
   }
   runtimeProviderOverride = provider

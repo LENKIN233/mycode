@@ -1,23 +1,163 @@
 # MyCode
 
-> 个人 AI 编程助手 — 基于 GitHub Copilot 的终端 AI 编码工具
+> Personal AI coding assistant for the terminal, with GitHub Copilot and manual API routing.  
+> 个人终端 AI 编程助手，支持 GitHub Copilot 与手工 API 混搭路由。
 
-## 功能特性
+## English
 
-- **GitHub Copilot 驱动** — 使用 GitHub Copilot 订阅，通过 Copilot 接口访问 Claude、GPT、Gemini 等多种模型
-- **终端原生** — 基于 Ink 的交互式终端界面
-- **丰富工具集** — 文件编辑、终端命令、代码搜索、MCP 集成等
-- **上下文感知** — 自动理解项目结构与代码上下文
-- **MCP 协议** — 支持 Model Context Protocol 扩展工具集
-- **Bun 驱动** — 基于 Bun 运行时，启动快、性能高
-- **技能系统** — 内置多种编码技能，可自定义扩展
+### What It Is
 
-## 快速开始
+MyCode is a Bun-based terminal coding assistant focused on personal use. It is not trying to mirror every official cloud feature. The project prioritizes:
+
+- GitHub Copilot as a supported provider
+- Manual API / compatible endpoints as another provider
+- Per-task request routing via `/model-config`
+- MCP tools, local skills, and terminal-native workflows
+
+### Features
+
+- **Provider routing**: use Copilot and manual API side by side
+- **Per-task model routing**: configure `provider + model` for main loop, title, summary, memory, hooks, and other request categories
+- **Terminal-native UI**: built with Ink
+- **MCP support**: extend capabilities with Model Context Protocol servers
+- **Skills system**: built-in and project-level skills
+- **Local-first workflow**: optimized for personal/local usage rather than official cloud product flows
+
+### Requirements
+
+- [Bun](https://bun.sh/) >= 1.3.5
+- A [GitHub Copilot](https://github.com/features/copilot) subscription if you want to use the Copilot provider
+- Optional: an API key and compatible endpoint if you want to use the manual API provider
+
+### Install
+
+```bash
+git clone https://github.com/LENKIN233/mycode.git
+cd mycode
+bun install
+```
+
+### Authentication and Providers
+
+MyCode currently supports two practical provider paths:
+
+- `copilot`
+- `api` (manual API / compatible endpoint)
+
+First-time Copilot login:
+
+```bash
+bun run dev --copilot-login
+```
+
+Manual API:
+
+```bash
+export ANTHROPIC_API_KEY=your_api_key
+export ANTHROPIC_BASE_URL=https://your-gateway.example/v1 # optional
+
+bun run dev --provider api
+```
+
+Interactive switching:
+
+```text
+/provider
+/provider copilot
+/provider api
+```
+
+### Model Routing
+
+Use `/model-config` to configure request categories individually. Each category can choose its own:
+
+- provider
+- model
+
+Examples:
+
+- Route `title` to a free Copilot model
+- Route `mainLoop` to a manual API model
+- Route `memory` and `analysis` differently if needed
+
+`/model-config` now supports:
+
+- common vs advanced routes
+- Copilot model availability warnings
+- discovered API model lists when the endpoint exposes them
+- custom model IDs for both Copilot and API
+
+### Basic Usage
+
+```bash
+bun run dev
+bun run dev "Explain this project"
+echo "hello" | bun run dev --print
+bun run dev --help
+bun run version
+```
+
+### Useful Commands
+
+| Command | Description |
+|------|------|
+| `/provider` | Choose the default provider interactively |
+| `/model-config` | Configure per-task `provider + model` routing |
+| `/model` | Change the current session main-loop model |
+| `/usage` | Show session usage and request counts |
+| `/context` | Inspect current context usage |
+
+### Project Layout
+
+```text
+src/
+├── main.tsx
+├── commands/
+├── components/
+├── tools/
+├── skills/
+├── services/
+├── hooks/
+├── utils/
+└── types/
+
+shims/
+vendor/
+```
+
+### Runtime Data
+
+Configuration and session data are stored under `~/.mycode/` by default.
+
+### License
+
+See [LICENSE.md](LICENSE.md)
+
+## 中文
+
+### 项目定位
+
+MyCode 是一个基于 Bun 的个人终端 AI 编程助手。项目不追求完整复刻所有官方云功能，重点放在本地可闭环的个人使用场景：
+
+- 支持 GitHub Copilot
+- 支持手工 API / 兼容端点
+- 支持按任务类别配置 `provider + model`
+- 支持 MCP、技能系统、终端工作流
+
+### 功能特性
+
+- **Provider 混搭**：Copilot 和 API 可以并存
+- **任务级模型路由**：`/model-config` 可分别配置主对话、标题、摘要、记忆、hooks 等请求类别
+- **终端原生界面**：基于 Ink
+- **MCP 协议支持**：可接入外部工具能力
+- **技能系统**：支持内置技能与项目级 agent/skill
+- **本地优先**：优先服务个人项目和本地编码流程
 
 ### 环境要求
 
 - [Bun](https://bun.sh/) >= 1.3.5
-- [GitHub Copilot](https://github.com/features/copilot) 订阅（个人版 $10/月，含免费额度）
+- 如果要使用 Copilot，需要有效的 [GitHub Copilot](https://github.com/features/copilot) 订阅
+- 如果要使用手工 API，需要 `ANTHROPIC_API_KEY`，兼容网关可选配 `ANTHROPIC_BASE_URL`
 
 ### 安装
 
@@ -27,124 +167,99 @@ cd mycode
 bun install
 ```
 
-### 认证
+### 认证与 Provider
 
-MyCode 目前支持两种后端：
+当前项目主要支持两种 provider：
 
-- **GitHub Copilot**
-- **手工 API / 兼容端点**，通过 `ANTHROPIC_API_KEY` 和可选的 `ANTHROPIC_BASE_URL`
+- `copilot`
+- `api`
+
+首次登录 Copilot：
 
 ```bash
-# 第一次使用 Copilot，先登录（会打开浏览器进行 GitHub 设备授权）
 bun run dev --copilot-login
-
-# 之后直接使用
-bun run dev
 ```
 
-登录后令牌缓存到 `~/.mycode/copilot_token.json`，后续无需重复登录。令牌过期时会自动提示重新授权。
-
-如果你想使用手工 API：
+使用手工 API：
 
 ```bash
 export ANTHROPIC_API_KEY=your_api_key
-# 可选：兼容网关或自定义后端
-export ANTHROPIC_BASE_URL=https://your-gateway.example/v1
+export ANTHROPIC_BASE_URL=https://your-gateway.example/v1 # 可选
 
 bun run dev --provider api
 ```
 
-交互模式下也可以随时切换：
+交互模式切换：
 
 ```text
+/provider
 /provider copilot
 /provider api
 ```
 
-配置与会话数据默认存放在 `~/.mycode/`（`config.json`、`projects/`、`sessions/`、`history.jsonl` 等）。
+### 模型路由
 
-### 可用模型
+`/model-config` 现在不是只改一个全局模型，而是给每个请求类别分别配置：
 
-通过 Copilot 可用的模型由 Copilot `/models` 接口动态发现，以会话内 `/model` 菜单为准。常见模型示例：
+- provider
+- model
 
-| 模型 | 消耗倍率 | 说明 |
-|------|---------|------|
-| claude-sonnet-4.6 | 1x | 默认主力模型 |
-| claude-opus-4.6 | 3x | 最强模型 |
-| claude-haiku-4.5 | 0.33x | 快速轻量 |
-| gpt-4.1 / gpt-4o | **0x (免费)** | GPT 系列 |
-| gpt-5-mini | **0x (免费)** | 经济实惠 |
-| gemini-2.5-pro | 1x | Google 系列 |
+例如：
+
+- `title` 用 Copilot 免费模型
+- `mainLoop` 用 API 模型
+- `memory`、`analysis` 各自走不同 provider
+
+当前 `/model-config` 已支持：
+
+- 常用项 / 高级项分层显示
+- Copilot 不可用模型预警
+- API 端点模型发现与缓存
+- Copilot / API 自定义模型 ID 输入
 
 ### 基本使用
 
 ```bash
-# 启动交互式 CLI
 bun run dev
-
-# 带初始提示启动
 bun run dev "解释这个项目"
-
-# 非交互模式（管道输入）
-echo "说你好" | bun run dev --print
-
-# 查看帮助
+echo "你好" | bun run dev --print
 bun run dev --help
-
-# 查看版本号
 bun run version
 ```
 
-### 常用会话命令
+### 常用命令
 
 | 命令 | 说明 |
 |------|------|
-| `/model` | 查看/切换当前会话模型 |
-| `/model <name>` | 直接切换到指定模型 |
-| `/usage` | 查看当前会话用量统计 |
-| `/provider login` | 触发 Copilot 重新授权 |
-| `/provider api` | 切换到手工 API / 兼容端点 |
-| `/provider copilot` | 切换回 GitHub Copilot |
+| `/provider` | 交互式选择默认 provider |
+| `/model-config` | 配置任务级 `provider + model` 路由 |
+| `/model` | 修改当前会话主模型 |
+| `/usage` | 查看当前会话用量和请求统计 |
+| `/context` | 查看上下文使用情况 |
 
-## 项目结构
+### 目录结构
 
-```
+```text
 src/
-├── main.tsx              # 入口
-├── commands/             # CLI 命令
-├── components/           # Ink UI 组件
-├── tools/                # AI 工具定义
-├── skills/               # 内置技能
+├── main.tsx
+├── commands/
+├── components/
+├── tools/
+├── skills/
 ├── services/
-│   └── copilot/          # GitHub Copilot 集成
-├── bridge/               # 远程桥接
-├── hooks/                # React hooks
-├── utils/                # 工具函数
-└── types/                # 类型定义
+├── hooks/
+├── utils/
+└── types/
 
-shims/                    # 原生模块兼容层
-vendor/                   # 原生扩展源码
+shims/
+vendor/
 ```
 
-## 技术栈
+### 运行数据
 
-| 组件 | 技术 |
-|------|------|
-| 运行时 | Bun |
-| 语言 | TypeScript |
-| UI 框架 | Ink (React for CLI) |
-| AI 后端 | GitHub Copilot / 手工 API |
-| 协议 | MCP (Model Context Protocol) |
+默认配置与会话数据保存在 `~/.mycode/`。
 
-## 兼容端点说明
-
-手工 API 模式优先适合个人自用场景：
-
-- 直连 Anthropic API
-- 通过兼容网关转发到你自己的后端
-- 保留 Copilot 作为另一条 provider 路径
-
-## 许可证
+### 许可证
 
 见 [LICENSE.md](LICENSE.md)
 

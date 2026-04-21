@@ -3395,10 +3395,10 @@ function runHeadlessStreaming(
             )
           }
         } else if (controlRequest.request.subtype === 'mycode_authenticate') {
-          // This fork uses API key auth only — Anthropic OAuth is not available.
+          // This build uses API key auth only — Anthropic OAuth is not available.
           sendControlResponseError(
             controlRequest,
-            'OAuth authentication is not supported in this fork. Use API key authentication instead.',
+            'OAuth authentication is not supported in this build. Use API key authentication instead.',
           )
         } else if (
           controlRequest.request.subtype === 'mycode_oauth_callback' ||
@@ -3406,7 +3406,7 @@ function runHeadlessStreaming(
         ) {
           sendControlResponseError(
             controlRequest,
-            'OAuth authentication is not supported in this fork.',
+            'OAuth authentication is not supported in this build.',
           )
         } else if (message.request.subtype === 'mcp_clear_auth') {
           const { serverName } = message.request
