@@ -381,8 +381,8 @@ export const SettingsSchema = lazySchema(() =>
         .record(z.string(), TaskModelOverrideSchema)
         .optional()
         .describe(
-          'Per-task model overrides for auxiliary requests. ' +
-            'Keys: mainLoop, title, summary, analysis, utility, memory, permission, insights, hooks, quotaCheck, verifyApiKey, tokenCount, tokenCountFallback, autoModeCritique. ' +
+          'Per-task model overrides for request categories. ' +
+            'Keys: mainLoop, title, summary, analysis, utility, memory, permission, insights, hooks, quotaCheck, verifyApiKey, tokenCount, tokenCountFallback, autoModeCritique, forkAgent. ' +
             'Values: either model ID strings (legacy format) or objects like {"provider":"copilot","model":"gpt-5-mini"}.',
         ),
       // Enterprise allowlist of models

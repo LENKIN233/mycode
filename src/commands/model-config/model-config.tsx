@@ -12,6 +12,10 @@ import {
   getCachedAvailableCopilotModels,
 } from '../../services/copilot/models.js'
 import {
+  getAvailableAPIModels,
+  getCachedAvailableAPIModels,
+} from '../../services/api/models.js'
+import {
   getTaskCategoryAudience,
   getTaskCategoryGroup,
   getTaskCategoryGroupMeta,
@@ -164,6 +168,7 @@ function buildCopilotModelChoices(availableCopilotModels: string[] | null): Opti
 function getModelChoices(
   _category: TaskCategory,
   availableCopilotModels: string[] | null,
+  availableAPIModels: string[] | null,
 ): OptionWithDescription[] {
   const choices: OptionWithDescription[] = [
     { label: 'Reset to default', description: 'Use the default provider/model route for this task', value: '__reset__' },
@@ -171,15 +176,19 @@ function getModelChoices(
 
   choices.push(...buildCopilotModelChoices(availableCopilotModels))
 
-  const apiModels = [
-    getDefaultSonnetModel(),
-    getDefaultOpusModel(),
-    getSmallFastModel(),
-    process.env.ANTHROPIC_MODEL,
-    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL,
-    process.env.ANTHROPIC_DEFAULT_OPUS_MODEL,
-    process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL,
-  ].filter((value, index, list): value is string => !!value && list.indexOf(value) === index)
+  const apiModels = (
+    availableAPIModels && availableAPIModels.length > 0
+      ? availableAPIModels
+      : [
+          getDefaultSonnetModel(),
+          getDefaultOpusModel(),
+          getSmallFastModel(),
+          process.env.ANTHROPIC_MODEL,
+          process.env.ANTHROPIC_DEFAULT_SONNET_MODEL,
+          process.env.ANTHROPIC_DEFAULT_OPUS_MODEL,
+          process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL,
+        ]
+  ).filter((value, index, list): value is string => !!value && list.indexOf(value) === index)
 
   for (const model of apiModels) {
     choices.push({
@@ -253,6 +262,10 @@ function ModelConfigPicker({ onDone, onConfigChange }: Props): React.ReactNode {
     const cached = getCachedAvailableCopilotModels().map(model => model.id)
     return cached.length > 0 ? cached : null
   })
+  const [availableAPIModels, setAvailableAPIModels] = useState<string[] | null>(() => {
+    const cached = getCachedAvailableAPIModels().map(model => model.id)
+    return cached.length > 0 ? cached : null
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -260,6 +273,21 @@ function ModelConfigPicker({ onDone, onConfigChange }: Props): React.ReactNode {
       .then(models => {
         if (!cancelled && models.length > 0) {
           setAvailableCopilotModels(models.map(model => model.id))
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void getAvailableAPIModels()
+      .then(models => {
+        if (!cancelled && models.length > 0) {
+          setAvailableAPIModels(models.map(model => model.id))
         }
       })
       .catch(() => {})
@@ -333,6 +361,13 @@ function ModelConfigPicker({ onDone, onConfigChange }: Props): React.ReactNode {
     return 'Copilot choices fall back to the built-in catalog until availability is detected.'
   }, [availableCopilotModels])
 
+  const apiAvailabilityHint = useMemo(() => {
+    if (availableAPIModels && availableAPIModels.length > 0) {
+      return `API choices are filtered to ${availableAPIModels.length} discovered model(s) from the current endpoint.`
+    }
+    return 'API choices fall back to defaults and environment overrides until model discovery succeeds.'
+  }, [availableAPIModels])
+
   if (selectedCategory) {
     const cat = TASK_CATEGORIES[selectedCategory]
     const group = getTaskCategoryGroupMeta(getTaskCategoryGroup(selectedCategory))
@@ -361,9 +396,14 @@ function ModelConfigPicker({ onDone, onConfigChange }: Props): React.ReactNode {
             </Text>
           )}
           <Text dimColor>{copilotAvailabilityHint}</Text>
+          <Text dimColor>{apiAvailabilityHint}</Text>
           <Box marginTop={1}>
             <Select
-              options={getModelChoices(selectedCategory, availableCopilotModels).map(option => {
+              options={getModelChoices(
+                selectedCategory,
+                availableCopilotModels,
+                availableAPIModels,
+              ).map(option => {
                 if (option.type === 'input' && option.value === '__custom_copilot__') {
                   return {
                     ...option,
@@ -404,6 +444,7 @@ function ModelConfigPicker({ onDone, onConfigChange }: Props): React.ReactNode {
           Common routes are shown by default. Use the toggle below to reveal lower-frequency internal helper routes.
         </Text>
         <Text dimColor>{copilotAvailabilityHint}</Text>
+        <Text dimColor>{apiAvailabilityHint}</Text>
         <Box marginTop={1}>
           <Select
             options={getCategoryOptionsWithWarnings(

@@ -583,6 +583,15 @@ export type GlobalConfig = {
   // Additional model options for the model picker (fetched during bootstrap).
   additionalModelOptionsCache?: ModelOption[]
 
+  // Cached API endpoint model discovery results keyed by endpoint + auth fingerprint.
+  discoveredApiModelsCache?: Record<
+    string,
+    {
+      models: Array<{ id: string; displayName: string }>
+      timestamp: number
+    }
+  >
+
   // Disk cache for /api/claude_code/organizations/metrics_enabled.
   // Org-level settings change rarely; persisting across processes avoids a
   // cold API call on every `mycode -p` invocation.

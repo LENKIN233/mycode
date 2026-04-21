@@ -2,10 +2,7 @@ import { feature } from 'bun:bundle'
 import { searchMemories } from '../services/memoryIndex/index.js'
 import { logForDebugging } from '../utils/debug.js'
 import { errorMessage } from '../utils/errors.js'
-import { getDefaultSonnetModel } from '../utils/model/model.js'
-import { getAPIProvider } from '../utils/model/providers.js'
-import { getProviderForTask } from '../utils/model/taskModels.js'
-import { getModelForTask } from '../utils/model/taskModels.js'
+import { getTaskRoute, type TaskRoute } from '../utils/model/taskModels.js'
 import { sideQuery } from '../utils/sideQuery.js'
 import { jsonParse } from '../utils/slowOperations.js'
 import {
@@ -17,6 +14,10 @@ import {
 export type RelevantMemory = {
   path: string
   mtimeMs: number
+}
+
+export function getMemorySelectionRoute(): TaskRoute {
+  return getTaskRoute('memory')
 }
 
 const SELECT_MEMORIES_SYSTEM_PROMPT = `You are selecting memories that will be useful to MyCode as it processes a user's query. You will be given the user's query and a list of available memory files with their filenames and descriptions.
@@ -118,9 +119,10 @@ async function selectRelevantMemories(
       : ''
 
   try {
+    const taskRoute = getMemorySelectionRoute()
     const result = await sideQuery({
-      model: getAPIProvider() === 'copilot' ? getModelForTask('analysis') : getModelForTask('memory'),
-      provider: getAPIProvider() === 'copilot' ? getProviderForTask('analysis') : getProviderForTask('memory'),
+      model: taskRoute.model,
+      provider: taskRoute.provider,
       system: SELECT_MEMORIES_SYSTEM_PROMPT,
       skipSystemPromptPrefix: true,
       messages: [
