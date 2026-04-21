@@ -4,8 +4,10 @@ import { feature } from 'bun:bundle'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 import { getCanonicalName } from './model/model.js'
 import { resolveAntModel } from './model/antModels.js'
-import { get3PModelCapabilityOverride } from './model/modelSupportOverrides.js'
-import { getAPIProvider } from './model/providers.js'
+import {
+  get3PModelCapabilityOverride,
+  resolveProviderForModelSupport,
+} from './model/modelSupportOverrides.js'
 import { getSettingsWithErrors } from './settings/settings.js'
 
 export type ThinkingConfig =
@@ -98,7 +100,7 @@ export function modelSupportsThinking(model: string): boolean {
   // IMPORTANT: Do not change thinking support without notifying the model
   // launch DRI and research. This can greatly affect model quality and bashing.
   const canonical = getCanonicalName(model)
-  const provider = getAPIProvider()
+  const provider = resolveProviderForModelSupport(model)
   // Copilot: proxy translates Anthropic thinking → Copilot thinking_budget / reasoning_text.
   // Non-Claude models on copilot don't support thinking.
   if (provider === 'copilot') {
@@ -142,7 +144,7 @@ export function modelSupportsAdaptiveThinking(model: string): boolean {
   // Default to true for unknown model strings on 1P and Foundry (because Foundry
   // is a proxy). Do not default to true for other 3P as they have different formats
   // for their model strings.
-  const provider = getAPIProvider()
+  const provider = resolveProviderForModelSupport(model)
   return provider === 'firstParty' || provider === 'foundry'
 }
 

@@ -48,6 +48,7 @@ import {
   getAPIProvider,
   isFirstPartyBaseUrl,
 } from './model/providers.js'
+import { resolveProviderForModelSupport } from './model/modelSupportOverrides.js'
 import {
   getFileReadIgnorePatterns,
   normalizePatternsToPath,
@@ -153,6 +154,9 @@ export async function toolToAPISchema(
   if (!base) {
     const strictToolsEnabled =
       checkStatsigFeatureGate_CACHED_MAY_BE_STALE('tengu_tool_pear')
+    const toolProvider = options.model
+      ? resolveProviderForModelSupport(options.model)
+      : getAPIProvider()
     // Use tool's JSON schema directly if provided, otherwise convert Zod schema
     let input_schema = (
       'inputJSONSchema' in tool && tool.inputJSONSchema
@@ -186,7 +190,7 @@ export async function toolToAPISchema(
       strictToolsEnabled &&
       tool.strict === true &&
       options.model &&
-      modelSupportsStructuredOutputs(options.model)
+      modelSupportsStructuredOutputs(options.model, toolProvider)
     ) {
       base.strict = true
     }
@@ -197,7 +201,7 @@ export async function toolToAPISchema(
     // Gated to direct api.anthropic.com: proxies (LiteLLM etc.) and Bedrock/Vertex
     // with Claude 4.5 reject this field with 400. See GH#32742, PR #21729.
     if (
-      getAPIProvider() === 'firstParty' &&
+      toolProvider === 'firstParty' &&
       isFirstPartyBaseUrl() &&
       (getFeatureValue_CACHED_MAY_BE_STALE('tengu_fgts', false) ||
         isEnvTruthy(process.env.MYCODE_ENABLE_FINE_GRAINED_TOOL_STREAMING))

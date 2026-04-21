@@ -3,7 +3,6 @@ import type { BetaMessageParam as MessageParam } from '@ai/sdk/resources/beta/me
 // @aws-sdk/client-bedrock-runtime is imported dynamically in countTokensWithBedrock()
 // to defer ~279KB of AWS SDK code until a Bedrock call is actually made
 import type { CountTokensCommandInput } from '@aws-sdk/client-bedrock-runtime'
-import { getAPIProvider } from 'src/utils/model/providers.js'
 import { VERTEX_COUNT_TOKENS_ALLOWED_BETAS } from '../constants/betas.js'
 import type { Attachment } from '../utils/attachments.js'
 import { getModelBetas } from '../utils/betas.js'
@@ -19,6 +18,7 @@ import {
   getDefaultSonnetModel,
   normalizeModelStringForAPI,
 } from '../utils/model/model.js'
+import type { APIProvider } from '../utils/model/providers.js'
 import { getModelForTask, getProviderForTask } from '../utils/model/taskModels.js'
 import { jsonStringify } from '../utils/slowOperations.js'
 import { isToolReferenceBlock } from '../utils/toolSearch.js'
@@ -143,10 +143,11 @@ export async function countMessagesTokensWithAPI(
   return withTokenCountVCR(messages, tools, async () => {
     try {
       const model = getModelForTask('tokenCount')
-      const betas = getModelBetas(model)
+      const provider = getProviderForTask('tokenCount')
+      const betas = getModelBetas(model, provider)
       const containsThinking = hasThinkingBlocks(messages)
 
-      if (getAPIProvider() === 'bedrock') {
+      if (provider === 'bedrock') {
         // @anthropic-sdk/bedrock-sdk doesn't support countTokens currently
         return countTokensWithBedrock({
           model: normalizeModelStringForAPI(model),
@@ -160,12 +161,12 @@ export async function countMessagesTokensWithAPI(
       const anthropic = await getAiClient({
         maxRetries: 1,
         model,
-        provider: getProviderForTask('tokenCount'),
+        provider,
         source: 'count_tokens',
       })
 
       const filteredBetas =
-        getAPIProvider() === 'vertex'
+        provider === 'vertex'
           ? betas.filter(b => VERTEX_COUNT_TOKENS_ALLOWED_BETAS.has(b))
           : betas
 
@@ -266,16 +267,16 @@ export async function countTokensViaHaikuFallback(
   // Check if messages contain thinking blocks
   const containsThinking = hasThinkingBlocks(messages)
 
+  const fallbackProvider = getProviderForTask('tokenCountFallback')
+
   // If we're on Vertex and using global region, always use Sonnet since Haiku is not available there.
   const isVertexGlobalEndpoint =
-    isEnvTruthy(process.env.MYCODE_USE_VERTEX) &&
+    fallbackProvider === 'vertex' &&
     getVertexRegionForModel(getModelForTask('tokenCountFallback')) === 'global'
   // If we're on Bedrock with thinking blocks, use Sonnet since Haiku 3.5 doesn't support thinking
-  const isBedrockWithThinking =
-    isEnvTruthy(process.env.MYCODE_USE_BEDROCK) && containsThinking
+  const isBedrockWithThinking = fallbackProvider === 'bedrock' && containsThinking
   // If we're on Vertex with thinking blocks, use Sonnet since Haiku 3.5 doesn't support thinking
-  const isVertexWithThinking =
-    isEnvTruthy(process.env.MYCODE_USE_VERTEX) && containsThinking
+  const isVertexWithThinking = fallbackProvider === 'vertex' && containsThinking
   // Otherwise always use Haiku - Haiku 4.5 supports thinking blocks.
   // WARNING: if you change this to use a non-Haiku model, this request will fail in 1P unless it uses getCLISyspromptPrefix.
   // Note: We don't need Sonnet for tool_reference blocks because we strip them via
@@ -289,7 +290,7 @@ export async function countTokensViaHaikuFallback(
   const anthropic = await getAiClient({
     maxRetries: 1,
     model,
-    provider: getProviderForTask('tokenCountFallback'),
+    provider: fallbackProvider,
     source: 'count_tokens',
   })
 
@@ -302,11 +303,12 @@ export async function countTokensViaHaikuFallback(
       ? (normalizedMessages as MessageParam[])
       : [{ role: 'user', content: 'count' }]
 
-  const betas = getModelBetas(model)
+  const modelProvider = inferTokenCountFallbackProvider(model, fallbackProvider)
+  const betas = getModelBetas(model, modelProvider)
   // Filter betas for Vertex - some betas (like web-search) cause 400 errors
   // on certain Vertex endpoints. See issue #10789.
   const filteredBetas =
-    getAPIProvider() === 'vertex'
+    modelProvider === 'vertex'
       ? betas.filter(b => VERTEX_COUNT_TOKENS_ALLOWED_BETAS.has(b))
       : betas
 
@@ -334,6 +336,16 @@ export async function countTokensViaHaikuFallback(
   const cacheReadTokens = usage.cache_read_input_tokens || 0
 
   return inputTokens + cacheCreationTokens + cacheReadTokens
+}
+
+function inferTokenCountFallbackProvider(
+  model: string,
+  fallbackProvider: APIProvider,
+): APIProvider {
+  if (model === getDefaultSonnetModel()) {
+    return fallbackProvider === 'copilot' ? 'firstParty' : fallbackProvider
+  }
+  return fallbackProvider
 }
 
 export function roughTokenCountEstimationForMessages(

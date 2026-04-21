@@ -1,6 +1,6 @@
 import type { SDKMessage } from '../entrypoints/agentSdkTypes.js'
 
-// Remote session history is not available in this fork (requires Anthropic CCR backend)
+// Remote session history is not available in this build (requires Anthropic CCR backend)
 
 export const HISTORY_PAGE_SIZE = 100
 
@@ -18,7 +18,7 @@ export type HistoryAuthCtx = {
 export async function createHistoryAuthCtx(
   _sessionId: string,
 ): Promise<HistoryAuthCtx> {
-  throw new Error('Remote session history is not available in this fork')
+  throw new Error('Remote session history is not available in this build')
 }
 
 export async function fetchLatestEvents(

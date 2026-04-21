@@ -130,11 +130,11 @@ export async function sideQuery(opts: SideQueryOptions): Promise<BetaMessage> {
     source: opts.querySource ?? 'side_query',
     provider: opts.provider,
   })
-  const betas = [...getModelBetas(model)]
+  const betas = [...getModelBetas(model, opts.provider)]
   // Add structured-outputs beta if using output_format and provider supports it
   if (
     output_format &&
-    modelSupportsStructuredOutputs(model) &&
+    modelSupportsStructuredOutputs(model, opts.provider) &&
     !betas.includes(STRUCTURED_OUTPUTS_BETA_HEADER)
   ) {
     betas.push(STRUCTURED_OUTPUTS_BETA_HEADER)

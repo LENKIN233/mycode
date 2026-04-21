@@ -474,7 +474,7 @@ export async function verifyApiKey(
   try {
     // WARNING: if you change this to use a non-Haiku model, this request will fail in 1P unless it uses getCLISyspromptPrefix.
     const model = getModelForTask('verifyApiKey')
-    const betas = getModelBetas(model)
+    const betas = getModelBetas(model, 'firstParty')
     return await returnValue(
       withRetry(
         () =>
@@ -982,6 +982,7 @@ async function* queryModel(
     yield getAssistantMessageFromError(
       new Error(CUSTOM_OFF_SWITCH_MESSAGE),
       options.model,
+      { provider: options.provider },
     )
     return
   }
@@ -1007,7 +1008,10 @@ async function* queryModel(
     options.querySource === 'sdk' ||
     options.querySource === 'hook_agent' ||
     options.querySource === 'verification_agent'
-  const betas = getMergedBetas(options.model, { isAgenticQuery })
+  const betas = getMergedBetas(options.model, {
+    isAgenticQuery,
+    provider: options.provider,
+  })
 
   // Always send the advisor beta header when advisor is enabled, so
   // non-agentic queries (compact, side_question, extract_memories, etc.)
@@ -1424,7 +1428,7 @@ async function* queryModel(
       outputConfig.format = options.outputFormat as BetaJSONOutputFormat
       // Add beta header if not already present and provider supports it
       if (
-        modelSupportsStructuredOutputs(options.model) &&
+        modelSupportsStructuredOutputs(options.model, options.provider) &&
         !betasParams.includes(STRUCTURED_OUTPUTS_BETA_HEADER)
       ) {
         betasParams.push(STRUCTURED_OUTPUTS_BETA_HEADER)
@@ -2577,6 +2581,7 @@ async function* queryModel(
         }
 
         yield getAssistantMessageFromError(error, errorModel, {
+          provider: options.provider,
           messages,
           messagesForAPI,
         })
@@ -2635,6 +2640,7 @@ async function* queryModel(
       }
 
       yield getAssistantMessageFromError(error, errorModel, {
+        provider: options.provider,
         messages,
         messagesForAPI,
       })

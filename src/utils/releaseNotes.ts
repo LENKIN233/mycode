@@ -26,9 +26,9 @@ const MAX_RELEASE_NOTES_SHOWN = 5
  * 3. Next time the user starts MyCode, the cached changelog is available immediately
  */
 export const CHANGELOG_URL =
-  'https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md'
+  'https://github.com/LENKIN233/mycode/blob/main/CHANGELOG.md'
 const RAW_CHANGELOG_URL =
-  'https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/CHANGELOG.md'
+  'https://raw.githubusercontent.com/LENKIN233/mycode/refs/heads/main/CHANGELOG.md'
 
 /**
  * Get the path for the cached changelog file.
@@ -80,7 +80,26 @@ export async function migrateChangelogFromConfig(): Promise<void> {
  * This runs in the background and doesn't block the UI
  */
 export async function fetchAndStoreChangelog(): Promise<void> {
-  // Upstream changelog URL (github.com/LENKIN233/mycode) is not available in this fork
+  if (isEssentialTrafficOnly() || getIsNonInteractiveSession()) {
+    return
+  }
+
+  const response = await axios.get<string>(RAW_CHANGELOG_URL, {
+    responseType: 'text',
+    timeout: 10_000,
+    maxRedirects: 5,
+    validateStatus: status => status >= 200 && status < 300,
+  })
+
+  const content = typeof response.data === 'string' ? response.data : ''
+  if (!content.trim()) {
+    return
+  }
+
+  const cachePath = getChangelogCachePath()
+  await mkdir(dirname(cachePath), { recursive: true })
+  await writeFile(cachePath, content, 'utf-8')
+  changelogMemoryCache = content
 }
 
 /**

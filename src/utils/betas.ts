@@ -26,8 +26,11 @@ import { isMyCodeAISubscriber } from './auth.js'
 import { has1mContext } from './context.js'
 import { isEnvDefinedFalsy, isEnvTruthy } from './envUtils.js'
 import { getCanonicalName } from './model/model.js'
-import { get3PModelCapabilityOverride } from './model/modelSupportOverrides.js'
-import { getAPIProvider } from './model/providers.js'
+import {
+  get3PModelCapabilityOverride,
+  resolveProviderForModelSupport,
+} from './model/modelSupportOverrides.js'
+import { getAPIProvider, type APIProvider } from './model/providers.js'
 import { getInitialSettings } from './settings/settings.js'
 
 /**
@@ -89,7 +92,10 @@ export function filterAllowedSdkBetas(
 // Generally, foundry supports all 1P features;
 // however out of an abundance of caution, we do not enable any which are behind an experiment
 
-export function modelSupportsISP(model: string): boolean {
+export function modelSupportsISP(
+  model: string,
+  provider?: APIProvider,
+): boolean {
   const supported3P = get3PModelCapabilityOverride(
     model,
     'interleaved_thinking',
@@ -98,12 +104,12 @@ export function modelSupportsISP(model: string): boolean {
     return supported3P
   }
   const canonical = getCanonicalName(model)
-  const provider = getAPIProvider()
+  const resolvedProvider = resolveProviderForBetas(model, provider)
   // Foundry supports interleaved thinking for all models
-  if (provider === 'foundry') {
+  if (resolvedProvider === 'foundry') {
     return true
   }
-  if (provider === 'firstParty') {
+  if (resolvedProvider === 'firstParty') {
     return !canonical.includes('claude-3-')
   }
   return (
@@ -122,13 +128,16 @@ function vertexModelSupportsWebSearch(model: string): boolean {
 }
 
 // Context management is supported on Claude 4+ models
-export function modelSupportsContextManagement(model: string): boolean {
+export function modelSupportsContextManagement(
+  model: string,
+  provider?: APIProvider,
+): boolean {
   const canonical = getCanonicalName(model)
-  const provider = getAPIProvider()
-  if (provider === 'foundry') {
+  const resolvedProvider = resolveProviderForBetas(model, provider)
+  if (resolvedProvider === 'foundry') {
     return true
   }
-  if (provider === 'firstParty') {
+  if (resolvedProvider === 'firstParty') {
     return !canonical.includes('claude-3-')
   }
   return (
@@ -139,11 +148,14 @@ export function modelSupportsContextManagement(model: string): boolean {
 }
 
 // @[MODEL LAUNCH]: Add the new model ID to this list if it supports structured outputs.
-export function modelSupportsStructuredOutputs(model: string): boolean {
+export function modelSupportsStructuredOutputs(
+  model: string,
+  provider?: APIProvider,
+): boolean {
   const canonical = getCanonicalName(model)
-  const provider = getAPIProvider()
+  const resolvedProvider = resolveProviderForBetas(model, provider)
   // Structured outputs only supported on firstParty and Foundry (not Bedrock/Vertex yet)
-  if (provider !== 'firstParty' && provider !== 'foundry') {
+  if (resolvedProvider !== 'firstParty' && resolvedProvider !== 'foundry') {
     return false
   }
   return (
@@ -163,7 +175,10 @@ export function modelSupportsAutoMode(model: string): boolean {
     // External: firstParty-only at launch (PI probes not wired for
     // Bedrock/Vertex/Foundry yet). Checked before allowModels so the GB
     // override can't enable auto mode on unsupported providers.
-    if (process.env.USER_TYPE !== 'ant' && getAPIProvider() !== 'firstParty') {
+    if (
+      process.env.USER_TYPE !== 'ant' &&
+      resolveProviderForBetas(model) !== 'firstParty'
+    ) {
       return false
     }
     // GrowthBook override: tengu_auto_mode_config.allowModels force-enables
@@ -219,6 +234,22 @@ export function shouldIncludeFirstPartyOnlyBetas(): boolean {
   )
 }
 
+function shouldIncludeFirstPartyOnlyBetasForProvider(
+  provider: APIProvider,
+): boolean {
+  return (
+    (provider === 'firstParty' || provider === 'foundry') &&
+    !isEnvTruthy(process.env.MYCODE_DISABLE_EXPERIMENTAL_BETAS)
+  )
+}
+
+function resolveProviderForBetas(
+  model: string,
+  provider?: APIProvider,
+): APIProvider {
+  return provider ?? resolveProviderForModelSupport(model)
+}
+
 /**
  * Global-scope prompt caching is firstParty only. Foundry is excluded because
  * GrowthBook never bucketed Foundry users into the rollout experiment — the
@@ -231,35 +262,37 @@ export function shouldUseGlobalCacheScope(): boolean {
   )
 }
 
-export const getAllModelBetas = memoize((model: string): string[] => {
-  const betaHeaders = []
-  const isHaiku = getCanonicalName(model).includes('haiku')
-  const provider = getAPIProvider()
-  const includeFirstPartyOnlyBetas = shouldIncludeFirstPartyOnlyBetas()
+export const getAllModelBetas = memoize(
+  (model: string, provider?: APIProvider): string[] => {
+    const betaHeaders = []
+    const isHaiku = getCanonicalName(model).includes('haiku')
+    const resolvedProvider = resolveProviderForBetas(model, provider)
+    const includeFirstPartyOnlyBetas =
+      shouldIncludeFirstPartyOnlyBetasForProvider(resolvedProvider)
 
-  if (!isHaiku) {
-    betaHeaders.push(MYCODE_20250219_BETA_HEADER)
-    if (
-      process.env.USER_TYPE === 'ant' &&
-      process.env.MYCODE_ENTRYPOINT === 'cli'
-    ) {
-      if (CLI_INTERNAL_BETA_HEADER) {
-        betaHeaders.push(CLI_INTERNAL_BETA_HEADER)
+    if (!isHaiku) {
+      betaHeaders.push(MYCODE_20250219_BETA_HEADER)
+      if (
+        process.env.USER_TYPE === 'ant' &&
+        process.env.MYCODE_ENTRYPOINT === 'cli'
+      ) {
+        if (CLI_INTERNAL_BETA_HEADER) {
+          betaHeaders.push(CLI_INTERNAL_BETA_HEADER)
+        }
       }
     }
-  }
-  if (isMyCodeAISubscriber()) {
-    betaHeaders.push(OAUTH_BETA_HEADER)
-  }
-  if (has1mContext(model)) {
-    betaHeaders.push(CONTEXT_1M_BETA_HEADER)
-  }
-  if (
-    !isEnvTruthy(process.env.DISABLE_INTERLEAVED_THINKING) &&
-    modelSupportsISP(model)
-  ) {
-    betaHeaders.push(INTERLEAVED_THINKING_BETA_HEADER)
-  }
+    if (isMyCodeAISubscriber()) {
+      betaHeaders.push(OAUTH_BETA_HEADER)
+    }
+    if (has1mContext(model)) {
+      betaHeaders.push(CONTEXT_1M_BETA_HEADER)
+    }
+    if (
+      !isEnvTruthy(process.env.DISABLE_INTERLEAVED_THINKING) &&
+      modelSupportsISP(model, resolvedProvider)
+    ) {
+      betaHeaders.push(INTERLEAVED_THINKING_BETA_HEADER)
+    }
 
   // Skip the API-side Haiku thinking summarizer — the summary is only used
   // for ctrl+o display, which interactive users rarely open. The API returns
@@ -267,14 +300,14 @@ export const getAllModelBetas = memoize((model: string): string[] => {
   // renders those as a stub. SDK / print-mode keep summaries because callers
   // may iterate over thinking content. Users can opt back in via settings.json
   // showThinkingSummaries.
-  if (
-    includeFirstPartyOnlyBetas &&
-    modelSupportsISP(model) &&
-    !getIsNonInteractiveSession() &&
-    getInitialSettings().showThinkingSummaries !== true
-  ) {
-    betaHeaders.push(REDACT_THINKING_BETA_HEADER)
-  }
+    if (
+      includeFirstPartyOnlyBetas &&
+      modelSupportsISP(model, resolvedProvider) &&
+      !getIsNonInteractiveSession() &&
+      getInitialSettings().showThinkingSummaries !== true
+    ) {
+      betaHeaders.push(REDACT_THINKING_BETA_HEADER)
+    }
 
   // POC: server-side connector-text summarization (anti-distillation). The
   // API buffers assistant text between tool calls, summarizes it, and returns
@@ -286,101 +319,114 @@ export const getAllModelBetas = memoize((model: string): string[] => {
   // USE_CONNECTOR_TEXT_SUMMARIZATION is tri-state: =1 forces on (opt-in even
   // if GB is off), =0 forces off (opt-out of a GB rollout you were bucketed
   // into), unset defers to GB.
-  if (
-    SUMMARIZE_CONNECTOR_TEXT_BETA_HEADER &&
-    process.env.USER_TYPE === 'ant' &&
-    includeFirstPartyOnlyBetas &&
-    !isEnvDefinedFalsy(process.env.USE_CONNECTOR_TEXT_SUMMARIZATION) &&
-    (isEnvTruthy(process.env.USE_CONNECTOR_TEXT_SUMMARIZATION) ||
-      getFeatureValue_CACHED_MAY_BE_STALE('tengu_slate_prism', false))
-  ) {
-    betaHeaders.push(SUMMARIZE_CONNECTOR_TEXT_BETA_HEADER)
-  }
+    if (
+      SUMMARIZE_CONNECTOR_TEXT_BETA_HEADER &&
+      process.env.USER_TYPE === 'ant' &&
+      includeFirstPartyOnlyBetas &&
+      !isEnvDefinedFalsy(process.env.USE_CONNECTOR_TEXT_SUMMARIZATION) &&
+      (isEnvTruthy(process.env.USE_CONNECTOR_TEXT_SUMMARIZATION) ||
+        getFeatureValue_CACHED_MAY_BE_STALE('tengu_slate_prism', false))
+    ) {
+      betaHeaders.push(SUMMARIZE_CONNECTOR_TEXT_BETA_HEADER)
+    }
 
   // Add context management beta for tool clearing (ant opt-in) or thinking preservation
-  const antOptedIntoToolClearing =
-    isEnvTruthy(process.env.USE_API_CONTEXT_MANAGEMENT) &&
-    process.env.USER_TYPE === 'ant'
+    const antOptedIntoToolClearing =
+      isEnvTruthy(process.env.USE_API_CONTEXT_MANAGEMENT) &&
+      process.env.USER_TYPE === 'ant'
 
-  const thinkingPreservationEnabled = modelSupportsContextManagement(model)
+    const thinkingPreservationEnabled = modelSupportsContextManagement(
+      model,
+      resolvedProvider,
+    )
 
-  if (
-    shouldIncludeFirstPartyOnlyBetas() &&
-    (antOptedIntoToolClearing || thinkingPreservationEnabled)
-  ) {
-    betaHeaders.push(CONTEXT_MANAGEMENT_BETA_HEADER)
-  }
-  // Add strict tool use beta if experiment is enabled.
-  // Gate on includeFirstPartyOnlyBetas: MYCODE_DISABLE_EXPERIMENTAL_BETAS
-  // already strips schema.strict from tool bodies at api.ts's choke point, but
-  // this header was escaping that kill switch. Proxy gateways that look like
-  // firstParty but forward to Vertex reject this header with 400.
-  // github.com/deshaw/anthropic-issues/issues/5
-  const strictToolsEnabled =
-    checkStatsigFeatureGate_CACHED_MAY_BE_STALE('tengu_tool_pear')
-  // 3P default: false. API rejects strict + token-efficient-tools together
-  // (tool_use.py:139), so these are mutually exclusive — strict wins.
-  const tokenEfficientToolsEnabled =
-    !strictToolsEnabled &&
-    getFeatureValue_CACHED_MAY_BE_STALE('tengu_amber_json_tools', false)
-  if (
-    includeFirstPartyOnlyBetas &&
-    modelSupportsStructuredOutputs(model) &&
-    strictToolsEnabled
-  ) {
-    betaHeaders.push(STRUCTURED_OUTPUTS_BETA_HEADER)
-  }
+    if (
+      includeFirstPartyOnlyBetas &&
+      (antOptedIntoToolClearing || thinkingPreservationEnabled)
+    ) {
+      betaHeaders.push(CONTEXT_MANAGEMENT_BETA_HEADER)
+    }
+    // Add strict tool use beta if experiment is enabled.
+    // Gate on includeFirstPartyOnlyBetas: MYCODE_DISABLE_EXPERIMENTAL_BETAS
+    // already strips schema.strict from tool bodies at api.ts's choke point, but
+    // this header was escaping that kill switch. Proxy gateways that look like
+    // firstParty but forward to Vertex reject this header with 400.
+    // github.com/deshaw/anthropic-issues/issues/5
+    const strictToolsEnabled =
+      checkStatsigFeatureGate_CACHED_MAY_BE_STALE('tengu_tool_pear')
+    // 3P default: false. API rejects strict + token-efficient-tools together
+    // (tool_use.py:139), so these are mutually exclusive — strict wins.
+    const tokenEfficientToolsEnabled =
+      !strictToolsEnabled &&
+      getFeatureValue_CACHED_MAY_BE_STALE('tengu_amber_json_tools', false)
+    if (
+      includeFirstPartyOnlyBetas &&
+      modelSupportsStructuredOutputs(model, resolvedProvider) &&
+      strictToolsEnabled
+    ) {
+      betaHeaders.push(STRUCTURED_OUTPUTS_BETA_HEADER)
+    }
   // JSON tool_use format (FC v3) — ~4.5% output token reduction vs ANTML.
   // Sends the v2 header (2026-03-28) added in anthropics/anthropic#337072 to
   // isolate the CC A/B cohort from ~9.2M/week existing v1 senders. Ant-only
   // while the restored JsonToolUseOutputParser soaks.
-  if (
-    process.env.USER_TYPE === 'ant' &&
-    includeFirstPartyOnlyBetas &&
-    tokenEfficientToolsEnabled
-  ) {
-    betaHeaders.push(TOKEN_EFFICIENT_TOOLS_BETA_HEADER)
-  }
+    if (
+      process.env.USER_TYPE === 'ant' &&
+      includeFirstPartyOnlyBetas &&
+      tokenEfficientToolsEnabled
+    ) {
+      betaHeaders.push(TOKEN_EFFICIENT_TOOLS_BETA_HEADER)
+    }
 
   // Add web search beta for Vertex Claude 4.0+ models only
-  if (provider === 'vertex' && vertexModelSupportsWebSearch(model)) {
-    betaHeaders.push(WEB_SEARCH_BETA_HEADER)
-  }
-  // Foundry only ships models that already support Web Search
-  if (provider === 'foundry') {
-    betaHeaders.push(WEB_SEARCH_BETA_HEADER)
-  }
+    if (
+      resolvedProvider === 'vertex' &&
+      vertexModelSupportsWebSearch(model)
+    ) {
+      betaHeaders.push(WEB_SEARCH_BETA_HEADER)
+    }
+    // Foundry only ships models that already support Web Search
+    if (resolvedProvider === 'foundry') {
+      betaHeaders.push(WEB_SEARCH_BETA_HEADER)
+    }
 
   // Always send the beta header for 1P. The header is a no-op without a scope field.
-  if (includeFirstPartyOnlyBetas) {
-    betaHeaders.push(PROMPT_CACHING_SCOPE_BETA_HEADER)
-  }
+    if (includeFirstPartyOnlyBetas) {
+      betaHeaders.push(PROMPT_CACHING_SCOPE_BETA_HEADER)
+    }
 
   // If ANTHROPIC_BETAS is set, split it by commas and add to betaHeaders.
   // This is an explicit user opt-in, so honor it regardless of model.
-  if (process.env.ANTHROPIC_BETAS) {
-    betaHeaders.push(
-      ...process.env.ANTHROPIC_BETAS.split(',')
-        .map(_ => _.trim())
-        .filter(Boolean),
-    )
-  }
-  return betaHeaders
-})
+    if (process.env.ANTHROPIC_BETAS) {
+      betaHeaders.push(
+        ...process.env.ANTHROPIC_BETAS.split(',')
+          .map(_ => _.trim())
+          .filter(Boolean),
+      )
+    }
+    return betaHeaders
+  },
+  (model, provider) => `${model}::${provider ?? 'auto'}`,
+)
 
-export const getModelBetas = memoize((model: string): string[] => {
-  const modelBetas = getAllModelBetas(model)
-  if (getAPIProvider() === 'bedrock') {
-    return modelBetas.filter(b => !BEDROCK_EXTRA_PARAMS_HEADERS.has(b))
-  }
-  return modelBetas
-})
+export const getModelBetas = memoize(
+  (model: string, provider?: APIProvider): string[] => {
+    const resolvedProvider = resolveProviderForBetas(model, provider)
+    const modelBetas = getAllModelBetas(model, resolvedProvider)
+    if (resolvedProvider === 'bedrock') {
+      return modelBetas.filter(b => !BEDROCK_EXTRA_PARAMS_HEADERS.has(b))
+    }
+    return modelBetas
+  },
+  (model, provider) => `${model}::${provider ?? 'auto'}`,
+)
 
 export const getBedrockExtraBodyParamsBetas = memoize(
-  (model: string): string[] => {
-    const modelBetas = getAllModelBetas(model)
+  (model: string, provider?: APIProvider): string[] => {
+    const modelBetas = getAllModelBetas(model, provider)
     return modelBetas.filter(b => BEDROCK_EXTRA_PARAMS_HEADERS.has(b))
   },
+  (model, provider) => `${model}::${provider ?? 'auto'}`,
 )
 
 /**
@@ -396,9 +442,9 @@ export const getBedrockExtraBodyParamsBetas = memoize(
  */
 export function getMergedBetas(
   model: string,
-  options?: { isAgenticQuery?: boolean },
+  options?: { isAgenticQuery?: boolean; provider?: APIProvider },
 ): string[] {
-  const baseBetas = [...getModelBetas(model)]
+  const baseBetas = [...getModelBetas(model, options?.provider)]
 
   // Agentic queries always need mycode and cli-internal beta headers.
   // For non-Haiku models these are already in baseBetas; for Haiku they're

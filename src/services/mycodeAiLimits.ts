@@ -207,7 +207,7 @@ async function makeTestQuery() {
     source: 'quota_check',
   })
   const messages: MessageParam[] = [{ role: 'user', content: 'quota' }]
-  const betas = getModelBetas(model)
+  const betas = getModelBetas(model, 'firstParty')
   // biome-ignore lint/plugin: quota check needs raw response access via asResponse()
   return anthropic.beta.messages
     .create({

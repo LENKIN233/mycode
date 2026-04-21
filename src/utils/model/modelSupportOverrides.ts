@@ -1,5 +1,6 @@
 import memoize from 'lodash-es/memoize.js'
-import { getAPIProvider } from './providers.js'
+import { getProviderForTask } from './taskModels.js'
+import type { APIProvider } from './providers.js'
 
 export type ModelCapabilityOverride =
   | 'effort'
@@ -7,6 +8,31 @@ export type ModelCapabilityOverride =
   | 'thinking'
   | 'adaptive_thinking'
   | 'interleaved_thinking'
+
+export function resolveProviderForModelSupport(model: string): APIProvider {
+  const normalized = model.trim().toLowerCase()
+
+  if (
+    normalized.startsWith('gpt-') ||
+    normalized.startsWith('o1') ||
+    normalized.startsWith('o3') ||
+    normalized.startsWith('claude-sonnet-4.') ||
+    normalized.startsWith('claude-haiku-4.') ||
+    normalized.startsWith('claude-opus-4.')
+  ) {
+    return 'copilot'
+  }
+
+  if (
+    normalized.startsWith('claude-') ||
+    normalized.startsWith('us.anthropic.') ||
+    normalized.startsWith('anthropic.')
+  ) {
+    return 'firstParty'
+  }
+
+  return getProviderForTask('mainLoop')
+}
 
 const TIERS = [
   {
@@ -29,7 +55,7 @@ const TIERS = [
  */
 export const get3PModelCapabilityOverride = memoize(
   (model: string, capability: ModelCapabilityOverride): boolean | undefined => {
-    if (getAPIProvider() === 'firstParty') {
+    if (resolveProviderForModelSupport(model) === 'firstParty') {
       return undefined
     }
     const m = model.toLowerCase()
